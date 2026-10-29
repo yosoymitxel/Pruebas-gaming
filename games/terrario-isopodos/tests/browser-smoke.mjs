@@ -33,6 +33,14 @@ try {
   await page.getByRole("button", { name: "+1 min" }).click();
   if (!(await page.locator("#clock").textContent()).includes("08:01")) throw new Error("El reloj no avanzó un minuto");
   if (await page.locator("#count").textContent() !== "01") throw new Error("La cantidad de entidades cambió al alternar renderers");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.locator("#humidity-input").evaluate(el => { el.value = "0.4"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  if (await page.locator("#humidity").textContent() !== "40") throw new Error("No se pudo cambiar la humedad");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Cargar" }).click();
+  if (!(await page.locator("#clock").textContent()).includes("08:01")) throw new Error("El guardado no recuperó el reloj tras recarga");
+  if (await page.locator("#humidity").textContent() !== "78") throw new Error("El guardado no restauró la humedad tras recarga");
+  if (await page.locator("#count").textContent() !== "01") throw new Error("La cantidad de entidades cambió al restaurar");
   await page.screenshot({ path: "artifacts/visual/desktop-1440x1000.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
