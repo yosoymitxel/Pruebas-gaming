@@ -28,3 +28,8 @@ reference	visual-evidence-playwright	docs/EVIDENCIA-VISUAL.md	framework-policy	a
 reference	asset-reference-catalog	docs/CATALOGO-REFERENCIAS.md	framework-policy	active	Context-driven discovery for SVG, sprites, animations, UI, VFX and voxel resources
 tool	playwright	https://playwright.dev/	review	pending	Use when installed/available; record version and test exact current checkout
 reference	motion-one-animations	https://motion.dev/	catalogue	pending	UI/microinteraction motion; runtime dependency only if justified
+skill	game-project-skeleton	.agents/skills/game-project-skeleton/SKILL.md	local	active	Project-owned skill for baseline game systems and authoritative state
+skill	game-ui-ux	https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/skills/disciplines/game-ui-ux	skills-cli	identified-pending-local-copy	Game menus, HUD, overlays, screen stack, responsive input
+skill	save-systems	https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/skills/disciplines/save-systems	skills-cli	identified-pending-local-copy	Save/load, schema versioning, migration, autosave and recovery
+skill	input-systems	https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/skills/disciplines/input-systems	skills-cli	identified-pending-local-copy	Device abstraction, remapping and input buffering
+reference	vercel-skills-discovery	docs/DESCUBRIMIENTO-SKILLS.md	framework-policy	active	How to search for missing capabilities without assuming the CLI is itself a skill
