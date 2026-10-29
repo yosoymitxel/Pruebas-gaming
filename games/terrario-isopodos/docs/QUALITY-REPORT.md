@@ -34,6 +34,13 @@
 | Responsive/accesibilidad | PENDIENTE | Capturas actuales y prueba de overflow móvil requeridas. |
 | Build y QA | PENDIENTE | Tests y build pasaron en el SHA anterior; smoke de navegador falló y debe repetirse tras corregir. |
 
+## Orquestación aplicada (game-project-orchestrator)
+
+- Tipo: simulación sandbox 3D para navegador; tareas: estado/dominio, flujo de pantallas, renderizado y QA de integración.
+- Reutilización: estado y simulación existentes; dos renderers sobre el mismo estado; persistencia local existente. No se introduce motor ni dependencia de runtime nueva.
+- Orden: contrato de estado y guardado → menú/setup/pausa → renderers → smoke de navegador y capturas. Riesgo prioritario: estado real del juego y UI divergen durante pause/resume/save-load.
+- Validación exigida: tests de dominio, build de producción, Playwright real, consola/red limpia, escritorio 1440×1000 y móvil 390×844. Los artefactos deben salir de la revisión exacta.
+
 ## Puertas de calidad
 
 | Puerta | Estado | Evidencia / condición |
