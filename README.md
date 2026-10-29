@@ -20,7 +20,9 @@ No es una colección pasiva de prompts. El framework define un proceso obligator
 13. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
 14. [Estándares](docs/ESTANDARES.md)
 15. [Estructura prevista](docs/ESTRUCTURA.md)
-16. [Especificación del terrario sandbox de isópodos](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
+16. [Juego: Terrario de isópodos](games/terrario-isopodos/README.md)
+
+El framework compartido vive en `framework/`, `skills/`, `.agents/skills/` y `scripts/`. Cada juego vive de forma independiente en `games/<id-del-juego>/` y contiene su propio `README.md`, `AGENTS.md`, `docs/`, código, assets y pruebas. No guardar documentación específica de un juego en el `docs/` raíz ni modificar skills compartidas para implementar un juego.
 
 ## Filtros obligatorios
 Cada tarea debe registrar resultados para:

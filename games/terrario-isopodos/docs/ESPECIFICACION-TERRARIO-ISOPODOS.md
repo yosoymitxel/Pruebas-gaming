@@ -1,8 +1,8 @@
 # Especificación técnica — Terrario sandbox de isópodos
 
-**Estado:** especificación propuesta para cerrar antes de crear el proyecto del juego.  
-**Repositorio:** `yosoymitxel/Pruebas-gaming`  
-**Alcance de esta fase:** diseño, contratos y criterios de aceptación. No crear todavía `juegos/` ni implementar el runtime.
+**Estado:** especificación normativa del juego; la implementación inicial está en progreso y sus criterios siguen vigentes.  
+**Juego:** `games/terrario-isopodos/`  
+**Alcance de esta fase:** diseño, contratos y criterios de aceptación. No implementar todavía el runtime hasta validar el spike técnico.
 
 ## 1. Visión y límites
 
@@ -79,7 +79,7 @@ Mantener módulos pequeños con contratos explícitos. Los nombres son responsab
 - `assets/`: modelos, sprites, texturas, audio y manifiesto de procedencia/licencias.
 - `tests/`: pruebas de dominio, simulación, persistencia, integración y render.
 
-No se exige que estos directorios se creen ahora. La estructura física final se ajustará al stack y las convenciones verificadas al iniciar la implementación.
+La estructura física del juego vive exclusivamente bajo `games/terrario-isopodos/`; los módulos de la arquitectura lógica se concretarán al implementar.
 
 ### Fuente única de verdad
 
@@ -267,7 +267,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 ## 12. Plan de ejecución por fases
 
 1. **Cerrar especificación y riesgos:** aprobar este documento; confirmar que no se necesita backend ni más especies para el MVP.
-2. **Spike técnico de render:** prototipo desechable fuera de `juegos/` o rama técnica aislada para verificar Three.js, sprite voxelizado en escena 3D, cámara orbital y formas de recipiente. No construir gameplay completo durante este spike.
+2. **Spike técnico de render:** prototipo desechable fuera de `games/` o rama técnica aislada para verificar Three.js, sprite voxelizado en escena 3D, cámara orbital y formas de recipiente. No construir gameplay completo durante este spike.
 3. **Modelo de dominio y reloj:** entidades, RNG, comandos, reglas, pruebas deterministas y límites.
 4. **Persistencia:** esquema, validación, migración y pruebas de recuperación.
 5. **Renderer Diorama:** recipiente, entorno, modelos provisionales licenciados/propios y selección.
@@ -275,7 +275,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 7. **HUD, menús, ajustes e input:** responsive, accesibilidad y controles de velocidad.
 8. **Biología MVP y descubrimientos:** comportamientos mínimos y pruebas de límites.
 9. **Integración y pulido:** profiling, QA independiente, capturas actuales, build y reporte.
-10. **Crear `juegos/terrario-isopodos/`** solo después de que el diseño quede cerrado y el spike confirme el riesgo técnico principal.
+10. **Implementar dentro de `games/terrario-isopodos/`** solo después de que el diseño quede cerrado y el spike confirme el riesgo técnico principal.
 
 ## 13. Riesgos abiertos y reglas de bloqueo
 

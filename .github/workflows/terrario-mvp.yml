@@ -1,0 +1,51 @@
+name: Terrario MVP checks
+
+on:
+  push:
+    branches:
+      - feat/isopod-render-spike
+    paths:
+      - "games/terrario-isopodos/**"
+      - ".github/workflows/terrario-mvp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrario-mvp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/terrario-isopodos
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser interaction smoke test and screenshots
+        run: node tests/browser-smoke.mjs
+      - name: Upload real browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terrario-visual-evidence-${{ github.sha }}
+          path: games/terrario-isopodos/artifacts/visual/
+          if-no-files-found: warn
+          retention-days: 14
