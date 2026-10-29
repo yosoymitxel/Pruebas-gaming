@@ -56,6 +56,21 @@ test("guardado inválido se rechaza",()=>{
  assert.throws(()=>parseTerrarium("{"));
  assert.throws(()=>parseTerrarium(JSON.stringify({schemaVersion:1,state:{version:1,clockMinutes:-2,habitat:{shape:"rectangular",humidity:.7,temperatureC:20},entities:[],resources:[]}})));
 });
+test("la colonia alterna exploración y conductas de descanso",()=>{
+ const s=createTerrariumState();stepSimulation(s,90);
+ const behaviors=new Set(s.entities.map(e=>e.behavior));
+ assert.ok(behaviors.size>=2,`Se esperaban conductas variadas, recibidas: ${[...behaviors].join(", ")}`);
+});
+test("las necesidades disparan búsqueda de comida, refugio y defensa",()=>{
+ const s=createTerrariumState();
+ s.entities[0].energy=.2;
+ s.entities[1].hydration=.2;
+ s.entities[2].stress=.95;
+ stepSimulation(s,1);
+ assert.ok(["seeking-food","feeding","grooming"].includes(s.entities[0].behavior),`Conducta de comida inesperada: ${s.entities[0].behavior}`);
+ assert.ok(["seeking-shelter","resting"].includes(s.entities[1].behavior),`Conducta de refugio inesperada: ${s.entities[1].behavior}`);
+ assert.equal(s.entities[2].behavior,"defensive-curl");
+});
 test("formatea día y hora",()=>{
  assert.equal(formatClock(480),"DÍA 01 · 08:00");assert.equal(formatClock(1440),"DÍA 02 · 00:00");
 });
