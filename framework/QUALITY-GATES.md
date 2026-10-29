@@ -34,9 +34,19 @@ Comprobar:
 - Overflow, elementos superpuestos, clipping y z-index.
 - Accesibilidad básica: foco visible, etiquetas, navegación por teclado y contraste cuando aplique.
 - Movimiento: timing, easing, interrupciones, repetición y reduced motion cuando corresponda.
-- Capturas reales del producto ejecutándose para cambios visuales; no mockups sustitutos.
+- Para cambios visuales, capturas reales del producto ejecutándose y asociadas al commit/versión exactos; no mockups ni capturas históricas sustitutas.
+- Seguir el protocolo completo de [evidencia visual actual](../docs/EVIDENCIA-VISUAL.md).
 
-En cambios internos sin impacto visual, registrar NOT_APPLICABLE y explicar por qué.
+### Prueba de actualidad obligatoria
+Una captura solo vale como evidencia si puede trazarse a:
+1. Repositorio y rama/PR correctos.
+2. SHA del commit que contiene los cambios probados.
+3. Origen de ejecución exacto: servidor local desde ese checkout o URL desplegada cuya revisión se haya verificado.
+4. Fecha/hora de captura, viewport, ruta/escena y pasos para reproducirla.
+5. Artefacto guardado como PNG/WebP sin edición que altere el resultado.
+6. Resultado visible que corresponde al cambio bajo revisión, no a una versión anterior.
+
+Si el código local tiene cambios sin commit, registrar el estado de trabajo y su diff/hash; no atribuir la imagen a un commit que no contiene esos cambios. Si no se puede verificar la procedencia, la evidencia visual queda BLOCKED.
 
 ## 4. INTEGRATION_GATE — regresión conjunta
 - Ejecutar los flujos que cruzan los sistemas modificados.
@@ -44,6 +54,7 @@ En cambios internos sin impacto visual, registrar NOT_APPLICABLE y explicar por 
 - Verificar tamaños/formatos de build y comportamiento del hosting objetivo.
 - Confirmar que no se ha duplicado un sistema existente.
 - Revisar el diff final y que los criterios iniciales estén satisfechos.
+- Confirmar que los enlaces de capturas/ZIP apuntan a artefactos existentes y descargables.
 
 ## Criterio de bloqueo
 No declarar la tarea terminada si una puerta aplicable está en FAIL o BLOCKED. Se puede entregar un estado parcial claramente etiquetado, con bloqueo y pasos concretos para resolverlo.
