@@ -1,7 +1,7 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
 import{stepSimulation,addFood,addShelter}from"./simulation.js";
-import{saveTerrarium,loadTerrarium,SAVE_KEY}from"./persistence.js";
+import{saveTerrarium,loadTerrarium}from"./persistence.js";
 import{TerrariumRenderer}from"./renderers.js";
 const state=createTerrariumState(),renderer=new TerrariumRenderer(document.querySelector("#scene"),state),$=s=>document.querySelector(s);
 let last=performance.now(),acc=0,saveMessage="",setupShape="rectangular",setupMode="diorama",settings=loadSettings();
@@ -10,7 +10,7 @@ function loadSettings(){try{return{autoRotate:true,quality:"normal",...JSON.pars
 function saveSettings(){localStorage.setItem("terrario-isopodos.settings.v1",JSON.stringify(settings));}
 function hasSave(){try{return Boolean(localStorage.getItem(SAVE_KEY))}catch{return false}}
 function refreshMenu(){ $("#continue-game").disabled=!hasSave(); }
-function enterGame(){menu.hidden=true;setup.hidden=true;modal.hidden=true;shell.hidden=false;state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();}
+function enterGame(){menu.hidden=true;setup.hidden=true;modal.hidden=true;shell.hidden=false;renderer.resize();state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();}
 function openModal(title,body){$("#modal-title").textContent=title;$("#modal-body").innerHTML=body;modal.hidden=false;}
 function closeModal(){modal.hidden=true;}
 function showPauseMenu(){state.running=false;update();openModal("Partida en pausa",`<p>El tiempo y los comportamientos están detenidos. Tu colonia sigue exactamente donde la dejaste.</p><button class="menu-primary" id="resume-game">Continuar observando <span>↗</span></button><button class="menu-secondary modal-action" id="step-paused">Avanzar 1 minuto sin reanudar</button><button class="menu-secondary modal-action" id="pause-save">Guardar terrario</button><button class="menu-secondary modal-action" id="return-title">Volver al menú principal</button>`);}
@@ -20,7 +20,7 @@ $("#new-game").addEventListener("click",()=>{menu.hidden=true;setup.hidden=false
 $("#back-to-menu").addEventListener("click",()=>{setup.hidden=true;menu.hidden=false;refreshMenu();});
 document.querySelectorAll("[data-setup-shape]").forEach(b=>b.addEventListener("click",()=>{setupShape=b.dataset.setupShape;document.querySelectorAll("[data-setup-shape]").forEach(x=>x.classList.toggle("selected",x===b));}));
 document.querySelectorAll("[data-setup-mode]").forEach(b=>b.addEventListener("click",()=>{setupMode=b.dataset.setupMode;document.querySelectorAll("[data-setup-mode]").forEach(x=>x.classList.toggle("selected",x===b));}));
-$("#start-game").addEventListener("click",()=>{state.habitat.shape=setupShape;state.presentation.mode=setupMode;state.name=$("#setup-name").value.trim()||"Pequeño bosque";renderer.setShape(setupShape);renderer.setMode(setupMode);state.running=true;enterGame();});
+$("#start-game").addEventListener("click",()=>{Object.assign(state,createTerrariumState());state.habitat.shape=setupShape;state.presentation.mode=setupMode;state.presentation.autoRotate=settings.autoRotate;state.name=$("#setup-name").value.trim()||"Pequeño bosque";renderer.setShape(setupShape);state.running=true;enterGame();});
 $("#continue-game").addEventListener("click",()=>{try{const loaded=loadTerrarium();if(!loaded){refreshMenu();return;}Object.assign(state,loaded);state.presentation={...state.presentation,mode:setupMode,autoRotate:settings.autoRotate};renderer.setShape(state.habitat.shape);renderer.setMode(state.presentation.mode);enterGame();}catch(e){openModal("No se pudo continuar",`<p>${e.message}</p>`);}});
 $("#open-settings").addEventListener("click",showSettings);$("#open-help").addEventListener("click",showHelp);$("#close-modal").addEventListener("click",closeModal);
 $("#open-game-menu").addEventListener("click",showPauseMenu);
