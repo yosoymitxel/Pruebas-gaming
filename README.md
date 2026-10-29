@@ -1,33 +1,45 @@
-# Pruebas-gaming — Repertorio reutilizable de skills para videojuegos
+# Pruebas-gaming — Framework reutilizable para videojuegos
 
-Este repositorio centraliza skills, instrucciones, criterios de selección y herramientas para desarrollar varios juegos sin reinventar el flujo en cada proyecto.
+El objetivo principal de este repositorio es crear un **framework de trabajo automatizado** que coordine skills de ingeniería, game development y diseño para mejorar la calidad de los juegos web.
 
-## Objetivo
-- Mantener skills reutilizables dentro del repositorio.
-- Documentar cuándo usar cada skill, cuándo no usarla y cómo validar su resultado.
-- Separar skills de agentes, bibliotecas ejecutables, herramientas de arte y referencias.
-- Priorizar cambios pequeños, reutilizar sistemas existentes y validar el juego real.
+No es una colección pasiva de prompts. El framework define un proceso obligatorio, perfiles de tarea, puertas de calidad, reglas de resolución de conflictos y evidencia necesaria para considerar un trabajo terminado.
 
 ## Empieza aquí
-1. Lee [la guía de selección](docs/SELECCION-DE-HERRAMIENTAS.md).
-2. Consulta el [catálogo de fuentes](docs/CATALOGO.md).
-3. Revisa [estándares de calidad](docs/ESTANDARES.md).
-4. Ejecuta el instalador reproducible: `bash scripts/install-skills.sh`.
-5. Valida el inventario: `bash scripts/validate-skills.sh`.
+1. [Contrato del framework](framework/README.md)
+2. [Orquestación de skills](framework/ORCHESTRATION.md)
+3. [Puertas obligatorias de calidad](framework/QUALITY-GATES.md)
+4. [Perfiles y selección de skills](framework/TASK-PROFILES.md)
+5. [Plantilla de informe](framework/REPORT-TEMPLATE.md)
+6. [Catálogo de fuentes](docs/CATALOGO.md)
+7. [Estándares](docs/ESTANDARES.md)
+8. [Estructura prevista](docs/ESTRUCTURA.md)
 
-## Estructura
-- `skills/`: skills versionadas dentro del repositorio.
-- `.agents/skills/`: skills instaladas para agentes compatibles.
-- `.claude/skills/`: skills instaladas para Claude Code.
-- `docs/`: catálogo, instrucciones de uso, compatibilidad y estándares.
-- `sources/manifest.tsv`: fuentes externas y método de incorporación.
-- `scripts/`: instalación y validación repetibles.
+## Filtros obligatorios
+Cada tarea debe registrar resultados para:
+- **CODE_GATE:** calidad técnica, pruebas, seguridad y revisión del diff.
+- **GAMEPLAY_GATE:** reglas, controles, estados y funcionamiento real.
+- **DESIGN_GATE:** coherencia visual, responsive, accesibilidad y animaciones.
 
-> Una fuente no se considera instalada hasta que sus archivos estén presentes, su licencia se haya revisado y la validación local pase. Los enlaces del catálogo por sí solos no cuentan como instalación.
+Si un filtro no corresponde, debe marcarse NOT_APPLICABLE con una razón. Si no se pudo probar, BLOCKED; nunca se convierte una suposición en PASS.
 
-## Principios
-- No reescribir mecánicas existentes sin necesidad.
-- No añadir dependencias de runtime por mera inspiración visual.
-- No dar por terminada una tarea porque compila: comprobar jugabilidad, consola, escritorio y móvil.
-- No afirmar que se ejecutó una prueba si no hay evidencia.
-- Respetar licencias y mantener la procedencia de skills y recursos.
+## Skills y herramientas
+- `skills/`: skills propias/adaptaciones curadas.
+- `.agents/skills/`: skills de proyecto para agentes compatibles.
+- `.claude/skills/`: skills de proyecto para Claude Code.
+- `sources/manifest.tsv`: origen, método y estado de cada fuente.
+- `scripts/`: instalación y validación de skills.
+
+Las skills se activan según la tarea, no todas indiscriminadamente. Bibliotecas de runtime, generadores de arte y sitios de referencia se evalúan por separado.
+
+## Instalación y validación de skills
+Requiere Node.js 22.20 o posterior para el instalador actual:
+
+```bash
+bash scripts/install-skills.sh
+bash scripts/validate-skills.sh
+```
+
+La instalación todavía debe ejecutarse y validarse en un entorno con acceso a GitHub. No se considera completa solo por tener un instalador.
+
+## Alcance actual
+Esta fase se centra exclusivamente en estabilizar el framework. La carpeta `juegos/`, con un subdirectorio por juego HTML, queda para una fase posterior.
