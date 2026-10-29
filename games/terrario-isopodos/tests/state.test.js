@@ -57,9 +57,9 @@ test("guardado inválido se rechaza",()=>{
  assert.throws(()=>parseTerrarium(JSON.stringify({schemaVersion:1,state:{version:1,clockMinutes:-2,habitat:{shape:"rectangular",humidity:.7,temperatureC:20},entities:[],resources:[]}})));
 });
 test("la colonia alterna exploración y conductas de descanso",()=>{
- const s=createTerrariumState();stepSimulation(s,90);
- const behaviors=new Set(s.entities.map(e=>e.behavior));
- assert.ok(behaviors.size>=2,`Se esperaban conductas variadas, recibidas: ${[...behaviors].join(", ")}`);
+ const s=createTerrariumState(),behaviors=new Set();
+ for(let i=0;i<90;i++){stepSimulation(s,1);for(const e of s.entities)behaviors.add(e.behavior);}
+ assert.ok(behaviors.size>=3,`Se esperaban al menos 3 conductas, recibidas: ${[...behaviors].join(", ")}`);
 });
 test("las necesidades disparan búsqueda de comida, refugio y defensa",()=>{
  const s=createTerrariumState();
