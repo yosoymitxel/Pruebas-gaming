@@ -55,6 +55,7 @@ try{
  if((await page.locator("#clock").textContent())!==savedClock)throw new Error(`El guardado no recuperó el reloj guardado: esperado=${savedClock}, obtenido=${await page.locator("#clock").textContent()}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
+ if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("Los ajustes no restauraron el modo visual elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
  await page.screenshot({path:"artifacts/visual/mobile-390x844.png",fullPage:true});

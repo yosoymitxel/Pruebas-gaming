@@ -51,3 +51,140 @@
 .top-actions{display:flex;align-items:center;gap:14px}.menu-in-game{padding:8px 11px;background:transparent;border:1px solid var(--line);font-size:10px}
 @media(max-width:760px){.menu-screen{padding:17px 20px}.menu-top{font-size:8px}.menu-top>span:last-child{max-width:45%;text-align:right;line-height:1.6}.menu-content{grid-template-columns:1fr;gap:0;align-content:center;padding:18px 0}.menu-art{min-height:0;width:min(67vw,300px);margin:0 auto -5px}.menu-copy{padding:10px 0 22px}.menu-copy h1{font-size:clamp(45px,12vw,65px)}.menu-copy>p:not(.eyebrow){font-size:12px;line-height:1.65;margin:15px 0 20px}.menu-actions{gap:7px}.menu-actions button{min-height:43px;padding:11px;font-size:11px}.menu-foot{margin-top:20px;gap:12px;font-size:7px}.menu-bottom{font-size:7px}.setup-options button{padding:10px 8px;grid-template-columns:25px 1fr;gap:3px 7px}.setup-options button>span{font-size:20px}.top-actions small{display:none}}
 @media(prefers-reduced-motion:reduce){.menu-globe,.menu-orbit,.menu-creature{animation:none!important}}
+
+
+/* PLAY MODE: the habitat is the game, the controls are overlays. */
+html,body{width:100%;height:100%;min-width:320px;overflow:hidden;overscroll-behavior:none}
+body{background:#14271d}
+.shell{position:relative;width:100%;height:100svh;max-width:none;padding:0;overflow:hidden}
+.shell>.top{position:absolute;z-index:8;top:0;left:0;right:0;min-height:48px;padding:0 18px;border:0;background:linear-gradient(180deg,#0c1a13c9,transparent);color:#e7ead8}
+.shell .brand{color:#e7ead8}
+.shell .top-note,.shell .top small{color:#b8c9aa}
+.shell .top-actions{gap:8px}
+.menu-in-game{border:1px solid #d1dfb55c;background:#172b22b8;color:#edf0df;border-radius:99px;padding:9px 14px;backdrop-filter:blur(12px)}
+.intro,.shell>footer{display:none!important}
+.workspace{display:block;position:absolute;inset:0;border:0;background:#14271d}
+.view{position:absolute;inset:0;min-height:0;height:100%;background:#20382b}
+.viewhead{top:62px;left:20px;right:20px}
+.view-title{font-size:12px}
+#scene{position:absolute;inset:0}
+.scene-caption{bottom:18px;left:20px;right:20px;opacity:.78}
+.viewtools{top:auto;left:18px;bottom:58px;z-index:5;display:flex;flex-wrap:wrap}
+.viewtools button{border:1px solid #d0ddb36b;border-radius:99px;background:#14271d99;color:#eef0df;backdrop-filter:blur(12px);padding:9px 13px}
+.panel{position:absolute;z-index:7;right:14px;top:64px;bottom:16px;width:264px;max-height:calc(100svh - 80px);overflow:auto;overscroll-behavior:contain;padding:16px;background:#15281fe8;color:#e6ead7;border:1px solid #b8c99b4d;border-radius:18px;backdrop-filter:blur(18px);box-shadow:0 16px 45px #07120c66;scrollbar-width:thin;scrollbar-color:#637a51 transparent}
+.panel>.eyebrow{color:#a9bd8d}
+.panel h2{font:500 17px/1.2 Georgia,serif;color:#edf0df;margin:0 0 10px}
+.panel hr{border-color:#a8bc8b30;margin:14px 0}
+.panel .note{color:#b2c0a6;font-size:10px}
+.panel label{color:#c8d4ba;margin-top:12px}
+.panel label b{color:#c6dc9c}
+.metrics>div{background:#253c2c;border:1px solid #93aa7333;border-radius:10px;padding:9px 7px}
+.metrics small{color:#b4c4a5;font-size:8px}
+.metrics strong{font-size:22px;color:#f0f1df;margin-top:5px}
+.modes{gap:6px}
+.modes button{background:#21392a;color:#e6ead7;border:1px solid #8ca27455;border-radius:10px;padding:9px 6px}
+.modes small{color:#aebda1;white-space:normal}
+.actions{gap:6px}
+.actions button,.shapes button{border-radius:10px;border:1px solid #8ca27466;background:#243b2b;color:#e5ead8;padding:10px 8px}
+.actions .primary{background:#b9cf91!important;color:#17291d!important;border-color:#b9cf91!important}
+button[aria-pressed=true]{background:#b9cf91!important;color:#17291d!important;border-color:#d5e8b4!important}
+input[type=range]{appearance:none;height:22px;background:transparent;accent-color:#bfd89a}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:#789065}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:17px;height:17px;margin-top:-6px;border-radius:50%;background:#d1e4ad;border:2px solid #263b2a;box-shadow:0 1px 5px #0006}
+input[type=range]::-moz-range-track{height:5px;border-radius:99px;background:#789065}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#d1e4ad;border:2px solid #263b2a}
+.resource-actions{margin-top:12px}
+.resource-actions button{font-size:10px}
+#behavior{padding:8px 10px;background:#263e2b;border-radius:8px;color:#d0dfb6}
+.game-screen{height:100svh;min-height:0;overflow:auto;overscroll-behavior:contain}
+@media(max-width:760px){
+ .shell{height:100svh;height:100dvh}
+ .shell>.top{min-height:48px;padding:0 12px}
+ .shell .brand{font-size:10px}
+ .top-actions small,.top-note{display:none!important}
+ .menu-in-game{padding:8px 12px}
+ .view{height:100%;max-height:none;border:0}
+ .viewhead{top:58px;left:12px;right:12px}
+ .scene-caption{left:12px;right:12px;bottom:calc(31svh + 14px);font-size:7px}
+ .scene-caption span:first-child{max-width:52%}
+ .scene-caption span:last-child{max-width:44%;text-align:right}
+ .viewtools{left:10px;right:10px;bottom:calc(31svh + 42px);gap:6px}
+ .viewtools button{font-size:10px;padding:8px 10px}
+ .panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;height:30svh;max-height:30svh;padding:12px 13px calc(12px + env(safe-area-inset-bottom));border-radius:16px;display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:8px 12px}
+ .panel>.eyebrow,.panel>hr{display:none}
+ .panel h2{font-size:14px;margin:0 0 7px}
+ .panel h2:first-of-type{grid-column:1/-1}
+ .panel .modes{grid-column:1/-1}
+ .panel .modes button{padding:7px 8px}
+ .panel .modes b{font-size:10px}
+ .panel .modes small{display:none}
+ .panel .actions{grid-column:1/-1}
+ .panel .actions button{padding:8px 6px;font-size:10px}
+ .panel .metrics{grid-column:1/-1}
+ .panel .metrics>div{display:flex;align-items:center;justify-content:space-between;padding:6px 8px}
+ .panel .metrics strong{font-size:17px;margin:0}
+ .panel label{display:grid;grid-template-columns:1fr auto;gap:3px;margin:0;font-size:9px}
+ .panel label input{grid-column:1/-1;margin:4px 0 0;height:15px}
+ .panel .scale{display:none}
+ .panel .resource-actions{grid-column:1/-1;margin:0}
+ .panel .note{display:none}
+ .panel #behavior{display:block;grid-column:1/-1;margin:0;padding:5px 8px;font-size:9px}
+ .panel #resource-note{display:none}
+ .panel .resource-actions button{font-size:9px;padding:7px}
+}
+@media(max-width:390px){
+ .panel{height:32svh;max-height:32svh}
+ .scene-caption{bottom:calc(33svh + 14px)}
+ .viewtools{bottom:calc(33svh + 40px)}
+ .panel .metrics small{font-size:7px}
+ .panel .metrics strong{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+@media(max-width:760px){
+ .panel h2{display:none}
+ .panel .modes{margin:0}
+ .panel #speed-label{font-size:9px}
+ .panel #humidity-input,.panel #temperature-input{width:100%;min-width:0}
+}
+
+
+/* Craft pass: preserve the field-notebook palette; prioritize the living scene. */
+html{scrollbar-color:#637a51 #172b22;caret-color:#a9bc88}
+::selection{background:#a9bc88;color:#172b22}
+button,a,input,select{touch-action:manipulation}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
+ outline:2px solid #d1e4ad;outline-offset:3px
+}
+button:disabled{cursor:not-allowed}
+button:not(:disabled){cursor:pointer}
+#scene,#scene canvas{display:block;width:100%;height:100%}
+.shell>.top{
+ padding-top:env(safe-area-inset-top);
+ min-height:calc(48px + env(safe-area-inset-top));
+ backdrop-filter:none
+}
+.menu-in-game,.viewtools button{backdrop-filter:none}
+.viewtools button{min-height:40px}
+.panel{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.panel button{min-height:38px;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+.panel button:active{transform:translateY(1px)}
+.panel input[type=range]{cursor:pointer;touch-action:pan-y}
+@media(max-width:760px){
+ .shell>.top{padding-top:env(safe-area-inset-top);min-height:calc(48px + env(safe-area-inset-top))}
+ .panel{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+ .panel button{min-height:34px}
+ .viewtools button{min-height:38px}
+ .menu-screen{padding-top:calc(17px + env(safe-area-inset-top));padding-bottom:calc(17px + env(safe-area-inset-bottom))}
+}
+@media(max-height:700px) and (max-width:760px){
+ .panel{height:34svh;max-height:34svh}
+ .scene-caption{bottom:calc(35svh + 12px)}
+ .viewtools{bottom:calc(35svh + 38px)}
+ .panel .metrics>div{padding:4px 6px}
+ .panel .actions button{padding:6px 5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .panel button{transition:none}
+ .panel button:active{transform:none}
+}

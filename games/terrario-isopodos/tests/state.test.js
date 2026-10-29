@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
 import {addFood,addShelter,stepSimulation} from "../src/simulation.js";
-import {parseTerrarium,serializeTerrarium} from "../src/persistence.js";
+import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,SAVE_KEY} from "../src/persistence.js";
 
 test("el estado inicial contiene una colonia con IDs estables",()=>{
  const s=createTerrariumState();
@@ -56,6 +56,53 @@ test("guardado inválido se rechaza",()=>{
  assert.throws(()=>parseTerrarium("{"));
  assert.throws(()=>parseTerrarium(JSON.stringify({schemaVersion:1,state:{version:1,clockMinutes:-2,habitat:{shape:"rectangular",humidity:.7,temperatureC:20},entities:[],resources:[]}})));
 });
+test("la colonia alterna exploración y conductas de descanso",()=>{
+ const s=createTerrariumState(),behaviors=new Set();
+ for(let i=0;i<90;i++){stepSimulation(s,1);for(const e of s.entities)behaviors.add(e.behavior);}
+ assert.ok(behaviors.size>=3,`Se esperaban al menos 3 conductas, recibidas: ${[...behaviors].join(", ")}`);
+});
+test("las necesidades disparan búsqueda de comida, refugio y defensa",()=>{
+ const s=createTerrariumState();
+ s.entities[0].energy=.2;
+ s.entities[1].hydration=.2;
+ s.entities[2].stress=.95;
+ stepSimulation(s,1);
+ assert.ok(["seeking-food","feeding","grooming"].includes(s.entities[0].behavior),`Conducta de comida inesperada: ${s.entities[0].behavior}`);
+ assert.ok(["seeking-shelter","resting"].includes(s.entities[1].behavior),`Conducta de refugio inesperada: ${s.entities[1].behavior}`);
+ assert.equal(s.entities[2].behavior,"defensive-curl");
+});
 test("formatea día y hora",()=>{
  assert.equal(formatClock(480),"DÍA 01 · 08:00");assert.equal(formatClock(1440),"DÍA 02 · 00:00");
+});
+
+test("el guardado rechaza versiones futuras y entidades duplicadas",()=>{
+ const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
+ const future=structuredClone(valid);future.schemaVersion=2;
+ assert.throws(()=>parseTerrarium(JSON.stringify(future)),/versión más reciente/);
+ const duplicate=structuredClone(valid);duplicate.state.entities[1].id=duplicate.state.entities[0].id;
+ assert.throws(()=>parseTerrarium(JSON.stringify(duplicate)),/valores inválidos/);
+});
+test("el guardado valida rangos de velocidad y microclima",()=>{
+ const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
+ const invalidSpeed=structuredClone(valid);invalidSpeed.state.speed=9;
+ assert.throws(()=>parseTerrarium(JSON.stringify(invalidSpeed)),/esquema 1/);
+ const invalidHumidity=structuredClone(valid);invalidHumidity.state.habitat.humidity=1.5;
+ assert.throws(()=>parseTerrarium(JSON.stringify(invalidHumidity)),/valores inválidos/);
+});
+test("guardar y cargar usan una clave estable y propagan fallos de almacenamiento",()=>{
+ const values=new Map(),storage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k)??null};
+ const state=createTerrariumState();
+ saveTerrarium(state,storage);
+ assert.ok(values.has(SAVE_KEY));
+ assert.equal(loadTerrarium(storage).clockMinutes,state.clockMinutes);
+ const blocked={setItem(){throw new Error("quota")},getItem(){throw new Error("blocked")}};
+ assert.throws(()=>saveTerrarium(state,blocked),/quota/);
+ assert.throws(()=>loadTerrarium(blocked),/blocked/);
+});
+
+test("la persistencia admite posiciones válidas en los bordes del recipiente",()=>{
+ const s=createTerrariumState();s.entities[0].x=1.7;s.entities[0].z=1.1;
+ const loaded=parseTerrarium(serializeTerrarium(s));
+ assert.equal(loaded.entities[0].x,1.7);
+ assert.equal(loaded.entities[0].z,1.1);
 });
