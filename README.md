@@ -13,8 +13,10 @@ No es una colección pasiva de prompts. El framework define un proceso obligator
 6. [Registro persistente de skills](docs/REGISTRO-SKILLS.md)
 7. [Índice de skills locales](skills/INDEX.md)
 8. [Catálogo de fuentes](docs/CATALOGO.md)
-9. [Estándares](docs/ESTANDARES.md)
-10. [Estructura prevista](docs/ESTRUCTURA.md)
+9. [Catálogo de referencias por contexto](docs/CATALOGO-REFERENCIAS.md)
+10. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
+11. [Estándares](docs/ESTANDARES.md)
+12. [Estructura prevista](docs/ESTRUCTURA.md)
 
 ## Filtros obligatorios
 Cada tarea debe registrar resultados para:
