@@ -36,7 +36,8 @@ export function stepSimulation(state,minutes=1){
       const food=state.resources.filter(r=>r.type==="leaf-litter"&&r.amount>0).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       let target=null;
-      if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";\n      if(e.stress>.84||(cycle>=18&&cycle<21))e.behavior="defensive-curl";
+      if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";
+      if(e.stress>.84||(cycle>=18&&cycle<21))e.behavior="defensive-curl";
       else if(e.hydration<.48||e.stress>.7)target=shelter;
       else if(e.energy<.65)target=food;
 
