@@ -46,7 +46,7 @@ try{
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
  await page.getByRole("button",{name:/Pausar/}).click();
  const savedClock=await page.locator("#clock").textContent();
- await page.getByRole("button",{name:"Guardar terrario"}).click();
+ await page.locator("#pause-save").click();
  await page.getByRole("button",{name:/Volver al terrario/}).click();
  await page.getByRole("button",{name:"Menú"}).click();
  await page.getByRole("button",{name:/Volver al menú principal/}).click();
