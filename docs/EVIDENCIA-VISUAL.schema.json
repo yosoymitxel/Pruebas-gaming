@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Visual Evidence Manifest",
+  "type": "object",
+  "required": [
+    "repository",
+    "commit",
+    "source",
+    "capturedAt",
+    "tool",
+    "captures"
+  ],
+  "properties": {
+    "repository": {
+      "type": "string",
+      "format": "uri"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 7
+    },
+    "workingTree": {
+      "type": "string",
+      "enum": [
+        "clean",
+        "dirty"
+      ]
+    },
+    "diffHash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "format": "uri",
+      "description": "Exact local or deployed URL used to capture the running game."
+    },
+    "deploymentCommit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Required for remote deployment evidence; must be verified."
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "toolVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "captures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "viewport",
+          "routeOrScene",
+          "steps",
+          "result"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "routeOrScene": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "result": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "download": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
