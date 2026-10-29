@@ -542,3 +542,8 @@ footer{
   .viewtools button{min-height:34px;padding:7px 9px;font-size:10px}
   .menu-actions{gap:8px}
 }
+
+/* Explicit surface color keeps menu CSS detectable and avoids transparent fallback. */
+.menu-screen{background-color:#0d1814}
+.setup-screen{background-color:#0d1814}
+.modal-screen{background-color:rgba(4,10,7,.78)}
