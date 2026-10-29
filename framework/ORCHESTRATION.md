@@ -10,15 +10,17 @@ No requieren agentes separados: pueden ejecutarse en una sola sesión. La separa
 5. QA independiente: intenta refutar que el trabajo está terminado; reproduce regresiones y registra evidencia.
 
 ## Protocolo
-1. Lee AGENTS.md, README.md, instrucciones locales, manifiesto de dependencias y documentación relevante del proyecto destino.
-2. Clasifica cada tarea con uno o más perfiles de TASK-PROFILES.md.
-3. Lee los SKILL.md seleccionados; no confíes solo en nombres ni descripciones.
-4. Define criterios de aceptación antes de implementar.
-5. Inspecciona la solución existente para reutilizar mecánicas, assets, animaciones, componentes y dependencias.
-6. Implementa el cambio mínimo que satisfaga el criterio.
-7. Ejecuta las puertas aplicables de QUALITY-GATES.md.
-8. Si una puerta falla, vuelve a implementación y repite las pruebas afectadas. Límite recomendado: 3 ciclos automáticos; después, reporta bloqueo con evidencia, sin bucles infinitos.
-9. Registra el informe usando REPORT-TEMPLATE.md.
+1. Lee AGENTS.md y README.md.
+2. Lee skills/INDEX.md y docs/REGISTRO-SKILLS.md para descubrir las skills ya guardadas en el checkout; consulta sources/manifest.tsv para distinguir las fuentes catalogadas de las instaladas.
+3. Lee instrucciones locales, manifiesto de dependencias y documentación relevante del proyecto destino.
+4. Clasifica cada tarea con uno o más perfiles de TASK-PROFILES.md.
+5. Lee completos los SKILL.md seleccionados desde el checkout. Si la skill está local, no vuelvas a instalarla ni declares que falta. No confundas disponible, leída y aplicada.
+6. Define criterios de aceptación antes de implementar.
+7. Inspecciona la solución existente para reutilizar mecánicas, assets, animaciones, componentes y dependencias.
+8. Implementa el cambio mínimo que satisfaga el criterio.
+9. Ejecuta las puertas aplicables de QUALITY-GATES.md.
+10. Si una puerta falla, vuelve a implementación y repite las pruebas afectadas. Límite recomendado: 3 ciclos automáticos; después, reporta bloqueo con evidencia, sin bucles infinitos.
+11. Registra el informe usando REPORT-TEMPLATE.md.
 
 ## Resolución de conflictos
 Orden de autoridad:
