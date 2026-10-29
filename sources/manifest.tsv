@@ -24,3 +24,7 @@ reference	prompt-motion	https://prompt-motion.com/	catalogue	pending	Motion refe
 reference	rareui	https://www.rareui.com/	catalogue	pending	UI references
 reference	justinmind-game-ui	https://www.justinmind.com/es/ui-diseno/juego	catalogue	pending	Game UI guide
 reference	svg-silh	https://svgsilh.com/es/	catalogue	pending	Check license per asset
+reference	visual-evidence-playwright	docs/EVIDENCIA-VISUAL.md	framework-policy	active	Mandatory traceability for current screenshots, browser tests and downloadable artifacts
+reference	asset-reference-catalog	docs/CATALOGO-REFERENCIAS.md	framework-policy	active	Context-driven discovery for SVG, sprites, animations, UI, VFX and voxel resources
+tool	playwright	https://playwright.dev/	review	pending	Use when installed/available; record version and test exact current checkout
+reference	motion-one-animations	https://motion.dev/	catalogue	pending	UI/microinteraction motion; runtime dependency only if justified
