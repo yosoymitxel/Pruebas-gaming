@@ -306,9 +306,14 @@ a{color:inherit}
   box-shadow:0 20px 55px rgba(36,47,29,.08);
 }
 .text-button{
+  display:inline-flex;
+  align-items:center;
   min-height:44px;
   margin:0 0 30px;
   padding:8px 0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
   color:var(--moss-dark);
   text-decoration:underline;
   text-underline-offset:4px;
@@ -544,7 +549,7 @@ a{color:inherit}
   color:#ebefdf;
   background:rgba(12,25,16,.48);
 }
-.view-title{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.07em;text-transform:uppercase}
+.view-title{display:flex;align-items:center;gap:9px;margin:0;font-size:12px;font-weight:600;line-height:1.25;letter-spacing:.07em;text-transform:uppercase}
 .view-title i{
   display:inline-block;
   width:8px;
