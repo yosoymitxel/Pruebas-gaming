@@ -1,36 +1,34 @@
 # Informe de calidad — Terrario MVP
 
 - Rama: `feat/isopod-render-spike`
-- Base técnica: Three.js + Vite
-- Alcance evaluado: spike de render y controles iniciales
-- Skills locales leídas: `game-project-orchestrator`, `game-project-skeleton`
-- Referencia de composición aplicada: Dioramas (no es una skill local instalada)
-- Skills externas solo catalogadas, no ejecutadas: Anti-Slop, Ponytail, Taste, Impeccable, GameDev skill catalog, Claude Code Game Studios, Emil Skills, Web Design Guidelines y otras del catálogo.
+- Alcance: spike de render y controles iniciales.
+- Skills locales leídas en esta tarea: `game-project-orchestrator`, `game-project-skeleton`.
+- Referencia aplicada como guía visual: Dioramas. No es una skill local instalada.
+- Skills externas solo catalogadas: no se afirma que estén instaladas, leídas o ejecutadas.
 
 ## Puertas de calidad
 
 | Puerta | Estado actual | Evidencia / motivo |
 |---|---|---|
-| CODE_GATE | BLOCKED | Se corrigió la acumulación del reloj y se añadieron pruebas; falta ejecutar `npm install`, `npm test` y `npm run build` en runner. |
-| GAMEPLAY_GATE | BLOCKED | Hay controles de cámara, forma, modo, pausa y avance manual en el código, pero no se ha probado el flujo real en navegador. No hay IA ecológica. |
-| DESIGN_GATE | BLOCKED | La escena 3D está implementada, pero faltan capturas reales del SHA probado en escritorio y móvil. |
-| INTEGRATION_GATE | BLOCKED | Aún no se ha comprobado ejecución de producción ni el comportamiento en hosting. |
+| CODE_GATE | BLOCKED hasta CI | La prueba de estado se ejecutó localmente contra el contenido actual: 5/5 pasan. Build de Vite y dependencias aún deben verificarse en CI. |
+| GAMEPLAY_GATE | BLOCKED hasta navegador | Se añadió prueba Playwright para cambiar modo/forma, avanzar reloj, comprobar ID/cantidad y detectar errores. No se declara aprobada hasta ver el resultado real del workflow. |
+| DESIGN_GATE | BLOCKED hasta revisión visual | CI genera capturas reales desktop 1440×1000 y móvil 390×844 como artefacto. Deben inspeccionarse y corresponder al SHA exacto. |
+| INTEGRATION_GATE | BLOCKED | No hay evidencia confirmada de ejecución de producción/hosting; la simulación ecológica y persistencia no están implementadas. |
 
-## Desviaciones respecto a la especificación
+## Desviaciones frente a la especificación
 
-- El modo Voxel usa geometría cúbica 3D, no sprites voxelizados desde atlas/spritesheets.
-- La simulación ecológica aún no implementa necesidades, movimiento autónomo, alimento, refugios, reproducción ni mortalidad.
-- No hay guardado/carga local versionado, configuración inicial, menú principal completo, ajustes ni catálogo de idioma.
-- El isópodo provisional es una sola entidad estática; la escena no constituye todavía un MVP ecológico.
-- No existe `package-lock.json` versionado en este estado; la instalación reproducible aún debe cerrarse.
+- Voxel actual usa geometría cúbica 3D; falta el sistema especificado de sprites voxelizados con atlas/spritesheets.
+- No hay necesidades ecológicas, locomoción autónoma, alimentación, refugios con comportamiento, reproducción ni mortalidad.
+- No hay persistencia local versionada, menú de inicio/configuración completo, ajustes ni catálogo i18n.
+- El isópodo es provisional y estático. Este prototipo de render no equivale al MVP ecológico.
+- Falta `package-lock.json`; CI usa `npm install` y no puede garantizar aún instalaciones reproducibles con `npm ci`.
 
-## Próxima secuencia obligatoria
+## Siguiente secuencia
 
-1. Ejecutar CI real y resolver cualquier fallo de test/build.
-2. Obtener lockfile y cambiar CI a `npm ci`.
-3. Verificar escena en navegador real con errores de consola/red registrados.
-4. Capturar escritorio y móvil con SHA, viewport, fecha y pasos.
-5. Completar contrato de estado y simulación determinista sin renderer.
-6. Implementar persistencia versionada y controles ecológicos mínimos.
-7. Sustituir la aproximación voxel cúbica por sprites voxelizados/atlas según especificación.
-8. Volver a ejecutar todas las puertas y actualizar este informe; no aprobar mientras alguna puerta aplicable siga BLOCKED.
+1. Confirmar ejecución real del workflow y resolver fallos.
+2. Generar/versionar lockfile y cambiar CI a `npm ci`.
+3. Revisar las capturas Playwright y registrar errores reales de consola/red.
+4. Completar estado/simulación determinista sin renderer.
+5. Implementar guardado local versionado y variables ecológicas mínimas.
+6. Reemplazar Voxel cúbico por sprites voxelizados/atlas.
+7. Repetir todas las puertas. No aprobar mientras una puerta aplicable siga BLOCKED.
