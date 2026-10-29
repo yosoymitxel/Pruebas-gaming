@@ -26,7 +26,7 @@ export function stepSimulation(state,minutes=1){
       h.temperatureC-BIOLOGY_RULES.temperatureComfortMaxC
     );
 
-    for(const e of state.entities){
+    if(state.clockMinutes%60===0&&state.entities.some(e=>e.alive!==false&&e.hydration>.35&&e.energy>.25&&e.stress<.8))state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;\n\n    for(const e of state.entities){
       if(e.alive===false)continue;
       const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
       e.hydration=clamp((e.hydration ?? .8)-(BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.2,1-h.humidity)),0,1);
@@ -37,7 +37,7 @@ export function stepSimulation(state,minutes=1){
       const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       let target=null;
       if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";
-      if(e.stress>.84||(cycle>=18&&cycle<21))e.behavior="defensive-curl";
+      if(e.stress>.84||(cycle>=18&&cycle<21&&e.hydration>=.48&&e.energy>=.65&&e.stress<=.7))e.behavior="defensive-curl";
       else if(e.hydration<.48||e.stress>.7)target=shelter;
       else if(e.energy<.65)target=food;
 
