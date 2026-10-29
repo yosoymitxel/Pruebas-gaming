@@ -36,7 +36,7 @@ export function stepSimulation(state,minutes=1){
       const food=state.resources.filter(r=>r.type==="leaf-litter"&&r.amount>0).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       let target=null;
-      if(e.stress>.84||(cycle>=18&&cycle<21))e.behavior="defensive-curl";
+      if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";\n      if(e.stress>.84||(cycle>=18&&cycle<21))e.behavior="defensive-curl";
       else if(e.hydration<.48||e.stress>.7)target=shelter;
       else if(e.energy<.65)target=food;
 
@@ -126,7 +126,7 @@ export function purchaseItem(state,itemId){
   const shape=state.habitat?.shape;
   const x=shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.max(-1.55,Math.min(1.55,Math.cos(angle)*radius));
   const z=shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.max(-.95,Math.min(.95,Math.sin(angle)*radius));
-  const resource={id:`shop-${item.id}-${Date.now().toString(36)}-${index}`,type:item.type,amount:item.type==="leaf-litter"?.55:1,x,z};
+  const resource={id:`shop-${item.id}-${index}`,type:item.type,amount:item.type==="leaf-litter"?.55:1,x,z};
   state.coins=coins-item.price;
   state.resources.push(resource);
   return {item,resource,coins:state.coins};
