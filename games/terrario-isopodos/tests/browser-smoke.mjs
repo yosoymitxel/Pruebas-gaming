@@ -33,7 +33,7 @@ try{
  await page.getByRole("button",{name:/Pausar/}).click();
  await page.getByRole("button",{name:/Avanzar 1 minuto sin reanudar/}).click();
  if(!(await page.locator("#clock").textContent()).includes("08:01"))throw new Error(`El reloj no avanzó un minuto en pausa: ${await page.locator("#clock").textContent()}`);
- await page.getByRole("button",{name:/Volver al terrario/}).click();
+ await page.getByRole("button",{name:/Continuar observando/}).click();
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
  await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
