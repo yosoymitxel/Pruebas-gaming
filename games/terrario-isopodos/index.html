@@ -2,60 +2,60 @@
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8e4d7"><meta name="description" content="Terrario de isópodos con diorama, microclima y simulación viva."><title>Terrario isópodos</title><link rel="stylesheet" href="./src/style.css"></head>
 <body>
 <section id="screen-menu" class="game-screen menu-screen" aria-labelledby="menu-title">
-  <div class="menu-top"><span class="menu-mark">MICROCOSMOS <i>／</i> LABORATORIO VIVO</span><span>EXPERIMENTO 001 · ARMADILLIDIUM VULGARE</span></div>
-  <div class="menu-content"><div class="menu-art" aria-hidden="true"><div class="menu-orbit orbit-one"></div><div class="menu-orbit orbit-two"></div><div class="menu-globe"><span>✳</span></div><div class="menu-leaf leaf-one"></div><div class="menu-leaf leaf-two"></div><div class="menu-creature"></div></div>
-    <div class="menu-copy"><p class="eyebrow">UN SANDBOX DE VIDA EN MINIATURA</p><h1 id="menu-title">La vida<br>encuentra <em>su camino.</em></h1><p>Construye un hábitat, cuida las condiciones y observa cómo una colonia de isópodos responde al entorno. Cada detalle del terrario influye en la vida que lo habita.</p>
+  <div class="menu-top"><span class="menu-mark">MICROCOSMOS <i aria-hidden="true">/</i> LABORATORIO VIVO</span><span>EXPERIMENTO 001 · ARMADILLIDIUM VULGARE</span></div>
+  <div class="menu-content"><div class="menu-art" aria-hidden="true"><div class="menu-orbit orbit-one"></div><div class="menu-orbit orbit-two"></div><div class="menu-globe" aria-hidden="true"><span></span></div><div class="menu-leaf leaf-one"></div><div class="menu-leaf leaf-two"></div><div class="menu-creature"></div></div>
+    <div class="menu-copy"><h1 id="menu-title">La vida<br>encuentra <em>su camino.</em></h1><p>Construye un hábitat, cuida las condiciones y observa cómo una colonia de isópodos responde al entorno. Cada detalle del terrario influye en la vida que lo habita.</p>
       <div class="menu-actions"><button id="new-game" class="menu-primary">Nuevo terrario <span>↗</span></button><button id="continue-game" class="menu-secondary" disabled>Continuar partida</button><button id="open-settings" class="menu-secondary">Ajustes</button><button id="open-help" class="menu-secondary">Cómo se juega</button></div>
-      <div class="menu-foot"><span>01 · OBSERVAR</span><span>02 · EXPERIMENTAR</span><span>03 · DESCUBRIR</span></div>
+      <div class="menu-foot"><span>OBSERVAR</span><span>EXPERIMENTAR</span><span>DESCUBRIR</span></div>
     </div>
   </div><div class="menu-bottom"><span>UN MUNDO PEQUEÑO, UN SISTEMA COMPLEJO</span><span>DIORAMA 3D / VOXEL</span></div>
 </section>
-<section id="screen-setup" class="game-screen setup-screen" hidden aria-labelledby="setup-title"><div class="setup-card"><button id="back-to-menu" class="text-button">← Menú principal</button><p class="eyebrow">Preparar terrario</p><h1 id="setup-title">Diseña tu <em>microcosmos.</em></h1><p>Elige la forma del recipiente y la forma de representar tu hábitat.</p>
-  <label for="setup-name">Nombre del terrario</label><input id="setup-name" type="text" maxlength="40" value="Pequeño bosque" placeholder="Mi primer terrario">
-  <span class="setup-label">Forma del recipiente</span><div class="setup-options"><button type="button" data-setup-shape="rectangular" class="selected"><span>▱</span><b>Rectangular</b><small>Visión amplia</small></button><button type="button" data-setup-shape="cilindrico"><span>◯</span><b>Cilíndrico</b><small>Microclima cerrado</small></button></div>
-  <span class="setup-label">Representación inicial</span><div class="setup-options"><button type="button" data-setup-mode="diorama" class="selected"><span>◈</span><b>Diorama</b><small>Formas orgánicas</small></button><button type="button" data-setup-mode="voxel"><span>▣</span><b>Voxel</b><small>Estética de bloque</small></button></div>
+<section id="screen-setup" class="game-screen setup-screen" hidden aria-labelledby="setup-title"><div class="setup-card"><button id="back-to-menu" class="text-button">← Menú principal</button><h1 id="setup-title">Diseña tu <em>microcosmos.</em></h1><p>Elige la forma del recipiente y la forma de representar tu hábitat.</p>
+  <label for="setup-name">Nombre del terrario</label><input id="setup-name" name="terrarium-name" type="text" maxlength="40" value="Pequeño bosque" placeholder="Mi primer terrario" autocomplete="off" spellcheck="false">
+  <span class="setup-label">Forma del recipiente</span><div class="setup-options" role="group" aria-label="Forma del recipiente"><button type="button" data-setup-shape="rectangular" class="selected" aria-pressed="true"><span>▱</span><b>Rectangular</b><small>Visión amplia</small></button><button type="button" data-setup-shape="cilindrico" aria-pressed="false"><span>◯</span><b>Cilíndrico</b><small>Microclima cerrado</small></button></div>
+  <span class="setup-label">Representación inicial</span><div class="setup-options" role="group" aria-label="Representación inicial"><button type="button" data-setup-mode="diorama" class="selected" aria-pressed="true"><span>◈</span><b>Diorama</b><small>Formas orgánicas</small></button><button type="button" data-setup-mode="voxel" aria-pressed="false"><span>▣</span><b>Voxel</b><small>Estética de bloque</small></button></div>
   <button id="start-game" class="menu-primary setup-start">Entrar al terrario <span>↗</span></button>
 </div></section>
-<section id="screen-modal" class="game-screen modal-screen" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><button id="close-modal" class="modal-close" aria-label="Cerrar diálogo">×</button><p class="eyebrow">Diálogo del terrario</p><h2 id="modal-title">Título</h2><div id="modal-body"></div></div></section>
+<section id="screen-modal" class="game-screen modal-screen" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><button id="close-modal" class="modal-close" aria-label="Cerrar diálogo">×</button><h2 id="modal-title">Título</h2><div id="modal-body"></div></div></section>
 <main class="shell" hidden>
-<header class="top"><a class="brand" href="../../">← Jardín de juegos</a><span class="top-note">CUADERNO DE CAMPO · ESTUDIO 01</span><div class="top-actions"><small>SIMULACIÓN INTERACTIVA</small><button id="open-game-menu" class="menu-in-game">☰ Menú</button><button id="open-settings" class="menu-in-game">Ajustes</button><button id="open-help" class="menu-in-game">Ayuda</button></div></header>
-<section class="workspace"><div class="view"><div class="viewhead"><span class="view-title"><i></i> Terrario vivo <b>001</b></span><span id="view-label">DIORAMA 3D</span></div><div id="scene" aria-label="Terrario 3D"></div><div class="clockbox"><strong id="clock">DÍA 01 · 08:00</strong><span id="state-note">Simulación en pausa</span></div><div class="viewtools"><button id="rotate" aria-pressed="true">↻ Giro automático</button><button id="zoom-out" aria-label="Alejar cámara">−</button><button id="zoom-in" aria-label="Acercar cámara">+</button><button id="reset">Recentrar cámara</button></div></div>
-<aside class="panel">
+<header class="top"><a class="brand" href="../../">← Jardín de juegos</a><span class="top-note">CUADERNO DE CAMPO · ESTUDIO 01</span><div class="top-actions"><small>SIMULACIÓN INTERACTIVA</small><button id="open-game-menu" class="menu-in-game" aria-haspopup="dialog">Menú</button><button id="open-settings-game" class="menu-in-game top-utility" aria-haspopup="dialog">Ajustes</button><button id="open-help-game" class="menu-in-game top-utility" aria-haspopup="dialog">Ayuda</button></div></header>
+<section class="workspace"><div class="view"><div class="viewhead"><h1 class="view-title"><i aria-hidden="true"></i> Terrario vivo <b>001</b></h1><span id="view-label">DIORAMA 3D</span></div><div id="scene" role="img" aria-label="Terrario tridimensional interactivo. Arrastra para girar; usa los botones de cámara para acercar y alejar."></div><div class="clockbox"><strong id="clock">DÍA 01 · 08:00</strong><span id="state-note">Simulación en pausa</span></div><div class="viewtools"><button id="rotate" aria-pressed="true">↻ Giro automático</button><button id="zoom-out" aria-label="Alejar cámara">−</button><button id="zoom-in" aria-label="Acercar cámara">+</button><button id="reset">Recentrar cámara</button></div></div>
+<aside class="panel" id="controls-panel">
+  <div class="panel-handle"><button type="button" id="panel-toggle" class="panel-toggle" aria-expanded="false" aria-controls="panel-content"><span class="panel-toggle-mark" aria-hidden="true"></span><span class="panel-toggle-copy"><strong>Controles del terrario</strong><small id="panel-summary">05 individuos · 78 % humedad</small></span><span class="panel-toggle-icon" aria-hidden="true">⌃</span></button></div>
+  <div class="panel-content" id="panel-content">
   <div class="panel-group">
-    <p class="eyebrow">Representación</p>
-    <h2>Cómo observar</h2>
+    <h2>Representación</h2>
     <div class="modes"><button data-mode="diorama" class="active" aria-pressed="true">◈ <span><b>Diorama</b><small>Más detalle</small></span></button><button data-mode="voxel" aria-pressed="false">▣ <span><b>Voxel</b><small>Bloques</small></span></button></div>
   </div>
 
   <div class="panel-group">
-    <p class="eyebrow">El paso del tiempo</p>
     <h2>Ritmo del mundo</h2>
     <div class="actions"><button id="pause" class="primary">▶ Iniciar</button><button id="step">Avanzar 1 min</button></div>
     <label for="speed"><span>Velocidad</span><b id="speed-label">2×</b></label>
-    <input id="speed" type="range" min="0.5" max="4" step="0.1" value="2">
+    <input id="speed" type="range" min="0.5" max="4" step="0.1" value="2" aria-label="Velocidad de simulación">
   </div>
 
   <div class="panel-group">
-    <p class="eyebrow">Condiciones del microclima</p>
+    <h2>Microclima</h2>
     <div class="metrics"><div><small>Colonia</small><strong id="count">01</strong></div><div><small>Humedad</small><strong><span id="humidity">78</span>%</strong></div><div><small>Temperatura</small><strong><span id="temperature">21.4</span>°C</strong></div></div>
-    <label for="humidity-input"><span>Humedad</span><b>controlable</b></label>
-    <input id="humidity-input" type="range" min="0.2" max="1" step="0.01" value="0.78">
-    <label for="temperature-input"><span>Temperatura</span><b>controlable</b></label>
-    <input id="temperature-input" type="range" min="10" max="30" step="0.1" value="21.4">
+    <label for="humidity-input"><span>Humedad</span><b id="humidity-value">78 %</b></label>
+    <input id="humidity-input" type="range" min="0.2" max="1" step="0.01" value="0.78" aria-label="Humedad del hábitat">
+    <label for="temperature-input"><span>Temperatura</span><b id="temperature-value">21.4 °C</b></label>
+    <input id="temperature-input" type="range" min="10" max="30" step="0.1" value="21.4" aria-label="Temperatura del hábitat">
     <div class="actions resource-actions"><button id="add-food">+ Hojarasca</button><button id="add-shelter">+ Refugio</button></div>
   </div>
 
   <div class="panel-group">
-    <p class="eyebrow">Mercado del terrario</p>
-    <h2>Personaliza tu microbosque</h2>
+    <h2>Personaliza el hábitat</h2>
     <div class="shop-wallet"><span>Monedero</span><strong><span id="coins">30</span> <small>bellotas</small></strong></div>
     <div id="shop-grid" class="shop-grid"><button type="button" data-buy="leaf-litter"><span>🍂</span><b>Hojarasca</b><small>4 bellotas</small></button><button type="button" data-buy="shelter"><span>🪵</span><b>Refugio</b><small>12 bellotas</small></button><button type="button" data-buy="fern"><span>🌿</span><b>Helecho</b><small>8 bellotas</small></button><button type="button" data-buy="mushroom"><span>🍄</span><b>Setas</b><small>7 bellotas</small></button><button type="button" data-buy="stone"><span>🪨</span><b>Piedras</b><small>5 bellotas</small></button><button type="button" data-buy="bark"><span>🪵</span><b>Tronco hueco</b><small>10 bellotas</small></button><button type="button" data-buy="moss"><span>🌱</span><b>Isla de musgo</b><small>6 bellotas</small></button></div>
-    <p id="shop-note" class="note" aria-live="polite">Compra adornos y recursos del hábitat.</p><p id="resource-note" class="note">Recursos del hábitat</p>
+    <p id="shop-note" class="note" role="status" aria-live="polite">Compra adornos y recursos del hábitat.</p><p id="resource-note" class="note" role="status" aria-live="polite">Recursos del hábitat</p>
   </div>
 
   <div class="panel-group compact">
     <p id="behavior" class="note">Explorando</p>
     <div class="actions save-actions"><button id="save">Guardar terrario</button><button id="load">Cargar</button></div>
   </div>
+</div>
 </aside></section>
-<footer><span>SIMULACIÓN DETERMINISTA · ESTADO ÚNICO</span><span>RENDERERS INDEPENDIENTES · SIN API REMOTA</span></footer></main><script type="module" src="./src/main.js"></script></body></html>
+</main><script type="module" src="./src/main.js"></script></body></html>

@@ -101,11 +101,22 @@ export class TerrariumRenderer {
     this.scene=new T.Scene();
     this.scene.background=new T.Color(0x31483a);
     this.scene.fog=new T.Fog(0x31483a,8,17);
+    const ambientLight=new T.HemisphereLight(0xe6ead1,0x493a2a,1.85);
+    this.scene.add(ambientLight);
+    const keyLight=new T.DirectionalLight(0xffe2b2,2.2);
+    keyLight.position.set(-3.5,7,4.5);
+    keyLight.castShadow=true;
+    keyLight.shadow.mapSize.set(1024,1024);
+    this.scene.add(keyLight);
+    const fillLight=new T.DirectionalLight(0xb2d1aa,.8);
+    fillLight.position.set(4,3,-4);
+    this.scene.add(fillLight);
     this.camera=new T.PerspectiveCamera(33,1,.1,100);
     this.renderer=new T.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=T.PCFSoftShadowMap;
+    this.renderer.setClearColor(0x31483a,1);
     this.renderer.outputColorSpace=T.SRGBColorSpace;
     this.renderer.toneMapping=T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure=1.12;
@@ -356,6 +367,7 @@ export class TerrariumRenderer {
   }
 
   setMode(mode){
+    this.renderer.domElement.dataset.renderMode=mode;
     this.clear(this.life);
     for(const e of this.state.entities){
       const o=isopod(mode === "voxel");
