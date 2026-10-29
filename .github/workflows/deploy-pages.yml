@@ -1,12 +1,13 @@
-name: Build and deploy game collection
+name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - "index.html"
-      - "games/**"
+      - "games/terrario-isopodos/**"
       - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/terrario-mvp.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,47 +16,78 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-deployment
+  cancel-in-progress: false
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/terrario-isopodos
     steps:
-      - name: Checkout
+      - name: Checkout exact revision
         uses: actions/checkout@v4
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build terrarium production bundle
-        working-directory: games/terrario-isopodos
+          cache: npm
+          cache-dependency-path: games/terrario-isopodos/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright and Chromium
         run: |
-          npm install
-          npm test
-          npm run build
-      - name: Assemble static Pages artifact
-        run: |
-          rm -rf _site
-          mkdir -p _site/games/terrario-isopodos
-          cp index.html _site/index.html
-          cp games/catalog.json _site/games/catalog.json
-          cp -R games/terrario-isopodos/dist/. _site/games/terrario-isopodos/
-          touch _site/.nojekyll
-          test -s _site/games/terrario-isopodos/index.html
-          test -n "$(find _site/games/terrario-isopodos -name '*.css' -print -quit)"
-          test -n "$(find _site/games/terrario-isopodos -maxdepth 1 -name '*.js' -print -quit)"
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser interaction smoke test
+        run: node tests/browser-smoke.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          path: _site
+          name: terrario-pages-evidence-${{ github.sha }}
+          path: games/terrario-isopodos/artifacts/visual/
+          if-no-files-found: warn
+          retention-days: 14
+
   deploy:
+    needs: validate
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: games/terrario-isopodos/package-lock.json
+      - name: Build production game
+        working-directory: games/terrario-isopodos
+        run: |
+          npm ci
+          npm run build
+      - name: Assemble complete Pages site
+        run: |
+          mkdir site
+          git archive HEAD | tar -x -C site
+          rm -rf site/games/terrario-isopodos/*
+          cp -a games/terrario-isopodos/dist/. site/games/terrario-isopodos/
+          touch site/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
