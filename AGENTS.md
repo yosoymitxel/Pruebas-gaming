@@ -9,12 +9,13 @@ Este repositorio mantiene el framework reutilizable de calidad para videojuegos 
 4. Distingue siempre: disponible localmente, leída en esta tarea y aplicada/ejecutada. No declares uno de estos estados basándote en otro.
 5. Si el checkout no contiene una skill, consulta sources/manifest.tsv y docs/CATALOGO.md. No afirmes que está instalada si solo hay una URL catalogada.
 6. Define criterios de aceptación y pruebas antes de implementar.
-7. Inspecciona el proyecto destino y reutiliza su arquitectura, mecánicas, assets y animaciones existentes.
-8. Ejecuta y registra CODE_GATE, GAMEPLAY_GATE y DESIGN_GATE. Marca NOT_APPLICABLE con motivo o BLOCKED si no se puede probar.
-9. No declares una tarea terminada si una puerta aplicable está en FAIL o BLOCKED.
-10. No inventes pruebas, capturas, resultados o instalaciones.
-11. Revisa licencias, procedencia y scripts antes de ejecutar o redistribuir contenido de terceros.
-12. No crees la carpeta juegos/ durante la fase actual; primero se valida el framework.
+7. Inspecciona el proyecto destino y reutiliza su arquitectura, mecánicas, assets, SVG, spritesheets, atlas y animaciones existentes.
+8. Antes de crear un recurso visual desde cero, consulta docs/CATALOGO-REFERENCIAS.md y justifica la decisión si no hay un recurso reutilizable. Para capturas o pruebas visuales, sigue docs/EVIDENCIA-VISUAL.md y vincula la evidencia al SHA exacto.
+9. Ejecuta y registra CODE_GATE, GAMEPLAY_GATE y DESIGN_GATE. Marca NOT_APPLICABLE con motivo o BLOCKED si no se puede probar.
+10. No declares una tarea terminada si una puerta aplicable está en FAIL o BLOCKED.
+11. No inventes pruebas, capturas, resultados o instalaciones.
+12. Revisa licencias, procedencia y scripts antes de ejecutar o redistribuir contenido de terceros.
+13. No crees la carpeta juegos/ durante la fase actual; primero se valida el framework.
 
 ## Actualizar skills
 Cuando se incorpore o actualice una skill, revisa procedencia/licencia, ejecuta bash scripts/validate-skills.sh y bash scripts/index-skills.sh, actualiza el manifest con el estado real y revisa el diff. No actualices fuentes upstream a ciegas ni integres automáticamente contenido no revisado.
