@@ -53,7 +53,9 @@ try{
  await page.waitForFunction(()=>document.activeElement?.id==="open-settings-game");
  await page.locator("#open-help-game").click();
  if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("La ayuda de la barra de juego no abre");
+ await page.waitForFunction(()=>document.activeElement?.id==="close-modal");
  await page.keyboard.press("Escape");
+ if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra Ayuda");
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D")throw new Error("No cambió a Diorama");
@@ -87,10 +89,11 @@ try{
  await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
  await page.getByRole("button",{name:/Pausar/}).click();
- const savedClock=await page.locator("#clock").textContent();
+ let savedClock=await page.locator("#clock").textContent();
  await page.locator("#pause-save").click();
  await page.getByRole("button",{name:/Volver al terrario/}).click();
  await page.getByRole("button",{name:"Menú"}).click();
+ savedClock=await page.locator("#clock").textContent();
  await page.getByRole("button",{name:/Volver al menú principal/}).click();
  await page.reload({waitUntil:"networkidle"});
  await page.getByRole("button",{name:/Continuar partida/}).click();
