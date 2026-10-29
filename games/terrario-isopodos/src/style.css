@@ -178,7 +178,7 @@ button:not(:disabled){cursor:pointer}
  .menu-screen{padding-top:calc(17px + env(safe-area-inset-top));padding-bottom:calc(17px + env(safe-area-inset-bottom))}
 }
 @media(max-height:700px) and (max-width:760px){
- .panel{height:34svh;max-height:34svh}
+ .panel{height:auto;max-height:none;min-height:34svh}
  .scene-caption{bottom:calc(35svh + 12px)}
  .viewtools{bottom:calc(35svh + 38px)}
  .panel .metrics>div{padding:4px 6px}
@@ -188,3 +188,8 @@ button:not(:disabled){cursor:pointer}
  .panel button{transition:none}
  .panel button:active{transform:none}
 }
+
+/* Terrarium shop and touch camera affordances */
+.shop-wallet{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 10px;padding:12px;background:#e5e8d8;border:1px solid #c4cbb9}.shop-wallet>span{font-size:10px;color:#526251}.shop-wallet strong{font:22px Georgia,serif;color:var(--moss-dark);white-space:nowrap}.shop-wallet strong small{font:9px var(--mono);color:var(--muted)}.shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.shop-grid button{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;column-gap:7px;padding:9px 7px;border:1px solid #c4cbb9;background:#e9e9dc;min-width:0;transition:transform .16s,border-color .16s,background .16s}.shop-grid button:hover{border-color:#71855c;background:#f2f0e4;transform:translateY(-1px)}.shop-grid button:active{transform:translateY(0)}.shop-grid button>span{grid-row:1/3;font-size:22px;text-align:center}.shop-grid button b{font-size:10px;line-height:1.3;font-weight:600}.shop-grid button small{font:9px var(--mono);color:#64715d;margin-top:4px}.shop-grid button:focus-visible{outline:3px solid var(--rust);outline-offset:2px}#shop-note{min-height:30px}.scene-caption span:last-child{letter-spacing:.04em}
+@media(max-width:720px){.shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shop-grid button{min-height:58px}.shop-wallet{margin-top:12px}}
+@media(prefers-reduced-motion:reduce){.shop-grid button:hover{transform:none}}

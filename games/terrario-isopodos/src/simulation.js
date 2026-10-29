@@ -26,6 +26,8 @@ export function stepSimulation(state,minutes=1){
       h.temperatureC-BIOLOGY_RULES.temperatureComfortMaxC
     );
 
+    if(state.clockMinutes%60===0&&state.entities.some(e=>e.alive!==false&&e.hydration>.35&&e.energy>.25&&e.stress<.8))state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;
+
     for(const e of state.entities){
       if(e.alive===false)continue;
       const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
@@ -36,7 +38,8 @@ export function stepSimulation(state,minutes=1){
       const food=state.resources.filter(r=>r.type==="leaf-litter"&&r.amount>0).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
       let target=null;
-      if(e.stress>.84)e.behavior="defensive-curl";
+      if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";
+      if(e.stress>.84||(cycle>=18&&cycle<21&&e.hydration>=.48&&e.energy>=.65&&e.stress<=.7))e.behavior="defensive-curl";
       else if(e.hydration<.48||e.stress>.7)target=shelter;
       else if(e.energy<.65)target=food;
 
@@ -55,6 +58,8 @@ export function stepSimulation(state,minutes=1){
         }
       }else if(e.behavior==="defensive-curl"){
         e.heading=(e.heading ?? 0)+Math.sin(phase)*.006;
+      }else if(cycle>=21&&cycle<27&&h.humidity>=.5){
+        e.behavior="burrowing";e.x+=Math.sin(phase)*.003;e.z+=Math.cos(phase)*.003;
       }else{
         const others=state.entities.filter(other=>other!==e&&other.alive!==false);
         const neighbor=others.map(other=>({other,d:Math.hypot(other.x-e.x,other.z-e.z)})).sort((a,b)=>a.d-b.d)[0];
@@ -99,4 +104,33 @@ export function addShelter(state){
   if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
   if(!state.resources.some(r=>r.type==="shelter"))state.resources.push({id:"shelter-1",type:"shelter",amount:1,x:.8,z:-.45});
   return state;
+}
+
+
+export const SHOP_ITEMS=Object.freeze([
+  {id:"leaf-litter",label:"Hojarasca fresca",type:"leaf-litter",price:4,description:"Recarga energía y favorece la búsqueda de alimento."},
+  {id:"shelter",label:"Refugio de corteza",type:"shelter",price:12,description:"Un escondite que reduce estrés y conserva humedad."},
+  {id:"fern",label:"Helecho pequeño",type:"fern",price:8,description:"Vegetación para dar volumen al diorama."},
+  {id:"mushroom",label:"Setas de bosque",type:"mushroom",price:7,description:"Un pequeño grupo de setas decorativas."},
+  {id:"stone",label:"Piedras húmedas",type:"stone",price:5,description:"Rocas para romper la superficie plana."},
+  {id:"bark",label:"Tronco hueco",type:"bark",price:10,description:"Un tronco que aporta textura y refugio visual."},
+  {id:"moss",label:"Isla de musgo",type:"moss",price:6,description:"Una mancha de musgo para enriquecer el suelo."}
+]);
+
+export function purchaseItem(state,itemId){
+  if(!state||typeof state!=="object"||!Array.isArray(state.resources))throw new TypeError("Se requiere un estado válido del terrario");
+  const item=SHOP_ITEMS.find(entry=>entry.id===itemId);
+  if(!item)throw new Error("Artículo de tienda desconocido");
+  const coins=Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0;
+  if(coins<item.price)throw new Error("No tienes suficientes bellotas para esta compra");
+  const index=state.resources.length;
+  const angle=index*2.399963229728653;
+  const radius=.35+(index%4)*.22;
+  const shape=state.habitat?.shape;
+  const x=shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.max(-1.55,Math.min(1.55,Math.cos(angle)*radius));
+  const z=shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.max(-.95,Math.min(.95,Math.sin(angle)*radius));
+  const resource={id:`shop-${item.id}-${index}`,type:item.type,amount:item.type==="leaf-litter"?.55:1,x,z};
+  state.coins=coins-item.price;
+  state.resources.push(resource);
+  return {item,resource,coins:state.coins};
 }

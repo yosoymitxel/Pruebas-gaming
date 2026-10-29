@@ -5,6 +5,7 @@ export function createTerrariumState(){
     clockMinutes:480,
     running:false,
     speed:1,
+    coins:30,
     habitat:{shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35},
     entities:[
       {id:"isopod-001",kind:"armadillidium-vulgare",x:-.88,z:-.42,heading:.4,energy:.84,hydration:.82,stress:.18,alive:true,behavior:"exploring"},
@@ -65,7 +66,8 @@ export function snapshotDomain(s){
     speed:Number(s.speed ?? 1),
     habitat:{...s.habitat},
     entities:structuredClone(Array.isArray(s.entities)?s.entities:[]),
-    resources:structuredClone(Array.isArray(s.resources)?s.resources:[])
+    resources:structuredClone(Array.isArray(s.resources)?s.resources:[]),
+    coins:Number.isFinite(s.coins)?s.coins:0
   });
 }
 

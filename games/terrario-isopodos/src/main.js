@@ -1,6 +1,6 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
-import{stepSimulation,addFood,addShelter}from"./simulation.js";
+import{stepSimulation,addFood,addShelter,purchaseItem}from"./simulation.js";
 import{SAVE_KEY,saveTerrarium,loadTerrarium}from"./persistence.js";
 import{TerrariumRenderer}from"./renderers.js";
 const state=createTerrariumState(),renderer=new TerrariumRenderer(document.querySelector("#scene"),state),$=s=>document.querySelector(s);
@@ -28,24 +28,25 @@ modal.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)retu
 refreshMenu();
 function update(){
  $("#clock").textContent=formatClock(state.clockMinutes);$("#state-note").textContent=state.running?"Simulación en marcha":"Simulación en pausa";$("#pause").textContent=state.running?"Ⅱ Pausar":"▶ Iniciar";$("#speed-label").textContent=state.speed+"×";$("#count").textContent=String(state.entities.filter(e=>e.alive!==false).length).padStart(2,"0");
- $("#humidity").textContent=Math.round(state.habitat.humidity*100);$("#temperature").textContent=state.habitat.temperatureC.toFixed(1);$("#humidity-input").value=state.habitat.humidity;$("#temperature-input").value=state.habitat.temperatureC;
- $("#behavior").textContent=state.entities[0]?.behavior??"sin individuos";$("#resource-note").textContent=saveMessage||`Hojarasca: ${Math.round((state.resources.find(r=>r.type==="leaf-litter")?.amount??0)*100)}% · Refugios: ${state.resources.filter(r=>r.type==="shelter").length}`;
+ $("#coins").textContent=String(state.coins??0);$("#humidity").textContent=Math.round(state.habitat.humidity*100);$("#temperature").textContent=state.habitat.temperatureC.toFixed(1);$("#humidity-input").value=state.habitat.humidity;$("#temperature-input").value=state.habitat.temperatureC;
+ const behaviorEntity=state.entities.find(e=>e.alive!==false&&["defensive-curl","burrowing","feeding","grooming","resting","socializing"].includes(e.behavior))??state.entities.find(e=>e.alive!==false);const behaviorLabels={"defensive-curl":"Se hace bolita para protegerse","burrowing":"Cavando bajo la hojarasca","feeding":"Comiendo hojarasca","grooming":"Acicalándose","resting":"Descansando","socializing":"Interactuando con otro isópodo","seeking-food":"Buscando comida","seeking-shelter":"Buscando refugio","investigating":"Investigando el entorno","exploring":"Explorando el terrario"};$("#behavior").textContent=behaviorEntity?(behaviorLabels[behaviorEntity.behavior]??"Explorando el terrario"):"La colonia no tiene individuos vivos";$("#resource-note").textContent=saveMessage||`Hojarasca: ${Math.round((state.resources.find(r=>r.type==="leaf-litter")?.amount??0)*100)}% · Refugios: ${state.resources.filter(r=>r.type==="shelter").length}`;
  $("#pause").setAttribute("aria-pressed",String(state.running));$("#view-label").textContent=state.presentation.mode==="voxel"?"VOXEL / 3D":"DIORAMA 3D";
  document.querySelectorAll("[data-mode]").forEach(b=>{const a=b.dataset.mode===state.presentation.mode;b.classList.toggle("active",a);b.setAttribute("aria-pressed",String(a));});
  document.querySelectorAll("[data-shape]").forEach(b=>{const a=b.dataset.shape===state.habitat.shape;b.classList.toggle("active",a);b.setAttribute("aria-pressed",String(a));});
  renderer.syncEntities(); 
 }
-document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{const before=snapshotDomain(state);renderer.setMode(b.dataset.mode);if(snapshotDomain(state)!==before)throw Error("El renderer alteró el estado de dominio");settings.mode=b.dataset.mode;saveSettings();saveMessage="";update();}));
-document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>{renderer.setShape(b.dataset.shape);update();}));
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{const before=snapshotDomain(state);renderer.setMode(b.dataset.mode);if(snapshotDomain(state)!==before)throw Error("El renderer alteró el estado de dominio");state.presentation.mode=b.dataset.mode;settings.mode=b.dataset.mode;saveSettings();saveMessage="";update();}));
+document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>{state.habitat.shape=b.dataset.shape;renderer.setShape(b.dataset.shape);update();}));
 $("#pause").addEventListener("click",()=>{if(state.running){showPauseMenu();}else{state.running=true;last=performance.now();acc=0;closeModal();update();}});
 $("#step").addEventListener("click",()=>{stepSimulation(state,1);update();});
 $("#speed").addEventListener("input",e=>{state.speed=Number(e.target.value);update();});
 $("#rotate").addEventListener("click",e=>{state.presentation.autoRotate=!state.presentation.autoRotate;settings.autoRotate=state.presentation.autoRotate;saveSettings();e.currentTarget.setAttribute("aria-pressed",String(state.presentation.autoRotate));});
-$("#reset").addEventListener("click",()=>renderer.resetCamera());
+$("#reset").addEventListener("click",()=>renderer.resetCamera());$("#zoom-in").addEventListener("click",()=>renderer.zoom(-.65));$("#zoom-out").addEventListener("click",()=>renderer.zoom(.65));
 $("#humidity-input").addEventListener("input",e=>{state.habitat.humidity=Number(e.target.value);update();});
 $("#temperature-input").addEventListener("input",e=>{state.habitat.temperatureC=Number(e.target.value);update();});
 $("#add-food").addEventListener("click",()=>{addFood(state);saveMessage="Hojarasca añadida";update();});
 $("#add-shelter").addEventListener("click",()=>{addShelter(state);saveMessage="Refugio disponible";update();});
+$("#shop-grid").addEventListener("click",e=>{const button=e.target.closest("[data-buy]");if(!button)return;try{const result=purchaseItem(state,button.dataset.buy);saveMessage="";$("#shop-note").textContent=`${result.item.label} colocado. Quedan ${result.coins} bellotas.`;update();}catch(error){$("#shop-note").textContent=error.message;}});
 $("#save").addEventListener("click",()=>{try{saveTerrarium(state);saveMessage="Terrario guardado en este navegador";}catch(e){saveMessage="No se pudo guardar: "+e.message;}update();});
 $("#load").addEventListener("click",()=>{try{const loaded=loadTerrarium();if(!loaded){saveMessage="No hay un guardado todavía";update();return;}Object.assign(state,loaded);state.presentation.mode=settings.mode;state.presentation.autoRotate=settings.autoRotate;renderer.setShape(state.habitat.shape);renderer.setMode(state.presentation.mode);renderer.setQuality(settings.quality);saveMessage="Guardado recuperado";}catch(e){saveMessage="Guardado rechazado: "+e.message;}update();});
 function tick(now){const dt=Math.min((now-last)/1000,.25);last=now;if(state.running){acc+=dt*state.speed;let steps=0;while(acc>=1&&steps<20){stepSimulation(state,1);acc--;steps++;}update();}requestAnimationFrame(tick);}

@@ -25,6 +25,14 @@ try{
  await page.locator('[data-setup-mode="voxel"]').click();
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
+ const cameraCanvas=page.locator("#scene canvas");
+ const initialDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
+ await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
+ const pinchDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
+ if(!(pinchDistance<initialDistance))throw new Error(`El gesto de pellizco no acerca la cámara: inicial=${initialDistance}, final=${pinchDistance}`);
+ await page.getByRole("button",{name:"Acercar cámara"}).click();
+ await page.getByRole("button",{name:"Alejar cámara"}).click();
+
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D")throw new Error("No cambió a Diorama");
@@ -42,6 +50,10 @@ try{
  if(minutesAfterStep!==minutesBeforeStep+1)throw new Error(`El avance manual debe sumar exactamente un minuto: antes=${clockBeforeStep}, después=${clockAfterStep}`);
  await page.getByRole("button",{name:/Continuar observando/}).click();
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
+ await page.locator('[data-buy="mushroom"]').click();
+ if(await page.locator("#coins").textContent()!=="23")throw new Error("La tienda no descontó el coste de las setas");
+ if(!(await page.locator("#shop-note").textContent()).includes("Setas de bosque"))throw new Error("La tienda no confirmó el artículo comprado");
+
  await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
  await page.getByRole("button",{name:/Pausar/}).click();
@@ -55,6 +67,10 @@ try{
  const restoredClock=await page.locator("#clock").textContent();const savedMatch=savedClock.match(/(\\d{2}):(\\d{2})$/),restoredMatch=restoredClock.match(/(\\d{2}):(\\d{2})$/);const savedMinutes=savedMatch?Number(savedMatch[1])*60+Number(savedMatch[2]):-1,restoredMinutes=restoredMatch?Number(restoredMatch[1])*60+Number(restoredMatch[2]):-1;if(restoredMinutes<savedMinutes||restoredMinutes>savedMinutes+1)throw new Error(`El reloj restaurado está fuera de tolerancia: guardado=${savedClock}, restaurado=${restoredClock}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
+ if(await page.locator("#coins").textContent()!=="23")throw new Error("El saldo de la tienda no sobrevivió a guardar/cargar");
+ const hasPurchasedItem=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources.some(r=>r.type==="mushroom"));
+ if(!hasPurchasedItem)throw new Error("El objeto comprado no sobrevivió a guardar/cargar");
+
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("Los ajustes no restauraron el modo visual elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
