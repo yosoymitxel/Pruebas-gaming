@@ -44,12 +44,15 @@ try{
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
  await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
+ await page.getByRole("button",{name:/Pausar/}).click();
+ const savedClock=await page.locator("#clock").textContent();
  await page.getByRole("button",{name:"Guardar terrario"}).click();
+ await page.getByRole("button",{name:/Volver al terrario/}).click();
  await page.getByRole("button",{name:"Menú"}).click();
  await page.getByRole("button",{name:/Volver al menú principal/}).click();
  await page.reload({waitUntil:"networkidle"});
  await page.getByRole("button",{name:/Continuar partida/}).click();
- if(!(await page.locator("#clock").textContent()).includes("08:01"))throw new Error("El guardado no recuperó el reloj tras recarga");
+ if((await page.locator("#clock").textContent())!==savedClock)throw new Error(`El guardado no recuperó el reloj guardado: esperado=${savedClock}, obtenido=${await page.locator("#clock").textContent()}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
