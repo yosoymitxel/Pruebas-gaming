@@ -12,8 +12,8 @@ Este repositorio centraliza skills, instrucciones, criterios de selección y her
 1. Lee [la guía de selección](docs/SELECCION-DE-HERRAMIENTAS.md).
 2. Consulta el [catálogo de fuentes](docs/CATALOGO.md).
 3. Revisa [estándares de calidad](docs/ESTANDARES.md).
-4. Ejecuta el instalador reproducible: `./scripts/install-skills.sh`.
-5. Valida el inventario: `./scripts/validate-skills.sh`.
+4. Ejecuta el instalador reproducible: `bash scripts/install-skills.sh`.
+5. Valida el inventario: `bash scripts/validate-skills.sh`.
 
 ## Estructura
 - `skills/`: skills versionadas dentro del repositorio.
