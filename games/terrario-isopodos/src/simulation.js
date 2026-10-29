@@ -1,4 +1,5 @@
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+const identity=e=>[...String(e.id)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 export const MODEL_VERSION=1;
 // Parámetros lúdicos centralizados; no representan umbrales biológicos validados.
 export const BIOLOGY_RULES=Object.freeze({
@@ -21,30 +22,52 @@ export function stepSimulation(state,minutes=1){
   const temperatureDistance=Math.max(0,BIOLOGY_RULES.temperatureComfortMinC-h.temperatureC,h.temperatureC-BIOLOGY_RULES.temperatureComfortMaxC);
   for(const e of state.entities){
    if(e.alive===false)continue;
+   const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
    e.hydration=clamp((e.hydration??.8)-(BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.2,1-h.humidity)),0,1);
    e.energy=clamp((e.energy??.8)-BIOLOGY_RULES.energyLossPerMinute,0,1);
    e.stress=clamp((e.stress??.2)+temperatureDistance*BIOLOGY_RULES.temperatureStressPerDegreeMinute-(temperatureDistance===0?BIOLOGY_RULES.comfortableStressRecoveryPerMinute:0),0,1);
-   const food=state.resources.find(r=>r.type==="leaf-litter"&&r.amount>0);
-   const shelter=state.resources.find(r=>r.type==="shelter");
+   const food=state.resources.filter(r=>r.type==="leaf-litter"&&r.amount>0).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
+   const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
    let target=null;
-   if(e.hydration<.48||e.stress>.7)target=shelter;
+   if(e.stress>.84){e.behavior="defensive-curl";}
+   else if(e.hydration<.48||e.stress>.7)target=shelter;
    else if(e.energy<.65)target=food;
    if(target){
     const dx=target.x-e.x,dz=target.z-e.z,d=Math.hypot(dx,dz);
-    if(d<.12){
-     e.behavior=target.type==="leaf-litter"?"feeding":"resting";
+    if(d<.14){
+     e.behavior=target.type==="leaf-litter"?(cycle%5===0?"grooming":"feeding"):"resting";
      if(target.type==="leaf-litter"){target.amount=Math.max(0,target.amount-.009);e.energy=clamp(e.energy+BIOLOGY_RULES.foodEnergyGainPerMinute,0,1);}
      else{e.hydration=clamp(e.hydration+BIOLOGY_RULES.shelterHydrationGainPerMinute,0,1);e.stress=clamp(e.stress-.006,0,1);}
     }else{
-     const move=Math.min(.055,d);e.x+=dx/d*move;e.z+=dz/d*move;e.heading=Math.atan2(dx,dz);e.behavior=target.type==="leaf-litter"?"seeking-food":"seeking-shelter";
+     const move=Math.min(.034+(seed%4)*.004,d),wobble=Math.sin(phase)*.11;
+     e.x+=dx/d*move+Math.cos(phase)*wobble*.18;e.z+=dz/d*move+Math.sin(phase)*wobble*.18;
+     e.heading=Math.atan2(dx,dz)+wobble;e.behavior=target.type==="leaf-litter"?"seeking-food":"seeking-shelter";
     }
+   }else if(e.behavior==="defensive-curl"){
+    // Se queda inmóvil brevemente ante estrés extremo; la simulación sigue siendo determinista.
+    e.heading=(e.heading??0)+Math.sin(phase)*.006;
    }else{
-    e.behavior="exploring";
-    const turn=Math.sin((state.clockMinutes+e.id.length)*.13)*.035;e.heading=(e.heading??0)+turn;e.x+=Math.sin(e.heading)*.012;e.z+=Math.cos(e.heading)*.012;
+    const others=state.entities.filter(other=>other!==e&&other.alive!==false);
+    const neighbor=others.map(other=>({other,d:Math.hypot(other.x-e.x,other.z-e.z)})).sort((a,b)=>a.d-b.d)[0];
+    if(neighbor&&neighbor.d<.23&&cycle%4!==0){
+     e.behavior="socializing";
+     const away=Math.atan2(e.x-neighbor.other.x,e.z-neighbor.other.z);
+     e.heading=(e.heading??0)+Math.sin(away-(e.heading??0))*.06;
+     e.x+=Math.sin(e.heading)*.003;e.z+=Math.cos(e.heading)*.003;
+    }else if(cycle<3){e.behavior="resting";}
+    else if(cycle>=3&&cycle<6){e.behavior="grooming";e.heading=(e.heading??0)+Math.sin(phase)*.04;}
+    else if(cycle===6){e.behavior="investigating";e.heading=(e.heading??0)+Math.sin(phase)*.12;}
+    else{
+     e.behavior="exploring";
+     const turn=Math.sin(phase)*.045+Math.cos(phase*.37)*.022;
+     e.heading=(e.heading??0)+turn;
+     const stride=.012+(seed%5)*.003;
+     e.x+=Math.sin(e.heading)*stride;e.z+=Math.cos(e.heading)*stride;
+    }
    }
    const radius=h.shape==="cilindrico"?1.28:1.55;
-   if(h.shape==="cilindrico"){const d=Math.hypot(e.x,e.z);if(d>radius){e.x=e.x/d*radius;e.z=e.z/d*radius;}}
-   else{e.x=clamp(e.x,-1.75,1.75);e.z=clamp(e.z,-1.15,1.15);}
+   if(h.shape==="cilindrico"){const d=Math.hypot(e.x,e.z);if(d>radius){e.x=e.x/d*radius;e.z=e.z/d*radius;e.heading=Math.atan2(-e.x,-e.z);}}
+   else{if(e.x<-1.75||e.x>1.75)e.heading=-e.heading;e.x=clamp(e.x,-1.75,1.75);e.z=clamp(e.z,-1.15,1.15);if(e.z<=-1.15||e.z>=1.15)e.heading=-e.heading;}
    if(e.hydration<=0||e.energy<=0)e.stress=clamp(e.stress+.002,0,1);
    if(e.hydration<.15&&e.energy<.1)e.alive=false;
   }
