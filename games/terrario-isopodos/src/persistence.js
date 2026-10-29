@@ -8,11 +8,13 @@ function normalizeHabitat(habitat){
     throw new Error("El guardado contiene humedad fuera de rango");
   if(!Number.isFinite(habitat?.temperatureC)||habitat.temperatureC<10||habitat.temperatureC>30)
     throw new Error("El guardado contiene temperatura fuera de rango");
+  if(!Number.isFinite(habitat?.light)||habitat.light<0||habitat.light>1)
+    throw new Error("El guardado contiene luz fuera de rango");
   return {
     shape: habitatShape,
     humidity:Number(habitat.humidity),
     temperatureC:Number(habitat.temperatureC),
-    light:Number.isFinite(habitat?.light)?Number(habitat.light):.35
+    light:Number(habitat.light)
   };
 }
 
@@ -21,8 +23,9 @@ function normalizeEntity(entity,index){
   if(typeof entity.id!=="string"||!entity.id.trim())throw new Error("El guardado contiene una entidad sin id");
   if(typeof entity.kind!=="string"||!entity.kind.trim())throw new Error("El guardado contiene una entidad sin especie");
   if(!Number.isFinite(entity.x)||!Number.isFinite(entity.z))throw new Error("El guardado contiene posiciones no válidas");
-  if(!Number.isFinite(entity.energy)||!Number.isFinite(entity.hydration)||!Number.isFinite(entity.stress))
-    throw new Error("El guardado contiene atributos biológicos no válidos");
+  if(!Number.isFinite(entity.energy)||entity.energy<0||entity.energy>1)throw new Error("El guardado contiene energía fuera de rango");
+  if(!Number.isFinite(entity.hydration)||entity.hydration<0||entity.hydration>1)throw new Error("El guardado contiene hidratación fuera de rango");
+  if(!Number.isFinite(entity.stress)||entity.stress<0||entity.stress>1)throw new Error("El guardado contiene estrés fuera de rango");
   return {
     ...structuredClone(entity),
     id: entity.id,
@@ -54,27 +57,39 @@ function normalizeResource(resource,index){
   };
 }
 
-export const SAVE_KEY="terrario-isopodos.save.v1";
-const SCHEMA_VERSION=1;
-
-export function serializeTerrarium(state){
+function validateStateShape(state){
   if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
   const habitat=normalizeHabitat(state.habitat ?? {shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35});
   const entities=Array.isArray(state.entities)?state.entities.map(normalizeEntity):[];
   const resources=Array.isArray(state.resources)?state.resources.map(normalizeResource):[];
+  if(new Set(entities.map(e=>e.id)).size!==entities.length)throw new Error("El guardado contiene IDs duplicados");
+  if(new Set(resources.map(r=>r.id)).size!==resources.length)throw new Error("El guardado contiene IDs duplicados en recursos");
+  return {
+    version:Number(state.version ?? 1),
+    name:typeof state.name==="string"&&state.name.trim()?state.name.trim().slice(0,40):"Pequeño bosque",
+    clockMinutes:Number.isFinite(state.clockMinutes)?Number(state.clockMinutes):0,
+    running:Boolean(state.running),
+    speed:Number.isFinite(state.speed)?Number(state.speed):1,
+    habitat,
+    entities,
+    resources
+  };
+}
+
+export const SAVE_KEY="terrario-isopodos.save.v1";
+const SCHEMA_VERSION=1;
+
+export function serializeTerrarium(state){
+  const validated=validateStateShape(state);
   return JSON.stringify({
     schemaVersion:SCHEMA_VERSION,
     gameId:"terrario-isopodos",
     savedAt:new Date().toISOString(),
     state:{
-      version:state.version ?? 1,
-      name:typeof state.name==="string"&&state.name.trim()?state.name.trim().slice(0,40):"Pequeño bosque",
-      clockMinutes:Number.isFinite(state.clockMinutes)?Number(state.clockMinutes):0,
+      ...validated,
+      version:1,
       running:false,
-      speed:Number.isFinite(state.speed)?Number(state.speed):1,
-      habitat,
-      entities,
-      resources
+      speed:validated.speed
     }
   });
 }
@@ -89,20 +104,13 @@ export function parseTerrarium(raw){
      !s.habitat||!Array.isArray(s.entities)||!Array.isArray(s.resources))
     throw new Error("El guardado no coincide con el esquema 1");
 
-  const habitat=normalizeHabitat(s.habitat);
-  const entities=s.entities.map(normalizeEntity);
-  const resources=s.resources.map(normalizeResource);
-  if(new Set(entities.map(e=>e.id)).size!==entities.length)throw new Error("El guardado contiene IDs duplicados");
-
+  const sanitized=validateStateShape(s);
   return {
-    ...structuredClone(s),
+    ...sanitized,
     version:1,
-    name:typeof s.name==="string"&&s.name.trim()?s.name.trim().slice(0,40):"Pequeño bosque",
+    name:sanitized.name,
     running:false,
     speed:Number(s.speed),
-    habitat,
-    entities,
-    resources,
     presentation:{mode:VALID_MODES.has(s.presentation?.mode)?s.presentation.mode:"diorama",autoRotate:Boolean(s.presentation?.autoRotate ?? true)}
   };
 }

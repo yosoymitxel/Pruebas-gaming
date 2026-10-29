@@ -15,9 +15,13 @@ test("el estado inicial contiene una colonia con IDs estables",()=>{
 });
 
 test("cambiar presentación no muta el dominio",()=>{
-  const s=createTerrariumState(),before=snapshotDomain(s);
-  s.presentation.mode="voxel";s.presentation.autoRotate=false;
+  const s=createTerrariumState();
+  const before=snapshotDomain(s);
+  s.presentation.mode="voxel";
+  s.presentation.autoRotate=false;
   assert.equal(snapshotDomain(s),before);
+  assert.equal(s.settings.presentation.mode,"voxel");
+  assert.equal(s.settings.presentation.autoRotate,false);
 });
 
 test("el reloj acumula tiempo y cruza de día",()=>{

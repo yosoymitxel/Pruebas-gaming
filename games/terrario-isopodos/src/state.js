@@ -1,12 +1,11 @@
 export function createTerrariumState(){
-  return {
+  const state={
     version:1,
     name:"Pequeño bosque",
     clockMinutes:480,
     running:false,
     speed:1,
     habitat:{shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35},
-    presentation:{mode:"diorama",autoRotate:true},
     entities:[
       {id:"isopod-001",kind:"armadillidium-vulgare",x:-.88,z:-.42,heading:.4,energy:.84,hydration:.82,stress:.18,alive:true,behavior:"exploring"},
       {id:"isopod-002",kind:"armadillidium-vulgare",x:-.38,z:.48,heading:1.1,energy:.76,hydration:.79,stress:.16,alive:true,behavior:"exploring"},
@@ -17,8 +16,21 @@ export function createTerrariumState(){
     resources:[
       {id:"leaf-litter-1",type:"leaf-litter",amount:.65,x:-.8,z:.45},
       {id:"shelter-1",type:"shelter",amount:1,x:.8,z:-.45}
-    ]
+    ],
+    settings:{
+      presentation:{mode:"diorama",autoRotate:true},
+      quality:"balanced"
+    }
   };
+
+  Object.defineProperty(state,"presentation",{
+    configurable:true,
+    enumerable:true,
+    get(){return this.settings.presentation;},
+    set(value){if(!value||typeof value!=="object")throw new TypeError("presentation debe ser un objeto");this.settings.presentation={...this.settings.presentation,...value};}
+  });
+
+  return state;
 }
 
 export function snapshotDomain(s){
@@ -38,7 +50,7 @@ export function snapshotDomain(s){
 export function advanceMinutes(s,n){
   if(!s||typeof s!=="object")throw new TypeError("Se requiere un estado del terrario");
   if(!Number.isFinite(n)||n<0)throw new RangeError("minutes debe ser un número no negativo");
-  s.clockMinutes=(Number(s.clockMinutes ?? 0)+n);
+  s.clockMinutes=Number(s.clockMinutes ?? 0)+n;
   if(!Number.isFinite(s.clockMinutes))throw new RangeError("minutes resultó no finito");
   return s.clockMinutes;
 }
