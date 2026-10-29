@@ -140,3 +140,10 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
  .panel .metrics strong{font-size:15px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+@media(max-width:760px){
+ .panel h2{display:none}
+ .panel .modes{margin:0}
+ .panel #speed-label{font-size:9px}
+ .panel #humidity-input,.panel #temperature-input{width:100%;min-width:0}
+}
