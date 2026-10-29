@@ -55,4 +55,4 @@ if (("${#FAILURES[@]}" > 0)); then
 fi
 
 echo
-echo "Instalación finalizada sin errores del CLI. Ejecuta ./scripts/validate-skills.sh y revisa licencias y duplicados antes de integrar."
+echo "Instalación finalizada sin errores del CLI. Ejecuta bash scripts/validate-skills.sh y revisa licencias y duplicados antes de integrar."
