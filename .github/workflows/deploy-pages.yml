@@ -1,0 +1,61 @@
+name: Build and deploy game collection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "games/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build terrarium production bundle
+        working-directory: games/terrario-isopodos
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Assemble static Pages artifact
+        run: |
+          rm -rf _site
+          mkdir -p _site/games/terrario-isopodos
+          cp index.html _site/index.html
+          cp games/catalog.json _site/games/catalog.json
+          cp -R games/terrario-isopodos/dist/. _site/games/terrario-isopodos/
+          touch _site/.nojekyll
+          test -s _site/games/terrario-isopodos/index.html
+          test -n "$(find _site/games/terrario-isopodos -name '*.css' -print -quit)"
+          test -n "$(find _site/games/terrario-isopodos -maxdepth 1 -name '*.js' -print -quit)"
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
