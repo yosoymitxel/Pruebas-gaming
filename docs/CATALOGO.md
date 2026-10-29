@@ -43,6 +43,10 @@ Estado inicial: catalogadas; instalación física pendiente de automatización y
 | [Libraries.dev](https://libraries.dev/) | Directorio | Descubrimiento de bibliotecas |
 | [Justinmind: UI de juegos](https://www.justinmind.com/es/ui-diseno/juego) | Guía | Flujos, HUD y UX |
 
+## Descubrimiento de skills para capacidades faltantes
+
+Consulta [Descubrimiento de skills](DESCUBRIMIENTO-SKILLS.md). Vercel Skills es el CLI/ecosistema para buscar, listar, instalar y actualizar skills; no equivale a una única skill de diseño de juegos.
+
 ## Selección contextual de referencias
 
 Usa [el catálogo de referencias por contexto](CATALOGO-REFERENCIAS.md) para decidir qué fuentes consultar según el problema. Para capturas actuales y descargas verificadas, aplica el [protocolo de evidencia visual](EVIDENCIA-VISUAL.md).
