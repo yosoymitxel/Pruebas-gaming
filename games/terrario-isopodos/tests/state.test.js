@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
 import {addFood,addShelter,stepSimulation} from "../src/simulation.js";
-import {parseTerrarium,serializeTerrarium} from "../src/persistence.js";
+import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,SAVE_KEY} from "../src/persistence.js";
 
 test("el estado inicial contiene una colonia con IDs estables",()=>{
  const s=createTerrariumState();
@@ -73,4 +73,29 @@ test("las necesidades disparan búsqueda de comida, refugio y defensa",()=>{
 });
 test("formatea día y hora",()=>{
  assert.equal(formatClock(480),"DÍA 01 · 08:00");assert.equal(formatClock(1440),"DÍA 02 · 00:00");
+});
+
+test("el guardado rechaza versiones futuras y entidades duplicadas",()=>{
+ const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
+ const future=structuredClone(valid);future.schemaVersion=2;
+ assert.throws(()=>parseTerrarium(JSON.stringify(future)),/versión más reciente/);
+ const duplicate=structuredClone(valid);duplicate.state.entities[1].id=duplicate.state.entities[0].id;
+ assert.throws(()=>parseTerrarium(JSON.stringify(duplicate)),/valores inválidos/);
+});
+test("el guardado valida rangos de velocidad y microclima",()=>{
+ const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
+ const invalidSpeed=structuredClone(valid);invalidSpeed.state.speed=9;
+ assert.throws(()=>parseTerrarium(JSON.stringify(invalidSpeed)),/esquema 1/);
+ const invalidHumidity=structuredClone(valid);invalidHumidity.state.habitat.humidity=1.5;
+ assert.throws(()=>parseTerrarium(JSON.stringify(invalidHumidity)),/valores inválidos/);
+});
+test("guardar y cargar usan una clave estable y propagan fallos de almacenamiento",()=>{
+ const values=new Map(),storage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k)??null};
+ const state=createTerrariumState();
+ saveTerrarium(state,storage);
+ assert.ok(values.has(SAVE_KEY));
+ assert.equal(loadTerrarium(storage).clockMinutes,state.clockMinutes);
+ const blocked={setItem(){throw new Error("quota")},getItem(){throw new Error("blocked")}};
+ assert.throws(()=>saveTerrarium(state,blocked),/quota/);
+ assert.throws(()=>loadTerrarium(blocked),/blocked/);
 });
