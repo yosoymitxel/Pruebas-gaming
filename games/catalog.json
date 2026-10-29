@@ -1,0 +1,13 @@
+{
+  "games": [
+    {
+      "id": "terrario-isopodos",
+      "name": "Terrario de isópodos",
+      "category": "Simulación · ecología",
+      "status": "Prototipo jugable",
+      "description": "Diseña un microhábitat, añade refugios y hojarasca, y observa una colonia en un diorama 3D que puedes recorrer con la cámara.",
+      "path": "./games/terrario-isopodos/",
+      "art": "terrarium"
+    }
+  ]
+}
