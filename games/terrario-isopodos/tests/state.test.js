@@ -99,3 +99,10 @@ test("guardar y cargar usan una clave estable y propagan fallos de almacenamient
  assert.throws(()=>saveTerrarium(state,blocked),/quota/);
  assert.throws(()=>loadTerrarium(blocked),/blocked/);
 });
+
+test("la persistencia admite posiciones válidas en los bordes del recipiente",()=>{
+ const s=createTerrariumState();s.entities[0].x=1.7;s.entities[0].z=1.1;
+ const loaded=parseTerrarium(serializeTerrarium(s));
+ assert.equal(loaded.entities[0].x,1.7);
+ assert.equal(loaded.entities[0].z,1.1);
+});
