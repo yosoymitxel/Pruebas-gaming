@@ -524,3 +524,21 @@ footer{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+
+
+/* Recovered controls retained by the game bootstrap after the visual refresh. */
+.menu-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.menu-actions button{min-height:42px;padding:10px 14px;border:1px solid var(--line);border-radius:999px}
+.menu-actions .menu-primary{background:var(--moss);color:#14241b}
+.clockbox{position:absolute;left:18px;bottom:64px;z-index:8;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(12,22,18,.72);backdrop-filter:blur(10px);color:var(--ink)}
+.clockbox strong{font-size:13px;letter-spacing:.08em}
+.clockbox span{font-size:11px;color:var(--muted)}
+.viewtools{position:absolute;left:18px;bottom:18px;z-index:9;display:flex;flex-wrap:wrap;gap:8px}
+.viewtools button{min-height:36px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(12,22,18,.78);color:var(--ink);font-size:11px}
+.viewtools button[aria-pressed=true]{background:var(--moss);color:#14241b}
+@media(max-width:760px){
+  .clockbox{left:10px;bottom:calc(34svh + 18px);padding:8px 10px}
+  .viewtools{left:10px;bottom:calc(34svh + 72px);max-width:calc(100% - 20px)}
+  .viewtools button{min-height:34px;padding:7px 9px;font-size:10px}
+  .menu-actions{gap:8px}
+}
