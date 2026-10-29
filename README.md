@@ -20,12 +20,14 @@ No es una colección pasiva de prompts. El framework define un proceso obligator
 13. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
 14. [Estándares](docs/ESTANDARES.md)
 15. [Estructura prevista](docs/ESTRUCTURA.md)
+16. [Especificación del terrario sandbox de isópodos](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
 
 ## Filtros obligatorios
 Cada tarea debe registrar resultados para:
 - **CODE_GATE:** calidad técnica, pruebas, seguridad y revisión del diff.
 - **GAMEPLAY_GATE:** reglas, controles, estados y funcionamiento real.
 - **DESIGN_GATE:** coherencia visual, responsive, accesibilidad y animaciones.
+- **INTEGRATION_GATE:** regresión conjunta, assets, build y hosting.
 
 Si un filtro no corresponde, debe marcarse NOT_APPLICABLE con una razón. Si no se pudo probar, BLOCKED; nunca se convierte una suposición en PASS.
 
@@ -41,7 +43,11 @@ Requiere Node.js 22.20 o posterior para el instalador actual:
     bash scripts/validate-skills.sh
     bash scripts/index-skills.sh
 
+Para comprobar el framework con una sola ejecución:
+
+    bash scripts/diagnose-framework.sh
+
 La descarga e instalación efectiva de las fuentes externas aún debe ejecutarse y validarse en un entorno con acceso a GitHub. No se considera completa solo por tener un instalador o una entrada en el catálogo.
 
 ## Alcance actual
-Esta fase se centra exclusivamente en estabilizar el framework. La carpeta juegos/, con un subdirectorio por juego HTML, queda para una fase posterior.
+La fase actual estabiliza el framework y cierra la especificación del terrario de isópodos. La especificación no equivale a implementación: no crear `juegos/` ni iniciar el juego completo hasta validar el spike técnico de render y cerrar los riesgos documentados.
