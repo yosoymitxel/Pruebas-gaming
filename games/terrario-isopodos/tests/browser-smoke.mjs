@@ -31,8 +31,15 @@ try{
  await page.getByRole("button",{name:/Voxel/}).click();
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("No volvió a Voxel");
  await page.getByRole("button",{name:/Pausar/}).click();
+ const clockBeforeStep=await page.locator("#clock").textContent();
+ const beforeMatch=clockBeforeStep.match(/(\\d{2}):(\\d{2})$/);
+ if(!beforeMatch)throw new Error(`No se pudo leer el reloj antes del avance: ${clockBeforeStep}`);
+ const minutesBeforeStep=Number(beforeMatch[1])*60+Number(beforeMatch[2]);
  await page.getByRole("button",{name:/Avanzar 1 minuto sin reanudar/}).click();
- if(!(await page.locator("#clock").textContent()).includes("08:01"))throw new Error(`El reloj no avanzó un minuto en pausa: ${await page.locator("#clock").textContent()}`);
+ const clockAfterStep=await page.locator("#clock").textContent();
+ const afterMatch=clockAfterStep.match(/(\\d{2}):(\\d{2})$/);
+ const minutesAfterStep=afterMatch?Number(afterMatch[1])*60+Number(afterMatch[2]):-1;
+ if(minutesAfterStep!==minutesBeforeStep+1)throw new Error(`El avance manual debe sumar exactamente un minuto: antes=${clockBeforeStep}, después=${clockAfterStep}`);
  await page.getByRole("button",{name:/Continuar observando/}).click();
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
  await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
