@@ -1,7 +1,7 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
 import{stepSimulation,addFood,addShelter}from"./simulation.js";
-import{saveTerrarium,loadTerrarium}from"./persistence.js";
+import{SAVE_KEY,saveTerrarium,loadTerrarium}from"./persistence.js";
 import{TerrariumRenderer}from"./renderers.js";
 const state=createTerrariumState(),renderer=new TerrariumRenderer(document.querySelector("#scene"),state),$=s=>document.querySelector(s);
 let last=performance.now(),acc=0,saveMessage="",setupShape="rectangular",setupMode="diorama",settings=loadSettings();
@@ -15,7 +15,7 @@ function openModal(title,body){$("#modal-title").textContent=title;$("#modal-bod
 function closeModal(){modal.hidden=true;}
 function showPauseMenu(){state.running=false;update();openModal("Partida en pausa",`<p>El tiempo y los comportamientos están detenidos. Tu colonia sigue exactamente donde la dejaste.</p><button class="menu-primary" id="resume-game">Continuar observando <span>↗</span></button><button class="menu-secondary modal-action" id="step-paused">Avanzar 1 minuto sin reanudar</button><button class="menu-secondary modal-action" id="pause-save">Guardar terrario</button><button class="menu-secondary modal-action" id="return-title">Volver al menú principal</button>`);}
 function showSettings(){openModal("Ajustes",`<p>Preferencias locales de esta instalación.</p><label>Giro automático de cámara <input id="setting-rotate" type="checkbox" ${settings.autoRotate?"checked":""}></label><label>Calidad visual <select id="setting-quality"><option value="normal" ${settings.quality==="normal"?"selected":""}>Normal</option><option value="economy" ${settings.quality==="economy"?"selected":""}>Ahorro de rendimiento</option></select></label><p>Idioma: Español. El juego no utiliza audio todavía.</p><button class="menu-primary" id="save-settings">Guardar ajustes <span>✓</span></button>`);}
-function showHelp(){openModal("Cómo se juega",`<p><b>Explora.</b> Arrastra sobre el terrario para orbitar la cámara y usa la rueda para acercarte.</p><p><b>Observa.</b> Alterna Diorama y Voxel sin reiniciar la colonia; cambia entre recipiente rectangular y cilíndrico.</p><p><b>Experimenta.</b> Inicia, pausa o acelera el tiempo. Ajusta humedad y temperatura, añade hojarasca y refugios.</p><p><b>Conserva.</b> Guarda el terrario en este navegador. Es una simulación lúdica simplificada, no un modelo científico.</p>`);}
+function showHelp(){openModal("Cómo se juega",`<p><b>Explora.</b> Arrastra sobre el terrario para orbitar la cámara y usa la rueda para acercarte.</p><p><b>Observa.</b> Alterna Diorama y Voxel sin reiniciar la colonia. La forma del recipiente se elige al crear el terrario.</p><p><b>Experimenta.</b> Inicia, pausa o acelera el tiempo. Ajusta humedad y temperatura, añade hojarasca y refugios.</p><p><b>Conserva.</b> Guarda el terrario en este navegador. Es una simulación lúdica simplificada, no un modelo científico.</p>`);}
 $("#new-game").addEventListener("click",()=>{menu.hidden=true;setup.hidden=false;setup.querySelector("#setup-name").focus();});
 $("#back-to-menu").addEventListener("click",()=>{setup.hidden=true;menu.hidden=false;refreshMenu();});
 document.querySelectorAll("[data-setup-shape]").forEach(b=>b.addEventListener("click",()=>{setupShape=b.dataset.setupShape;document.querySelectorAll("[data-setup-shape]").forEach(x=>x.classList.toggle("selected",x===b));}));

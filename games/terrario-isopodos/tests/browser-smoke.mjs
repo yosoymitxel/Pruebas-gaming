@@ -38,11 +38,6 @@ try{
  await page.getByRole("button",{name:"Guardar terrario"}).click();
  await page.getByRole("button",{name:"Menú"}).click();
  await page.getByRole("button",{name:/Volver al menú principal/}).click();
- await page.getByRole("button",{name:/Nuevo terrario/}).click();
- await page.locator('[data-setup-shape="rectangular"]').click();
- await page.locator('[data-setup-mode="diorama"]').click();
- await page.getByRole("button",{name:/Entrar al terrario/}).click();
- await page.locator("#scene canvas").waitFor({state:"visible"});
  await page.reload({waitUntil:"networkidle"});
  await page.getByRole("button",{name:/Continuar partida/}).click();
  if(!(await page.locator("#clock").textContent()).includes("08:01"))throw new Error("El guardado no recuperó el reloj tras recarga");

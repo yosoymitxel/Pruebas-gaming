@@ -16,6 +16,24 @@
 - Al entrar desde una pantalla oculta, el renderer recalcula explícitamente el tamaño del canvas.
 - El guardado conserva el nombre del terrario además del estado de dominio.
 
+## Baseline del esqueleto (game-project-skeleton)
+
+| Sistema | Estado | Criterio / motivo |
+|---|---|---|
+| Menú, nueva partida y continuar | PENDIENTE | Menú y setup existen; continuar debe pasar Playwright tras guardar y recargar. |
+| Flujo de pantallas | PENDIENTE | Menú → setup → juego → pausa → menú; verificar transiciones sin estados ocultos. |
+| Estado autoritativo y HUD | INCLUIR | El modelo de estado gobierna reloj, colonia y condiciones; comprobar coherencia en navegador. |
+| Pausa y reanudación | PENDIENTE | Verificar que el tiempo se detiene y reanuda sin salto. |
+| Ajustes persistentes | PENDIENTE | Giro automático y calidad guardados; falta probar restauración real. |
+| Localización | NO APLICA por ahora | MVP inicial solo en español; documentar antes de ampliar idiomas. |
+| Temas | NO APLICA por ahora | No hay catálogo de temas; no fingir que existe. |
+| Guardado/carga versionados | PENDIENTE | Esquema v1 y validación existen; prueba de navegador falló en el botón Continuar. |
+| Exportar/importar | PENDIENTE | No implementado; criterio: exportación versionada y rechazo de datos inválidos sin mutar partida. |
+| Fin/victoria/derrota | NO APLICA | Sandbox ecológico sin condición terminal definida. |
+| Audio | NO APLICA por ahora | No hay audio en el MVP actual. |
+| Responsive/accesibilidad | PENDIENTE | Capturas actuales y prueba de overflow móvil requeridas. |
+| Build y QA | PENDIENTE | Tests y build pasaron en el SHA anterior; smoke de navegador falló y debe repetirse tras corregir. |
+
 ## Puertas de calidad
 
 | Puerta | Estado | Evidencia / condición |
