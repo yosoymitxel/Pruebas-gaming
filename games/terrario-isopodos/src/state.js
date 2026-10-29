@@ -27,10 +27,32 @@ export function createTerrariumState(){
     configurable:true,
     enumerable:true,
     get(){return this.settings.presentation;},
-    set(value){if(!value||typeof value!=="object")throw new TypeError("presentation debe ser un objeto");this.settings.presentation={...this.settings.presentation,...value};}
+    set(value){
+      if(!value||typeof value!=="object")throw new TypeError("presentation debe ser un objeto");
+      this.settings.presentation={...this.settings.presentation,...value};
+      if(!new Set(["diorama","voxel"]).has(this.settings.presentation.mode))this.settings.presentation.mode="diorama";
+      if(typeof this.settings.presentation.autoRotate!=="boolean")this.settings.presentation.autoRotate=true;
+    }
   });
 
   return state;
+}
+
+export function applyPresentationChange(state,next){
+  if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
+  const current=state.settings?.presentation ?? {mode:"diorama",autoRotate:true};
+  const merged={...current,...(next&&typeof next=="object"?next:{}),};
+  if(!new Set(["diorama","voxel"]).has(merged.mode))merged.mode="diorama";
+  if(typeof merged.autoRotate!=="boolean")merged.autoRotate=true;
+  state.settings={...(state.settings ?? {}),presentation:merged};
+  return state.settings.presentation;
+}
+
+export function applyHabitatShape(state,shape){
+  if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
+  if(!new Set(["rectangular","cilindrico"]).has(shape))throw new Error("La forma del terrario no es válida");
+  state.habitat={...(state.habitat ?? {shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35}),shape};
+  return state.habitat;
 }
 
 export function snapshotDomain(s){
