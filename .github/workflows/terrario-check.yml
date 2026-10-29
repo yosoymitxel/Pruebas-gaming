@@ -1,0 +1,43 @@
+name: Terrario game checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "games/terrario-isopodos/**"
+      - ".github/workflows/terrario-check.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/terrario-isopodos
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser interaction smoke test
+        run: node tests/browser-smoke.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terrario-evidence-${{ github.sha }}
+          path: games/terrario-isopodos/artifacts/visual/
+          if-no-files-found: warn
+          retention-days: 14
