@@ -367,6 +367,7 @@ export class TerrariumRenderer {
   }
 
   setMode(mode){
+    this.renderer.domElement.dataset.renderMode=mode;
     this.clear(this.life);
     for(const e of this.state.entities){
       const o=isopod(mode === "voxel");
