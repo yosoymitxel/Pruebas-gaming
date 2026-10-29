@@ -35,8 +35,9 @@ try{
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
- await page.screenshot({path:"artifacts/visual/gameplay-voxel-1440x1000.png",fullPage:true});
  const cameraCanvas=page.locator("#scene canvas");
+ if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
+ await page.screenshot({path:"artifacts/visual/gameplay-voxel-1440x1000.png",fullPage:true});
  const initialDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
  await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
  const pinchDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
@@ -58,10 +59,10 @@ try{
  if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra Ayuda");
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
- if(await page.locator("#view-label").textContent()!=="DIORAMA 3D")throw new Error("No cambió a Diorama");
+ if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
  await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
  await page.getByRole("button",{name:/Voxel/}).click();
- if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("No volvió a Voxel");
+ if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("No volvió realmente a Voxel");
  await page.getByRole("button",{name:/Pausar/}).click();
  await page.locator("#pause-settings").click();
  if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("No se abre Ajustes desde pausa");
@@ -104,7 +105,7 @@ try{
  const hasPurchasedItem=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources.some(r=>r.type==="mushroom"));
  if(!hasPurchasedItem)throw new Error("El objeto comprado no sobrevivió a guardar/cargar");
 
- if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("Los ajustes no restauraron el modo visual elegido");
+ if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
