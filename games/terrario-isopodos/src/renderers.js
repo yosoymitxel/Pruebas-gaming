@@ -1,65 +1,450 @@
 import * as T from "three";
+
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
-function mesh(g,m,p){const o=new T.Mesh(g,m);o.position.set(...p);o.castShadow=false;o.receiveShadow=true;return o;}
-function rng(seed){let n=seed>>>0;return()=>{n=(1664525*n+1013904223)>>>0;return n/4294967296;};}
-function rod(group,a,b,r,m){const v=new T.Vector3(...a),w=new T.Vector3(...b),d=w.clone().sub(v),o=mesh(new T.CylinderGeometry(r*.72,r,d.length(),7),m,v.add(w).multiplyScalar(.5).toArray());o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());group.add(o);}
+
+function mesh(g,m,p){
+  const o=new T.Mesh(g,m);
+  o.position.set(...p);
+  o.castShadow=false;
+  o.receiveShadow=true;
+  return o;
+}
+
+function rng(seed){
+  let n=seed>>>0;
+  return ()=>{
+    n=(1664525*n+1013904223)>>>0;
+    return n/4294967296;
+  };
+}
+
+function rod(group,a,b,r,m){
+  const v=new T.Vector3(...a),w=new T.Vector3(...b);
+  const d=w.clone().sub(v);
+  const o=mesh(new T.CylinderGeometry(r*.72,r,d.length(),7),m,v.add(w).multiplyScalar(.5).toArray());
+  o.rotation.set(Math.PI/2,0,0);
+  group.add(o);
+}
+
 let voxelMaterial;
 function getVoxelMaterial(){
- if(voxelMaterial)return voxelMaterial;
- const canvas=document.createElement("canvas");canvas.width=64;canvas.height=32;
- const c=canvas.getContext("2d");c.imageSmoothingEnabled=false;
- const px=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
- const outline="#272d23",dark="#464637",mid="#7c795b",light="#a6a080",shine="#c3b995";
- // Transparent pixel-art sprite sheet cell: dorsal plates, lateral plates, head, eyes, antennae and legs.
- px(13,7,37,18,outline);px(17,5,28,22,outline);
- px(17,7,28,18,mid);px(21,6,20,20,light);px(23,7,16,17,mid);
- for(let i=0;i<6;i++){const x=18+i*5;px(x,7,3,17,i%2?light:mid);px(x,7,1,17,dark);px(x,8,2,2,shine);px(x,22,3,2,dark);}
- px(43,10,10,13,outline);px(44,11,8,10,light);px(48,12,4,7,mid);
- px(51,13,5,5,outline);px(52,14,2,2,"#e9d9a7");px(54,15,1,1,outline);
- for(let i=0;i<7;i++){const x=17+i*4;px(x,23,2,4,outline);px(x-2,26,3,2,dark);px(x+1,26,3,2,dark);}
- px(51,10,5,2,outline);px(54,7,2,5,dark);px(55,6,2,2,outline);
- px(12,12,3,2,outline);px(10,10,3,2,dark);
- const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.magFilter=T.NearestFilter;texture.minFilter=T.NearestFilter;
- voxelMaterial=new T.SpriteMaterial({map:texture,transparent:true,alphaTest:.08,depthWrite:false});return voxelMaterial;
+  if(voxelMaterial)return voxelMaterial;
+  const canvas=document.createElement("canvas");
+  canvas.width=64; canvas.height=32;
+  const c=canvas.getContext("2d");
+  c.imageSmoothingEnabled=false;
+  const px=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
+  const outline="#272d23",dark="#464637",mid="#7c795b",light="#a6a080",shine="#c3b995";
+  px(13,7,37,18,outline);px(17,5,28,22,outline);
+  px(17,7,28,18,mid);px(21,6,20,20,light);px(23,7,16,17,mid);
+  for(let i=0;i<6;i++){
+    const x=18+i*5;
+    px(x,7,3,17,i%2?light:mid);px(x,7,1,17,dark);px(x,8,2,2,shine);px(x,22,3,2,dark);
+  }
+  px(43,10,10,13,outline);px(44,11,8,10,light);px(48,12,4,7,mid);
+  px(51,13,5,5,outline);px(52,14,2,2,"#e9d9a7");px(54,15,1,1,outline);
+  for(let i=0;i<7;i++){
+    const x=17+i*4;
+    px(x,23,2,4,outline);px(x-2,26,3,2,dark);px(x+1,26,3,2,dark);
+  }
+  px(51,10,5,2,outline);px(54,7,2,5,dark);px(55,6,2,2,outline);
+  px(12,12,3,2,outline);px(10,10,3,2,dark);
+  const texture=new T.CanvasTexture(canvas);
+  texture.colorSpace=T.SRGBColorSpace;
+  texture.magFilter=T.NearestFilter;
+  texture.minFilter=T.NearestFilter;
+  voxelMaterial=new T.SpriteMaterial({map:texture,transparent:true,alphaTest:.08,depthWrite:false});
+  return voxelMaterial;
 }
+
 function isopod(voxel){
- const root=new T.Group(),dark=mat(0x39392e),shell=mat(0x756c57),light=mat(0xb2a17d),seam=mat(0x4d4a3a),add=(g,m,p)=>root.add(mesh(g,m,p));root.userData.legs=[];root.userData.antennae=[];
- if(voxel){
-  const sprite=new T.Sprite(getVoxelMaterial());sprite.position.y=.28;sprite.scale.set(.88,.48,1);root.add(sprite);
- }else{
-  add(new T.SphereGeometry(.29,24,16),dark,[0,.17,0]);
-  for(let i=0;i<7;i++){const t=i/7,x=.25-t*.52,s=.22*Math.sin(Math.PI*(.13+t*.82)),o=mesh(new T.SphereGeometry(1,18,12),i%2?shell:light,[x,.27+Math.sin(t*Math.PI)*.055,0]);o.scale.set(.14,.19+s*.24,.22+s*.16);o.rotation.z=-.16;root.add(o);const band=mesh(new T.TorusGeometry(.15,.008,5,18),seam,[x,.26,0]);band.rotation.y=Math.PI/2;root.add(band);}
-  add(new T.SphereGeometry(.145,20,14),shell,[.32,.25,0]);
-  for(const z of [-1,1]){add(new T.SphereGeometry(.035,10,8),dark,[.39,.29,z*.105]);for(let i=0;i<7;i++){const l=mesh(new T.CylinderGeometry(.012,.018,.14,6),dark,[.2-i*.062,.105,z*.19]);l.rotation.z=i<3?-.55:.55;l.userData.baseZ=l.rotation.z;l.userData.index=i+(z>0?7:0);root.userData.legs.push(l);root.add(l);}const a=mesh(new T.CylinderGeometry(.009,.014,.16,7),dark,[.42,.38,z*.08]);a.rotation.z=-.55;a.userData.baseZ=a.rotation.z;root.userData.antennae.push(a);root.add(a);}
- }
- root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
- root.scale.setScalar(voxel ? .92 : .72);root.userData.baseScale=voxel ? .92 : .72;return root;
+  const root=new T.Group();
+  const dark=mat(0x39392e), shell=mat(0x756c57), light=mat(0xb2a17d), seam=mat(0x4d4a3a);
+  const add=(g,m,p)=>root.add(mesh(g,m,p));
+  root.userData.legs=[];
+  root.userData.antennae=[];
+  if(voxel){
+    const sprite=new T.Sprite(getVoxelMaterial());
+    sprite.position.y=.28;
+    sprite.scale.set(.88,.48,1);
+    root.add(sprite);
+  } else {
+    add(new T.SphereGeometry(.29,24,16),dark,[0,.17,0]);
+    for(let i=0;i<7;i++){
+      const t=i/7;
+      const x=.25-t*.52;
+      const s=.22*Math.sin(Math.PI*(.13+t*.82));
+      const o=mesh(new T.SphereGeometry(1,18,12), i%2 ? shell : light, [x, .27 + Math.sin(t*Math.PI)*.055, 0]);
+      o.scale.set(.14,.19+s*.2,.22);
+      root.add(o);
+    }
+    add(new T.SphereGeometry(.145,20,14),shell,[.32,.25,0]);
+    for(const z of [-1,1]){
+      add(new T.SphereGeometry(.035,10,8),dark,[.39,.29,z*.105]);
+      for(let i=0;i<7;i++){
+        const l=mesh(new T.CylinderGeometry(.012,.018,.14,6),dark,[.2-i*.062,.105,z*.19]);
+        l.rotation.z = (z > 0 ? 1 : -1) * .45;
+        root.add(l);
+      }
+    }
+  }
+  root.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+  root.scale.setScalar(voxel ? .92 : .72);
+  root.userData.baseScale = voxel ? .92 : .72;
+  return root;
 }
-export class TerrariumRenderer{
-constructor(el,state){this.el=el;this.state=state;this.scene=new T.Scene();this.scene.background=new T.Color(0x31483a);this.scene.fog=new T.Fog(0x31483a,8,17);this.camera=new T.PerspectiveCamera(33,1,.1,100);this.renderer=new T.WebGLRenderer({antialias:true,powerPreference:"high-performance"});this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=T.PCFSoftShadowMap;this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.12;el.appendChild(this.renderer.domElement);this.world=new T.Group();this.scene.add(this.world);this.scene.add(new T.HemisphereLight(0xdbe5c9,0x403529,2.35));const sun=new T.DirectionalLight(0xffdfae,3.2);sun.position.set(-3,7,4);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-5;sun.shadow.camera.right=5;sun.shadow.camera.top=5;sun.shadow.camera.bottom=-5;this.scene.add(sun);const fill=new T.PointLight(0x8aaf7e,17,13);fill.position.set(3,3,-3);this.scene.add(fill);this.habitat=new T.Group();this.life=new T.Group();this.resourcesGroup=new T.Group();this.world.add(this.habitat,this.resourcesGroup,this.life);this.ground=mesh(new T.PlaneGeometry(40,40),mat(0x2b4032),[0,-.2,0]);this.ground.rotation.x=-Math.PI/2;this.scene.add(this.ground);this.angle=.68;this.elevation=.55;this.distance=6.8;this.resourceSignature="";this.bind();this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(el);this.resize();this.setShape(state.habitat.shape);this.setMode(state.presentation.mode);this.draw=this.draw.bind(this);this.frame=requestAnimationFrame(this.draw);}
-bind(){const c=this.renderer.domElement;const pointers=new Map();let drag=null,lastPinch=0;const zoomBy=delta=>{this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);this.cameraUpdate();};c.style.touchAction="none";c.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{c.setPointerCapture(e.pointerId);}catch{}if(pointers.size===1)drag={x:e.clientX,y:e.clientY,id:e.pointerId};else if(pointers.size===2){drag=null;const pts=[...pointers.values()];lastPinch=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}});c.addEventListener("pointermove",e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){const pts=[...pointers.values()],distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);if(lastPinch>0)zoomBy((lastPinch-distance)*.018);lastPinch=distance;drag=null;return;}if(!drag||drag.id!==e.pointerId)return;this.angle-=(e.clientX-drag.x)*.006;this.elevation=T.MathUtils.clamp(this.elevation+(e.clientY-drag.y)*.006,.12,1.25);drag.x=e.clientX;drag.y=e.clientY;this.cameraUpdate();});const stop=e=>{pointers.delete(e.pointerId);if(drag?.id===e.pointerId)drag=null;lastPinch=0;if(pointers.size===1){const [id,p]=[...pointers.entries()][0];drag={id,x:p.x,y:p.y};}};c.addEventListener("pointerup",stop);c.addEventListener("pointercancel",stop);c.addEventListener("lostpointercapture",stop);c.addEventListener("wheel",e=>{e.preventDefault();zoomBy(e.deltaY*.008);},{passive:false});this.cameraUpdate();}
-cameraUpdate(){this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);const t=new T.Vector3(0,.32,0),h=Math.cos(this.elevation)*this.distance;this.camera.position.set(Math.sin(this.angle)*h,t.y+Math.sin(this.elevation)*this.distance,Math.cos(this.angle)*h);this.camera.lookAt(t);}
-zoom(delta){this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);this.cameraUpdate();}
-resetCamera(){this.angle=.68;this.elevation=.55;this.distance=6.8;this.cameraUpdate();}
-clear(g){while(g.children.length){const o=g.children[g.children.length-1];g.remove(o);o.traverse(c=>{c.geometry?.dispose();if(c.material)(Array.isArray(c.material)?c.material:[c.material]).forEach(m=>{if(m!==voxelMaterial)m.dispose();});});}}
-terrain(shape){if(shape==="cilindrico"){const g=new T.CircleGeometry(1.61,56),p=g.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getY(i),r=Math.hypot(x,z),a=Math.atan2(z,x);p.setZ(i,.012+Math.sin(a*5+r*8)*.025+Math.cos(a*3-r*7)*.018+(1-r/1.61)*.035);}p.needsUpdate=true;g.computeVertexNormals();g.rotateX(-Math.PI/2);g.translate(0,.19,0);return g;}const g=new T.BufferGeometry(),nx=38,nz=26,w=3.94,d=2.68,v=[],idx=[];for(let z=0;z<=nz;z++)for(let x=0;x<=nx;x++){const px=(x/nx-.5)*w,pz=(z/nz-.5)*d,e=Math.min(w/2-Math.abs(px),d/2-Math.abs(pz));v.push(px,.185+Math.sin(px*3.1+pz*1.7)*.025+Math.cos(pz*4.2-px*.9)*.018+Math.max(0,Math.min(.05,e*.035)),pz);}for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const a=z*(nx+1)+x,b=a+1,c=a+nx+1,d=c+1;idx.push(a,c,b,b,c,d);}g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();return g;}
-addLeaf(x,z,s,a,c){const o=mesh(new T.SphereGeometry(1,9,6),mat(c,.98),[x,.22+s*.012,z]);o.scale.set(s,.012+s*.004,s*.43);o.rotation.y=a;this.habitat.add(o);const vein=mesh(new T.CylinderGeometry(.003,.004,s*.8,4),mat(0x9b8a5b),[x,.234+s*.012,z]);vein.rotation.z=Math.PI/2;vein.rotation.y=a;this.habitat.add(vein);}
-addFern(x,z,size,seed){const r=rng(seed),stem=mat(0x62794b),leaf=mat(0x81955c),young=mat(0xa6b17a);rod(this.habitat,[x,.22,z],[x+.035*size,.22+size,z-.015*size],.012*size,stem);for(let i=0;i<5;i++){const t=(i+1)/6,px=x+.035*size*t,pz=z-.015*size*t,py=.22+size*t;for(const side of [-1,1]){const end=[px+side*(.09+r()*.04)*size,py+.02*size,pz+(r()-.5)*.08*size];rod(this.habitat,[px,py,pz],end,.008*size,stem);const blade=mesh(new T.SphereGeometry(1,8,5),i%2?leaf:young,[(px+end[0])/2,py+.018*size,(pz+end[2])/2]);blade.scale.set(.075*size,.013*size,.026*size);blade.rotation.y=side*.55;this.habitat.add(blade);}}}
-addMushrooms(x,z,size){const stem=mat(0xd7d0b4),cap=mat(0xc2b58b),dark=mat(0x877a58);for(let i=0;i<3;i++){const dx=(i-1)*.055*size,dz=(i%2)*.045*size,h=(.065+i%2*.035)*size;this.habitat.add(mesh(new T.CylinderGeometry(.009*size,.013*size,h,7),stem,[x+dx,.22+h/2,z+dz]));this.habitat.add(mesh(new T.SphereGeometry(.035*size,10,7,0,Math.PI*2,0,Math.PI/2),i===1?cap:dark,[x+dx,.22+h,z+dz]));}}
-addMossPatch(x,z,radius,seed){const random=rng(seed),mats=[mat(0x536d3f,.98),mat(0x6e854b,.99),mat(0x82935a,.98),mat(0x425d36,.99)];const count=8+Math.floor(random()*7);for(let i=0;i<count;i++){const a=random()*Math.PI*2,d=Math.sqrt(random())*radius,s=radius*(.22+random()*.3),o=mesh(new T.IcosahedronGeometry(1,1),mats[i%mats.length],[x+Math.cos(a)*d,.225+s*.18,z+Math.sin(a)*d*.65]);o.scale.set(s*1.2,s*.34,s*.8);o.rotation.set(random()*.25,random()*Math.PI,random()*.2);this.habitat.add(o);}for(let i=0;i<3;i++){const a=random()*Math.PI*2,d=random()*radius*.7,o=mesh(new T.SphereGeometry(.012+random()*.009,7,5),mat(0xa3b16c,.95),[x+Math.cos(a)*d,.245,z+Math.sin(a)*d*.6]);this.habitat.add(o);}}
-setShape(shape){this.clear(this.habitat);this.resourceSignature="";const soil=mat(0x40372a),humus=mat(0x5d4b34),glass=()=>new T.MeshPhysicalMaterial({color:0xc5d8bf,transparent:true,opacity:.11,roughness:.16,side:T.DoubleSide,depthWrite:false}),add=(g,m,p)=>this.habitat.add(mesh(g,m,p));if(shape==="cilindrico"){add(new T.CylinderGeometry(1.68,1.6,.31,64),soil,[0,.02,0]);add(new T.CylinderGeometry(1.68,1.59,.09,64),humus,[0,.205,0]);add(new T.CylinderGeometry(1.77,1.68,1.25,64,1,true),glass(),[0,.81,0]);const rim=mesh(new T.TorusGeometry(1.75,.035,8,64),mat(0xa7b99a,.25),[0,1.44,0]);rim.rotation.x=Math.PI/2;this.habitat.add(rim);for(const [y,r,c] of [[-.075,1.68,0x6d5136],[-.005,1.69,0x8a704c],[.055,1.68,0x4d4230]])add(new T.CylinderGeometry(r,r,.026,64,1,true),mat(c),[0,y,0]);}else{add(new T.BoxGeometry(4.02,.31,2.78),soil,[0,.02,0]);add(new T.BoxGeometry(3.98,.09,2.78),humus,[0,.205,0]);const g=glass();for(const [s,p] of [[[4.08,1.25,.035],[0,.83,-1.43]],[[4.08,1.25,.035],[0,.83,1.43]],[[.035,1.25,2.86],[-2.04,.83,0]],[[.035,1.25,2.86],[2.04,.83,0]]])add(new T.BoxGeometry(...s),g,p);for(const x of [-2.04,2.04])for(const z of [-1.43,1.43])add(new T.CylinderGeometry(.035,.035,1.35,8),mat(0x9eae94,.28),[x,.82,z]);for(const [y,h,c] of [[.035,.055,0x6d5136],[.095,.045,0x89704b],[.145,.035,0x3f3a2c]])add(new T.BoxGeometry(3.98,h,.035),mat(c),[0,y,1.395]);}
-this.habitat.add(mesh(this.terrain(shape),mat(0x514633,.99),[0,0,0]));const random=rng(shape==="cilindrico"?991:551),inside=(x,z)=>shape==="cilindrico"?x*x+z*z<1.45*1.45:Math.abs(x)<1.88&&Math.abs(z)<1.22;
-for(let i=0;i<48;i++){const x=(random()-.5)*(shape==="cilindrico"?2.7:3.7),z=(random()-.5)*(shape==="cilindrico"?2.7:2.35);if(!inside(x,z))continue;const s=.09+random()*.23,o=mesh(new T.SphereGeometry(1,8,6),mat([0x63764a,0x778653,0x596d43,0x8c9560][i%4],1),[x,.225+random()*.025,z]);o.scale.set(s*1.35,.018+random()*.012,s*.78);o.rotation.y=random()*Math.PI;this.habitat.add(o);}
-for(let i=0;i<42;i++){const x=(random()-.5)*(shape==="cilindrico"?2.6:3.7),z=(random()-.5)*(shape==="cilindrico"?2.6:2.35);if(inside(x,z))this.addLeaf(x,z,.12+random()*.29,random()*Math.PI,[0x87764f,0xa38a59,0x6e6744,0x9c7748,0x75654b][i%5]);}
-for(let i=0;i<14;i++){const x=(random()-.5)*3.3,z=(random()-.5)*2.05;if(!inside(x,z))continue;const s=.12+random()*.18,o=mesh(new T.DodecahedronGeometry(s),mat([0x777568,0x5c6052,0x8b826c][i%3]),[x,.23+s*.35,z]);o.scale.y=.5+random()*.35;o.rotation.set(random(),random(),random()*.3);o.castShadow=true;this.habitat.add(o);}
-for(let i=0;i<6;i++){const x=-1.3+i*.43,z=.38+Math.sin(i*.8)*.13,a=[x-.24,.28,z+.04],b=[x+.28,.36+Math.sin(i)*.05,z-.12];rod(this.habitat,a,b,.07,mat(0x4b3828));rod(this.habitat,[a[0],a[1]+.04,a[2]],[b[0],b[1]+.04,b[2]],.045,mat(0x72543a));for(let j=0;j<4;j++){const t=j/4,o=mesh(new T.TorusGeometry(.055,.006,5,12),mat(0x9b7950),[a[0]+(b[0]-a[0])*t,.31,a[2]+(b[2]-a[2])*t]);o.rotation.y=Math.PI/2;this.habitat.add(o);}}
-for(let i=0;i<9;i++){const x=(random()-.5)*3.3,z=(random()-.5)*2.05;if(inside(x,z))this.addFern(x,z,.45+random()*.35,100+i);}this.addMushrooms(-.95,-.55,.85);this.addMushrooms(1.18,.48,.65);for(let i=0;i<15;i++){const x=(random()-.5)*(shape==="cilindrico"?2.6:3.55),z=(random()-.5)*(shape==="cilindrico"?2.6:2.25);if(inside(x,z))this.addMossPatch(x,z,.11+random()*.18,700+i);}
-for(let i=0;i<12;i++){const x=(random()-.5)*3.2,z=(random()-.5)*2.1;if(!inside(x,z))continue;const curve=new T.CatmullRomCurve3([new T.Vector3(x,.21,z),new T.Vector3(x+.06,.18,z+.07),new T.Vector3(x+.13,.16,z+.13)]);this.habitat.add(mesh(new T.TubeGeometry(curve,8,.008,4,false),mat(0x9b8257),[0,0,0]));}this.setMode(this.state.presentation.mode);this.syncResources();}
-setMode(mode){this.clear(this.life);for(const e of this.state.entities){const o=isopod(mode==="voxel");o.userData.entityId=e.id;this.life.add(o);}this.syncEntities();}
-syncEntities(){const byId=new Map(this.state.entities.map(e=>[e.id,e])),t=performance.now()*.001;for(const o of this.life.children){const e=byId.get(o.userData.entityId);if(!e){o.visible=false;continue;}o.visible=e.alive!==false;if(!o.visible)continue;const phase=(Number(e.id.slice(-3))||1)*1.7,behavior=e.behavior??"exploring",walking=["exploring","seeking-food","seeking-shelter","investigating","socializing","burrowing"].includes(behavior),buried=behavior==="burrowing";o.position.set(e.x,(buried?.13:behavior==="resting"?.205:behavior==="feeding"?.218:.23)+(walking?Math.abs(Math.sin(t*10+phase))*.012:Math.sin(t*1.8+phase)*.002),e.z);o.rotation.y=(e.heading??0)+Math.sin(t*1.8+phase)*.025;o.rotation.z=behavior==="grooming"?Math.sin(t*7+phase)*.09:behavior==="defensive-curl"?Math.sin(t*2+phase)*.025:buried?Math.sin(t*3+phase)*.08:walking?Math.sin(t*10+phase)*.045:0;const base=o.userData.baseScale??.72;if(behavior==="defensive-curl"){const curl=.78+Math.abs(Math.sin(t*4+phase))*.08;o.scale.set(base*1.08,base*.68,base*1.08);o.rotation.x=Math.PI*.08+curl*.08;}else{o.scale.setScalar(base);o.rotation.x=buried?-.22:0;}for(const leg of o.userData.legs??[]){const side=leg.userData.index%7<3?-1:1;leg.rotation.z=leg.userData.baseZ+(behavior==="defensive-curl"?side*.62:walking?Math.sin(t*13+phase+leg.userData.index*Math.PI)*.16:behavior==="grooming"?Math.sin(t*5+phase+leg.userData.index)*.08:0);}for(const a of o.userData.antennae??[])a.rotation.z=a.userData.baseZ+(behavior==="defensive-curl"?-.2:Math.sin(t*3.3+phase)*.12);}}
-syncResources(){const sig=JSON.stringify(this.state.resources.map(r=>[r.id,r.type,Math.round((r.amount??1)*10)/10,r.x,r.z]));if(sig===this.resourceSignature)return;this.resourceSignature=sig;this.clear(this.resourcesGroup);for(const r of this.state.resources){if((r.amount??1)<=.02)continue;const x=r.x??0,z=r.z??0;if(r.type==="leaf-litter"){for(let i=0;i<Math.max(2,Math.ceil((r.amount??1)*9));i++){const a=i*2.39996,s=.09+(i%4)*.025,o=mesh(new T.SphereGeometry(1,8,5),mat(i%2?0x9a8050:0x746746),[x+Math.cos(a)*s,.25+i%2*.008,z+Math.sin(a)*s*.65]);o.scale.set(.12,.012,.065);o.rotation.y=a;this.resourcesGroup.add(o);}}else if(r.type==="shelter"||r.type==="bark"){const log=mesh(new T.CylinderGeometry(.09,.12,.58,9),mat(0x60462f),[x,.31,z]);log.rotation.z=.25;log.rotation.x=.2;this.resourcesGroup.add(log);for(let i=0;i<3;i++){const bark=mesh(new T.TorusGeometry(.085,.008,5,10),mat(0x9a7950),[x-.22+i*.2,.31,z]);bark.rotation.z=Math.PI/2+.25;this.resourcesGroup.add(bark);}}else if(r.type==="stone"){for(let i=0;i<4;i++){const rock=mesh(new T.DodecahedronGeometry(.08+(i%2)*.035),mat(i%2?0x747568:0x555f52),[x+(i-1.5)*.09,.27,z+(i%2)*.07]);rock.scale.y=.65;this.resourcesGroup.add(rock);}}else if(r.type==="mushroom"){for(let i=0;i<3;i++){const h=.07+(i%2)*.035,dx=(i-1)*.07;this.resourcesGroup.add(mesh(new T.CylinderGeometry(.012,.016,h,7),mat(0xd7d0b4),[x+dx,.23+h/2,z+(i%2)*.035]));this.resourcesGroup.add(mesh(new T.SphereGeometry(.045,10,7,0,Math.PI*2,0,Math.PI/2),mat(0xb86d48),[x+dx,.23+h,z+(i%2)*.035]));}}else if(r.type==="fern"){const stalk=mesh(new T.CylinderGeometry(.008,.014,.34,6),mat(0x64784a),[x,.39,z]);stalk.rotation.z=.18;this.resourcesGroup.add(stalk);for(let i=0;i<6;i++){const leaf=mesh(new T.SphereGeometry(1,8,5),mat(i%2?0x82965c:0x63794a),[x+Math.sin(i*1.3)*.13,.32+i*.035,z+Math.cos(i*1.3)*.08]);leaf.scale.set(.09,.018,.035);leaf.rotation.y=i*.7;this.resourcesGroup.add(leaf);}}else if(r.type==="moss"){for(let i=0;i<13;i++){const a=i*2.39996,leaf=mesh(new T.SphereGeometry(1,8,5),mat(i%3?0x6c8549:0x8b9b60),[x+Math.cos(a)*.14,.235,z+Math.sin(a)*.09]);leaf.scale.set(.045,.018,.035);this.resourcesGroup.add(leaf);}}}}
-setQuality(quality){const economy=quality==="economy";this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,economy?1:1.65));this.renderer.shadowMap.enabled=!economy;this.resize();}
-resize(){const w=Math.max(1,this.el.clientWidth),h=Math.max(1,this.el.clientHeight);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();this.renderer.setSize(w,h,false);}
-draw(){if(this.state.presentation.autoRotate){this.angle+=.0009;this.cameraUpdate();}this.syncEntities();this.syncResources();this.renderer.render(this.scene,this.camera);this.frame=requestAnimationFrame(this.draw);}
-dispose(){cancelAnimationFrame(this.frame);this.resizeObserver.disconnect();this.clear(this.world);this.renderer.dispose();this.renderer.domElement.remove();}
+
+export class TerrariumRenderer {
+  constructor(el,state){
+    this.el=el;
+    this.state=state;
+    this.scene=new T.Scene();
+    this.scene.background=new T.Color(0x31483a);
+    this.scene.fog=new T.Fog(0x31483a,8,17);
+    this.camera=new T.PerspectiveCamera(33,1,.1,100);
+    this.renderer=new T.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
+    this.renderer.shadowMap.enabled=true;
+    this.renderer.shadowMap.type=T.PCFSoftShadowMap;
+    this.renderer.outputColorSpace=T.SRGBColorSpace;
+    this.renderer.toneMapping=T.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure=1.12;
+    this.renderer.domElement.style.touchAction="none";
+    el.appendChild(this.renderer.domElement);
+    this.world=new T.Group();
+    this.habitat=new T.Group();
+    this.life=new T.Group();
+    this.resourcesGroup=new T.Group();
+    this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x2d3c2d, roughness:1}));
+    this.ground.rotation.x=-Math.PI/2;
+    this.ground.position.y=-.2;
+    this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
+    this.scene.add(this.world);
+    this.angle=.68; this.elevation=.55; this.distance=6.8;
+    this.resourceSignature="";
+    this.bind();
+    this.resizeObserver=new ResizeObserver(()=>this.resize());
+    this.resizeObserver.observe(el);
+    this.cameraUpdate();
+    this.setShape(state.habitat.shape);
+    this.setMode(state.presentation.mode);
+    this.resize();
+    this.draw();
+  }
+
+  bind(){
+    const c=this.renderer.domElement;
+    const pointers=new Map();
+    let drag=null;
+    let pinchDistance=null;
+
+    const zoomBy=delta=>{
+      this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);
+      this.cameraUpdate();
+    };
+
+    c.style.touchAction="none";
+
+    c.addEventListener("pointerdown",e=>{
+      if(e.pointerType==="mouse" && e.button!==0) return;
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pointers.size===1){
+        drag={x:e.clientX,y:e.clientY,id:e.pointerId};
+      }
+      if(pointers.size===2){
+        const pts=[...pointers.values()];
+        pinchDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+      }
+    });
+
+    c.addEventListener("pointermove",e=>{
+      if(!pointers.has(e.pointerId))return;
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+      if(pointers.size===2){
+        const pts=[...pointers.values()];
+        const nextDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        if(pinchDistance!==null){
+          const delta=(nextDistance-pinchDistance)*0.015;
+          zoomBy(delta);
+        }
+        pinchDistance=nextDistance;
+        drag=null;
+        return;
+      }
+
+      if(drag && drag.id===e.pointerId){
+        const dx=e.clientX-drag.x;
+        const dy=e.clientY-drag.y;
+        drag.x=e.clientX;
+        drag.y=e.clientY;
+        this.angle -= dx * 0.006;
+        this.elevation = T.MathUtils.clamp(this.elevation + dy * 0.004, 0.25, 1.2);
+        this.cameraUpdate();
+      }
+    });
+
+    c.addEventListener("pointerup",e=>{
+      pointers.delete(e.pointerId);
+      if(pointers.size<2) pinchDistance=null;
+      if(pointers.size===0) drag=null;
+    });
+
+    c.addEventListener("pointercancel",()=>{
+      pointers.clear();
+      drag=null;
+      pinchDistance=null;
+    });
+
+    c.addEventListener("wheel",e=>{
+      e.preventDefault();
+      zoomBy(-e.deltaY*0.006);
+    },{passive:false});
+  }
+
+  cameraUpdate(){
+    const target=new T.Vector3(0,.32,0);
+    const horizontal=Math.cos(this.elevation)*this.distance;
+    this.camera.position.set(
+      Math.sin(this.angle)*horizontal,
+      target.y + Math.sin(this.elevation)*this.distance,
+      Math.cos(this.angle)*horizontal
+    );
+    this.camera.lookAt(target);
+    this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);
+  }
+
+  zoom(delta){
+    this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);
+    this.cameraUpdate();
+  }
+
+  resetCamera(){
+    this.angle=.68;
+    this.elevation=.55;
+    this.distance=6.8;
+    this.cameraUpdate();
+  }
+
+  clear(group){
+    while(group.children.length){
+      const o=group.children[group.children.length-1];
+      group.remove(o);
+      o.traverse(c=>{
+        c.geometry?.dispose();
+        if(c.material){
+          const materials=Array.isArray(c.material)?c.material:[c.material];
+          for(const m of materials){m.dispose();}
+        }
+      });
+    }
+  }
+
+  terrain(shape){
+    if(shape === "cilindrico"){
+      const g=new T.CircleGeometry(1.61,56);
+      const p=g.attributes.position;
+      for(let i=0;i<p.count;i++){
+        const x=p.getX(i), z=p.getY(i);
+        const r=Math.hypot(x,z), a=Math.atan2(z,x);
+        p.setXYZ(i, Math.cos(a)*r, 0, Math.sin(a)*r);
+      }
+      g.computeVertexNormals();
+      return g;
+    }
+    return new T.BoxGeometry(3.6, .15, 2.4);
+  }
+
+  addLeaf(x,z,s,a,c){
+    const o=mesh(new T.SphereGeometry(1,9,6), mat(c,.98), [x,.22+s*.012,z]);
+    o.scale.set(s, .012+s*.004, s*.43);
+    o.rotation.y=a;
+    this.habitat.add(o);
+  }
+
+  addFern(x,z,size,seed){
+    const r=rng(seed);
+    const stem=mat(0x62794b), leaf=mat(0x81955c), young=mat(0xa6b17a);
+    rod(this.habitat,[x,.22,z],[x+.035*size,.22+size,z-.015*size],.012*size,stem);
+    for(let i=0;i<5;i++){
+      const t=(i+1)/6;
+      const px=x+Math.cos(i*.8)*.08*size;
+      const pz=z+Math.sin(i*.8)*.08*size;
+      const p=mesh(new T.SphereGeometry(1,8,6), (i%2?leaf:young), [px,.22+size*.38*(0.8+t),pz]);
+      p.scale.set(.09*size, .18*size, .04*size);
+      p.rotation.y=i * 0.7;
+      this.habitat.add(p);
+    }
+  }
+
+  addMushrooms(x,z,size){
+    const stem=mat(0xd7d0b4), cap=mat(0xc2b58b), dark=mat(0x877a58);
+    for(let i=0;i<3;i++){
+      const dx=(i-1)*.055*size;
+      const dz=(i%2)*.045*size;
+      const h=(.065+i%2*.035)*size;
+      this.habitat.add(mesh(new T.CylinderGeometry(.02*size,.028*size,h,6),stem,[x+dx,.15+ h/2,z+dz]));
+      this.habitat.add(mesh(new T.SphereGeometry(.06*size,10,8), i%2 ? cap : dark, [x+dx,.15 + h + .03*size, z+dz]));
+    }
+  }
+
+  addMossPatch(x,z,radius,seed){
+    const random=rng(seed);
+    const mats=[mat(0x536d3f,.98),mat(0x6e854b,.99),mat(0x82935a,.98),mat(0x425d36,.99)];
+    const count=8+Math.floor(random()*7);
+    for(let i=0;i<count;i++){
+      const a=random()*Math.PI*2;
+      const r=random()*radius;
+      const pos=[x + Math.cos(a)*r, .2 + random()*0.04, z + Math.sin(a)*r];
+      const o=mesh(new T.SphereGeometry(.08 + random()*0.12, 6, 5), mats[i % mats.length], pos);
+      o.scale.set(1.6, .35, 1.15);
+      this.habitat.add(o);
+    }
+  }
+
+  setShape(shape){
+    this.clear(this.habitat);
+    this.resourceSignature="";
+    const soil=mat(0x40372a), humus=mat(0x5d4b34), glass=()=>new T.MeshPhysicalMaterial({color:0xc5d8bf,transparent:true,opacity:.11,roughness:.2,transmission:.4});
+    const base=this.terrain(shape);
+    this.habitat.add(mesh(base, soil, [0,0,0]));
+    if(shape === "cilindrico"){
+      this.habitat.add(mesh(new T.CylinderGeometry(1.48,1.48,.12,48), humus, [0,.04,0]));
+      const glassMesh=mesh(new T.CylinderGeometry(1.52,1.52,.14,48), glass(), [0,.09,0]);
+      glassMesh.rotation.x = 0;
+      this.habitat.add(glassMesh);
+    } else {
+      this.habitat.add(mesh(new T.BoxGeometry(3.2,.12,2.1), humus, [0,.04,0]));
+      this.habitat.add(mesh(new T.BoxGeometry(3.35,.14,2.2), glass(), [0,.09,0]));
+    }
+
+    const random=rng(shape === "cilindrico" ? 991 : 551);
+    const inside=(x,z)=>shape === "cilindrico" ? x*x + z*z < 1.45*1.45 : Math.abs(x)<1.88 && Math.abs(z)<1.22;
+
+    for(let i=0;i<48;i++){
+      const x=(random()-.5)*(shape === "cilindrico" ? 2.7 : 3.7);
+      const z=(random()-.5)*(shape === "cilindrico" ? 2.7 : 2.35);
+      if(!inside(x,z)) continue;
+      const s=.09 + random()*.23;
+      const o=mesh(new T.SphereGeometry(1,7,5), mat([0x736b5d,0x514f3c,0x8a8068][i%3], .96), [x,.22+s*.012,z]);
+      o.scale.set(s,.014 + s*.008,s*.56);
+      this.habitat.add(o);
+    }
+
+    for(let i=0;i<42;i++){
+      const x=(random()-.5)*(shape === "cilindrico" ? 2.6 : 3.7);
+      const z=(random()-.5)*(shape === "cilindrico" ? 2.6 : 2.35);
+      if(!inside(x,z)) continue;
+      this.addLeaf(x,z,.12 + random()*.29, random()*Math.PI, [0x87765d,0x6d7a48,0x87904c][i%3]);
+    }
+
+    for(let i=0;i<9;i++){
+      const x=(random()-.5) * 3.3;
+      const z=(random()-.5) * 2.05;
+      if(inside(x,z)) this.addFern(x,z,.45 + random()*.35,100+i);
+    }
+
+    this.addMushrooms(-.95, -.55, .85);
+    this.addMushrooms(1.18, .48, .65);
+
+    for(let i=0;i<12;i++){
+      const x=(random()-.5)*3.2;
+      const z=(random()-.5)*2.1;
+      if(!inside(x,z)) continue;
+      this.addMossPatch(x,z,.18 + random()*.22, 70+i);
+    }
+  }
+
+  setMode(mode){
+    this.clear(this.life);
+    for(const e of this.state.entities){
+      const o=isopod(mode === "voxel");
+      o.userData.entityId=e.id;
+      this.life.add(o);
+    }
+    this.syncEntities();
+  }
+
+  syncEntities(){
+    const byId=new Map(this.state.entities.map(e=>[e.id,e]));
+    const t=performance.now()*.001;
+    for(const o of this.life.children){
+      const e=byId.get(o.userData.entityId);
+      if(!e){ o.visible=false; continue; }
+      o.visible=e.alive !== false;
+      const phase=(t + Number((e.id||"0").slice(-2))) * 1.7;
+      o.position.set(e.x, .12 + (Math.sin(phase) * 0.04), e.z);
+      o.rotation.y = e.heading ?? 0;
+      o.rotation.x = e.behavior === "burrowing" ? -0.5 : 0;
+      o.rotation.z = e.behavior === "defensive-curl" ? 1.2 : 0;
+      const base = o.userData.baseScale ?? 1;
+      o.scale.setScalar(base * (e.behavior === "defensive-curl" ? 1.08 : 1));
+    }
+  }
+
+  syncResources(){
+    const sig=JSON.stringify(this.state.resources.map(r => [r.id,r.type,Math.round((r.amount ?? 1)*10)/10,r.x,r.z]));
+    if(sig===this.resourceSignature) return;
+    this.resourceSignature=sig;
+    this.clear(this.resourcesGroup);
+
+    for(const r of this.state.resources){
+      let meshObj = null;
+      if(r.type === "leaf-litter"){
+        const p=mesh(new T.SphereGeometry(.18,8,6), mat(0x7f6d4a,.98), [r.x,.15,r.z]);
+        p.scale.set(1.4,.45,1.1);
+        meshObj = p;
+      } else if(r.type === "shelter"){
+        const p=mesh(new T.CylinderGeometry(.14,.2,.12,8), mat(0x6d4c35,.9), [r.x,.12,r.z]);
+        p.scale.set(1.9,1.4,1.9);
+        meshObj = p;
+      } else if(r.type === "fern"){
+        meshObj=mesh(new T.ConeGeometry(.13,.18,6), mat(0x5b7d45,.95), [r.x,.14,r.z]);
+      } else if(r.type === "mushroom"){
+        meshObj=mesh(new T.CylinderGeometry(.08,.12,.16,7), mat(0xd7d0b4,.9), [r.x,.12,r.z]);
+      } else if(r.type === "stone"){
+        meshObj=mesh(new T.DodecahedronGeometry(.12), mat(0x7e7d77,.9), [r.x,.13,r.z]);
+      } else if(r.type === "bark"){
+        meshObj=mesh(new T.CylinderGeometry(.14,.18,.34,7), mat(0x8a5d3a,.85), [r.x,.18,r.z]);
+      } else if(r.type === "moss"){
+        meshObj=mesh(new T.SphereGeometry(.16,8,6), mat(0x4f7d44,.98), [r.x,.13,r.z]);
+        meshObj.scale.set(1.5,.6,1.7);
+      }
+      if(meshObj){ this.resourcesGroup.add(meshObj); }
+    }
+  }
+
+  setQuality(quality){
+    const economy=quality === "economy";
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, economy ? 1 : 1.65));
+    this.renderer.shadowMap.enabled = !economy;
+    this.resize();
+  }
+
+  resize(){
+    const w=Math.max(1,this.el.clientWidth||400);
+    const h=Math.max(1,this.el.clientHeight||260);
+    this.camera.aspect=w/h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w,h,false);
+  }
+
+  draw(){
+    if(this.state.presentation.autoRotate){
+      this.angle += .0009;
+      this.cameraUpdate();
+    }
+    this.syncEntities();
+    this.syncResources();
+    this.renderer.render(this.scene,this.camera);
+    this.frame=requestAnimationFrame(()=>this.draw());
+  }
+
+  dispose(){
+    cancelAnimationFrame(this.frame);
+    this.resizeObserver?.disconnect();
+    this.clear(this.world);
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
+  }
 }
