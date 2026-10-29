@@ -43,5 +43,9 @@ Estado inicial: catalogadas; instalación física pendiente de automatización y
 | [Libraries.dev](https://libraries.dev/) | Directorio | Descubrimiento de bibliotecas |
 | [Justinmind: UI de juegos](https://www.justinmind.com/es/ui-diseno/juego) | Guía | Flujos, HUD y UX |
 
+## Selección contextual de referencias
+
+Usa [el catálogo de referencias por contexto](CATALOGO-REFERENCIAS.md) para decidir qué fuentes consultar según el problema. Para capturas actuales y descargas verificadas, aplica el [protocolo de evidencia visual](EVIDENCIA-VISUAL.md).
+
 ## Procedencia obligatoria
 Registrar URL, versión o commit, licencia, fecha de incorporación, ruta local, método de instalación y resultado de validación. No copiar páginas ni paquetes completos a ciegas. Las fuentes web se catalogan; solo se versionan skills/componentes cuando la licencia y distribución lo permiten.
