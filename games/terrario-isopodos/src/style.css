@@ -178,7 +178,7 @@ button:not(:disabled){cursor:pointer}
  .menu-screen{padding-top:calc(17px + env(safe-area-inset-top));padding-bottom:calc(17px + env(safe-area-inset-bottom))}
 }
 @media(max-height:700px) and (max-width:760px){
- .panel{height:34svh;max-height:34svh}
+ .panel{height:auto;max-height:none;min-height:34svh}
  .scene-caption{bottom:calc(35svh + 12px)}
  .viewtools{bottom:calc(35svh + 38px)}
  .panel .metrics>div{padding:4px 6px}
