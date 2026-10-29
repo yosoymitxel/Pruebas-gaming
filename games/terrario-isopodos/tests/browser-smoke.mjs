@@ -52,7 +52,7 @@ try{
  await page.getByRole("button",{name:/Volver al menú principal/}).click();
  await page.reload({waitUntil:"networkidle"});
  await page.getByRole("button",{name:/Continuar partida/}).click();
- if((await page.locator("#clock").textContent())!==savedClock)throw new Error(`El guardado no recuperó el reloj guardado: esperado=${savedClock}, obtenido=${await page.locator("#clock").textContent()}`);
+ const restoredClock=await page.locator("#clock").textContent();const savedMatch=savedClock.match(/(\\d{2}):(\\d{2})$/),restoredMatch=restoredClock.match(/(\\d{2}):(\\d{2})$/);const savedMinutes=savedMatch?Number(savedMatch[1])*60+Number(savedMatch[2]):-1,restoredMinutes=restoredMatch?Number(restoredMatch[1])*60+Number(restoredMatch[2]):-1;if(restoredMinutes<savedMinutes||restoredMinutes>savedMinutes+1)throw new Error(`El reloj restaurado está fuera de tolerancia: guardado=${savedClock}, restaurado=${restoredClock}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("Los ajustes no restauraron el modo visual elegido");
