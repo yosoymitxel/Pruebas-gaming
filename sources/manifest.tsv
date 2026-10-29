@@ -1,0 +1,26 @@
+category	name	url	method	status	notes
+skill	anti-slop	https://github.com/miqdadbadjuber/anti-slop	skills-cli	pending	Review license and install relevant skills
+skill	ponytail	https://github.com/dietrichgebert/ponytail	skills-cli	pending	Review structure before installing
+skill	taste-skill	https://github.com/leonxlnx/taste-skill	skills-cli	pending	Visual direction
+skill	impeccable	https://github.com/pbakaus/impeccable	skills-cli	pending	UI refinement
+skill	awesome-gamedev-agent-skills	https://github.com/gamedev-skills/awesome-gamedev-agent-skills	review-and-install	pending	Identify installable skills and licenses
+skill	claude-code-game-studios	https://github.com/Donchitos/Claude-Code-Game-Studios	review-and-install	pending	Install reusable skills, not whole framework blindly
+skill	emilkowalski-skills	https://github.com/emilkowalski/skills	skills-cli	pending	Animation and design engineering
+skill	vercel-agent-skills	https://github.com/vercel-labs/skills	skills-cli	pending	Installer and skill source
+skill	web-design-guidelines	https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines	skills-cli	pending	Refresh upstream rules when invoked if required
+tool	lean-ctx	https://github.com/yvgude/lean-ctx	review	pending	Determine if skill or executable tool
+tool	claude-pxl	https://github.com/crsolver/claude-pxl	review	pending	Check requirements and license
+tool	o3de-diorama	https://github.com/nickschuetz/o3de-diorama	review	pending	O3DE-specific; not assumed web-compatible
+tool	dioramas	https://github.com/blendi-remade/dioramas	review	pending	Inspect contents and license
+tool	voxpix	https://github.com/andyeswong/voxpix	review	pending	Validate voxel renderer/API and license
+reference	sprite-fusion-vfx	https://www.spritefusion.com/pixel-art-vfx	catalogue	pending	Tool/resource reference
+tool	vfx-js	https://amagi.dev/vfx-js/	review	pending	Check implementation and license
+tool	lightswind-ui	https://github.com/codewithMUHILAN/Lightswind-UI-Library	review	pending	React components; per-project decision
+reference	libraries-dev	https://libraries.dev/	catalogue	pending	Library discovery
+reference	smoothui	https://smoothui.dev/	catalogue	pending	Animated UI references
+reference	componentry	https://componentry.dev/	catalogue	pending	UI component references
+tool	motion	https://motion.dev/	review	pending	Runtime library; per-project decision
+reference	prompt-motion	https://prompt-motion.com/	catalogue	pending	Motion reference
+reference	rareui	https://www.rareui.com/	catalogue	pending	UI references
+reference	justinmind-game-ui	https://www.justinmind.com/es/ui-diseno/juego	catalogue	pending	Game UI guide
+reference	svg-silh	https://svgsilh.com/es/	catalogue	pending	Check license per asset
