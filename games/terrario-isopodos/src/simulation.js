@@ -26,7 +26,9 @@ export function stepSimulation(state,minutes=1){
       h.temperatureC-BIOLOGY_RULES.temperatureComfortMaxC
     );
 
-    if(state.clockMinutes%60===0&&state.entities.some(e=>e.alive!==false&&e.hydration>.35&&e.energy>.25&&e.stress<.8))state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;\n\n    for(const e of state.entities){
+    if(state.clockMinutes%60===0&&state.entities.some(e=>e.alive!==false&&e.hydration>.35&&e.energy>.25&&e.stress<.8))state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;
+
+    for(const e of state.entities){
       if(e.alive===false)continue;
       const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
       e.hydration=clamp((e.hydration ?? .8)-(BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.2,1-h.humidity)),0,1);
