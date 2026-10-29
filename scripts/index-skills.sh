@@ -23,6 +23,7 @@ if (( count == 0 )); then
 else
   printf '\n**Total de archivos SKILL.md detectados:** %s\n' "$count" >> "$TMP"
 fi
+printf '\n**Skills externas identificadas para revisión, no instaladas localmente:** game-ui-ux, save-systems, input-systems. Consultar docs/DESCUBRIMIENTO-SKILLS.md.\n' >> "$TMP"
 mv "$TMP" "$OUT"
 trap - EXIT
 echo "Índice actualizado: $OUT (skills detectadas: $count)"

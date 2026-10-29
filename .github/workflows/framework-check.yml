@@ -13,26 +13,46 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate required framework files
+
+      - name: Validate required framework files and quality gates
         shell: bash
         run: |
           set -euo pipefail
           for file in README.md AGENTS.md framework/README.md framework/ORCHESTRATION.md framework/QUALITY-GATES.md framework/TASK-PROFILES.md framework/REPORT-TEMPLATE.md docs/CATALOGO.md docs/ESTANDARES.md; do
             test -s "$file" || { echo "Missing required file: $file"; exit 1; }
           done
-          grep -q 'CODE_GATE' framework/QUALITY-GATES.md
-          grep -q 'GAMEPLAY_GATE' framework/QUALITY-GATES.md
-          grep -q 'DESIGN_GATE' framework/QUALITY-GATES.md
-          echo "PASS: framework files and mandatory gates exist."
-      - name: Validate skill frontmatter
+          for gate in CODE_GATE GAMEPLAY_GATE DESIGN_GATE INTEGRATION_GATE; do
+            grep -q "$gate" framework/QUALITY-GATES.md || { echo "Missing required gate: $gate"; exit 1; }
+          done
+          echo "PASS: framework files and all mandatory gates exist."
+
+      - name: Validate Bash syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/validate-skills.sh scripts/index-skills.sh scripts/install-skills.sh scripts/diagnose-framework.sh
+          echo "PASS: all framework scripts have valid Bash syntax."
+
+      - name: Validate skill front matter
         shell: bash
         run: |
           set -euo pipefail
           count=0
           while IFS= read -r file; do
             count=$((count + 1))
-            grep -q '^name:' "$file" || { echo "Missing name: $file"; exit 1; }
-            grep -q '^description:' "$file" || { echo "Missing description: $file"; exit 1; }
-          done < <(find .agents/skills .claude/skills skills -type f -name SKILL.md 2>/dev/null || true)
+            grep -q '^name: ' "$file" || { echo "Missing name: $file"; exit 1; }
+            grep -q '^description: ' "$file" || { echo "Missing description: $file"; exit 1; }
+          done < <(find .agents/skills .claude/skills skills -type f -name SKILL.md -not -path '*/node_modules/*' 2>/dev/null | sort -u)
           test "$count" -gt 0 || { echo "No skills found"; exit 1; }
           echo "PASS: $count skill files have name and description."
+
+      - name: Verify generated skill index is current
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(mktemp)"
+          trap 'rm -f "$expected"' EXIT
+          cp skills/INDEX.md "$expected"
+          bash scripts/index-skills.sh
+          diff -u "$expected" skills/INDEX.md
+          echo "PASS: skills/INDEX.md matches the generator."
