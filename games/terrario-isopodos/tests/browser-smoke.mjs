@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const port=4173,url=`http://127.0.0.1:${port}/`;
@@ -20,11 +20,22 @@ try{
  if(!await page.locator("#screen-menu").isVisible())throw new Error("No aparece el menú de inicio");
  const menuBg=await page.locator("#screen-menu").evaluate(el=>getComputedStyle(el).backgroundColor);
  if(!menuBg||menuBg==="rgba(0, 0, 0, 0)")throw new Error("El CSS del menú no está aplicado");
+ const duplicateIds=await page.evaluate(()=>{const ids=[...document.querySelectorAll("[id]")].map(el=>el.id);return [...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];});
+ if(duplicateIds.length)throw new Error("Hay IDs duplicados: "+duplicateIds.join(", "));
+ await page.screenshot({path:"artifacts/visual/menu-1440x1000.png",fullPage:true});
+ await page.keyboard.press("Tab");
+ if(await page.evaluate(()=>document.activeElement?.id)!=="new-game")throw new Error("El foco inicial del teclado no llega a Nuevo terrario");
  await page.getByRole("button",{name:/Nuevo terrario/}).click();
+ if(!await page.locator("#screen-setup").isVisible())throw new Error("No se abrió la configuración inicial");
+ await page.screenshot({path:"artifacts/visual/setup-1440x1000.png",fullPage:true});
+ if(await page.locator('[data-setup-shape="rectangular"]').getAttribute("aria-pressed")!=="true")throw new Error("La forma inicial no expone la selección accesible");
  await page.locator('[data-setup-shape="cilindrico"]').click();
  await page.locator('[data-setup-mode="voxel"]').click();
+ if(await page.locator('[data-setup-shape="cilindrico"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-setup-mode="voxel"]').getAttribute("aria-pressed")!=="true")throw new Error("Las opciones de configuración no actualizan aria-pressed");
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
+ await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
+ await page.screenshot({path:"artifacts/visual/gameplay-voxel-1440x1000.png",fullPage:true});
  const cameraCanvas=page.locator("#scene canvas");
  const initialDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
  await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
@@ -34,11 +45,30 @@ try{
  await page.getByRole("button",{name:"Alejar cámara"}).click();
 
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
+ await page.locator("#open-settings-game").click();
+ if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("Los ajustes de la barra de juego no abren");
+ await page.waitForFunction(()=>document.activeElement?.id==="close-modal");
+ await page.keyboard.press("Escape");
+ if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra ajustes");
+ await page.waitForFunction(()=>document.activeElement?.id==="open-settings-game");
+ await page.locator("#open-help-game").click();
+ if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("La ayuda de la barra de juego no abre");
+ await page.keyboard.press("Escape");
+ await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D")throw new Error("No cambió a Diorama");
+ await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
  await page.getByRole("button",{name:/Voxel/}).click();
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("No volvió a Voxel");
  await page.getByRole("button",{name:/Pausar/}).click();
+ await page.locator("#pause-settings").click();
+ if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("No se abre Ajustes desde pausa");
+ await page.locator("#save-settings").click();
+ if(await page.locator("#modal-title").textContent()!=="Partida en pausa")throw new Error("Al guardar ajustes no se regresa al menú de pausa");
+ await page.locator("#pause-help").click();
+ if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("No se abre Ayuda desde pausa");
+ await page.keyboard.press("Escape");
+ if(await page.locator("#modal-title").textContent()!=="Partida en pausa")throw new Error("Escape no regresa de Ayuda al menú de pausa");
  const clockBeforeStep=await page.locator("#clock").textContent();
  const beforeMatch=clockBeforeStep.match(/(\d{2}):(\d{2})$/);
  if(!beforeMatch)throw new Error(`No se pudo leer el reloj antes del avance: ${clockBeforeStep}`);
@@ -74,10 +104,24 @@ try{
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D")throw new Error("Los ajustes no restauraron el modo visual elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
- await page.screenshot({path:"artifacts/visual/mobile-390x844.png",fullPage:true});
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  if(overflow)throw new Error("Hay overflow horizontal en viewport móvil");
+ if(!await page.locator("#panel-toggle").isVisible())throw new Error("No aparece la bandeja de controles en móvil");
+ if(await page.locator("#panel-toggle").getAttribute("aria-expanded")!=="false")throw new Error("La bandeja móvil debe iniciar plegada");
+ await page.screenshot({path:"artifacts/visual/mobile-390x844.png",fullPage:true});
+ await page.locator("#panel-toggle").click();
+ if(await page.locator("#panel-toggle").getAttribute("aria-expanded")!=="true"||!await page.locator("#controls-panel").evaluate(el=>el.classList.contains("is-expanded")))throw new Error("No se expande la bandeja de controles en móvil");
+ const panelBox=await page.locator("#controls-panel").boundingBox();
+ if(!panelBox||panelBox.height<260)throw new Error("La bandeja expandida no ofrece área suficiente para controles");
+ await page.screenshot({path:"artifacts/visual/mobile-controls-390x844.png",fullPage:true});
+ await page.locator('[data-buy="mushroom"]').scrollIntoViewIfNeeded();
+ if(!await page.locator('[data-buy="mushroom"]').isVisible())throw new Error("La tienda no es accesible desde la bandeja expandida");
+ await page.locator("#save").scrollIntoViewIfNeeded();
+ if(!await page.locator("#save").isVisible())throw new Error("Guardar terrario no es accesible al final de los controles móviles");
+ await page.locator("#panel-toggle").click();
+ if(await page.locator("#panel-toggle").getAttribute("aria-expanded")!=="false")throw new Error("La bandeja móvil no se pliega");
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",bootMenu:"PASS",cssLoaded:"PASS",setupBothShapes:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",settings:"PASS",saveReload:"PASS",mobileHorizontalOverflow:false,errors},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,consoleErrors:errors}},null,2));
+ console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();server.kill("SIGTERM");}
