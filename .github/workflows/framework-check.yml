@@ -1,0 +1,38 @@
+name: Framework checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate required framework files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in README.md AGENTS.md framework/README.md framework/ORCHESTRATION.md framework/QUALITY-GATES.md framework/TASK-PROFILES.md framework/REPORT-TEMPLATE.md docs/CATALOGO.md docs/ESTANDARES.md; do
+            test -s "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+          grep -q 'CODE_GATE' framework/QUALITY-GATES.md
+          grep -q 'GAMEPLAY_GATE' framework/QUALITY-GATES.md
+          grep -q 'DESIGN_GATE' framework/QUALITY-GATES.md
+          echo "PASS: framework files and mandatory gates exist."
+      - name: Validate skill frontmatter
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r file; do
+            count=$((count + 1))
+            grep -q '^name:' "$file" || { echo "Missing name: $file"; exit 1; }
+            grep -q '^description:' "$file" || { echo "Missing description: $file"; exit 1; }
+          done < <(find .agents/skills .claude/skills skills -type f -name SKILL.md 2>/dev/null || true)
+          test "$count" -gt 0 || { echo "No skills found"; exit 1; }
+          echo "PASS: $count skill files have name and description."
