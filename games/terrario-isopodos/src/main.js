@@ -1,6 +1,6 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
-import{stepSimulation,addFood,addShelter,purchaseItem,SHOP_ITEMS}from"./simulation.js";
+import{stepSimulation,addFood,addShelter,purchaseItem}from"./simulation.js";
 import{SAVE_KEY,saveTerrarium,loadTerrarium}from"./persistence.js";
 import{TerrariumRenderer}from"./renderers.js";
 const state=createTerrariumState(),renderer=new TerrariumRenderer(document.querySelector("#scene"),state),$=s=>document.querySelector(s);
@@ -41,7 +41,7 @@ $("#pause").addEventListener("click",()=>{if(state.running){showPauseMenu();}els
 $("#step").addEventListener("click",()=>{stepSimulation(state,1);update();});
 $("#speed").addEventListener("input",e=>{state.speed=Number(e.target.value);update();});
 $("#rotate").addEventListener("click",e=>{state.presentation.autoRotate=!state.presentation.autoRotate;settings.autoRotate=state.presentation.autoRotate;saveSettings();e.currentTarget.setAttribute("aria-pressed",String(state.presentation.autoRotate));});
-$("#reset").addEventListener("click",()=>renderer.resetCamera());
+$("#reset").addEventListener("click",()=>renderer.resetCamera());$("#zoom-in").addEventListener("click",()=>renderer.zoom(-.65));$("#zoom-out").addEventListener("click",()=>renderer.zoom(.65));
 $("#humidity-input").addEventListener("input",e=>{state.habitat.humidity=Number(e.target.value);update();});
 $("#temperature-input").addEventListener("input",e=>{state.habitat.temperatureC=Number(e.target.value);update();});
 $("#add-food").addEventListener("click",()=>{addFood(state);saveMessage="Hojarasca añadida";update();});
