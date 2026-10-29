@@ -2,17 +2,32 @@
 
 Sandbox ecológico de navegador centrado inicialmente en *Armadillidium vulgare*.
 
-## Estado
+## Estado actual
 
-**Fase:** especificación y preparación del spike técnico. El runtime todavía no está implementado.
+**Spike inicial implementado en código; ejecución y validación visual pendientes.** Incluye escena Three.js, recipientes rectangular/cilíndrico, representación Diorama y Voxel, cámara orbital con tacto, reloj/pausa/aceleración y pruebas unitarias del estado.
+
+## Arranque
+
+Desde esta carpeta:
+
+```sh
+npm install
+npm test
+npm run dev
+```
+
+Verificación de producción: `npm run build`. No se incluye todavía un lockfile; tras la primera instalación validada se debe generar y versionar para habilitar `npm ci`.
 
 ## Documentación
 
 - [Especificación técnica y criterios de aceptación](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
+- [Decisión de render y referencias Dioramas](docs/DECISION-RENDER.md)
+- [Gates y estado del spike](docs/SPIKE-RENDER.md)
 
-## Límites del proyecto
+## Límites
 
-- Todo el código, assets, pruebas y documentación exclusivos del juego viven en esta carpeta.
-- No colocar documentación del terrario en el `docs/` raíz del framework.
-- No modificar ni duplicar skills compartidas para implementar el juego.
-- Antes de construir el juego completo, validar Three.js, cámara orbital, recipientes rectangular/cilíndrico y sprites voxelizados en escena 3D; el mismo estado debe sobrevivir al cambio Diorama/Voxel.
+- Código, assets, pruebas y documentación exclusivos del juego viven en esta carpeta.
+- No modificar ni duplicar skills compartidas.
+- El cambio de renderer no debe reiniciar ni duplicar el estado.
+- Humedad y temperatura son datos ilustrativos, no un modelo biológico validado.
+- No declarar PASS sin ejecutar tests, build y prueba visual real en escritorio y móvil.

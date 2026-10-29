@@ -1,0 +1,4 @@
+export function createTerrariumState(){return{version:1,clockMinutes:480,running:false,speed:1,habitat:{shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35},presentation:{mode:"diorama",autoRotate:true},entities:[{id:"isopod-001",kind:"armadillidium-vulgare",x:.12,z:.04,heading:.4,energy:.84}]};}
+export function snapshotDomain(s){return JSON.stringify({version:s.version,clockMinutes:s.clockMinutes,running:s.running,speed:s.speed,habitat:s.habitat,entities:s.entities});}
+export function advanceMinutes(s,n){if(!Number.isFinite(n)||n<0)throw new RangeError("minutes debe ser un número no negativo");s.clockMinutes=(s.clockMinutes+n)%(24*60);return s.clockMinutes;}
+export function formatClock(n){const day=Math.floor(n/1440)+1,m=n%1440;return `DÍA ${String(day).padStart(2,"0")} · ${String(Math.floor(m/60)).padStart(2,"0")}:${String(Math.floor(m%60)).padStart(2,"0")}`;}
