@@ -4,7 +4,7 @@ Sandbox ecológico de navegador centrado inicialmente en *Armadillidium vulgare*
 
 ## Estado actual
 
-**Spike inicial implementado en código; ejecución y validación visual pendientes.** Incluye escena Three.js, recipientes rectangular/cilíndrico, representación Diorama y Voxel, cámara orbital con tacto, reloj/pausa/aceleración y pruebas unitarias del estado.
+**Vertical jugable inicial implementada en código; validación de CI y navegador pendiente.** Incluye escena Three.js, recipientes rectangular/cilíndrico, dos representaciones 3D, cámara orbital táctil, simulación determinista mínima de necesidades/movimiento/recursos, controles ambientales, guardado local versionado y pruebas unitarias. No es todavía el MVP completo de la especificación.
 
 ## Arranque
 
@@ -16,13 +16,14 @@ npm test
 npm run dev
 ```
 
-Verificación de producción: `npm run build`. No se incluye todavía un lockfile; tras la primera instalación validada se debe generar y versionar para habilitar `npm ci`.
+Verificación de producción: `npm run build`. Aún falta generar y versionar el lockfile para habilitar `npm ci`. La automatización CI ejecuta tests, build y smoke test Playwright, con capturas desktop/móvil como artefactos.
 
 ## Documentación
 
 - [Especificación técnica y criterios de aceptación](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
 - [Decisión de render y referencias Dioramas](docs/DECISION-RENDER.md)
 - [Gates y estado del spike](docs/SPIKE-RENDER.md)
+- [Informe de calidad y bloqueos](docs/QUALITY-REPORT.md)
 
 ## Límites
 

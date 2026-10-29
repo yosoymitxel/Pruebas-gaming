@@ -1,6 +1,6 @@
 # Especificación técnica — Terrario sandbox de isópodos
 
-**Estado:** especificación propuesta para cerrar antes de crear el proyecto del juego.  
+**Estado:** especificación normativa del juego; la implementación inicial está en progreso y sus criterios siguen vigentes.  
 **Juego:** `games/terrario-isopodos/`  
 **Alcance de esta fase:** diseño, contratos y criterios de aceptación. No implementar todavía el runtime hasta validar el spike técnico.
 

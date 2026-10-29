@@ -1,6 +1,6 @@
 # Spike técnico de render — Terrario de isópodos
 
-**Estado:** spike de render implementado en código; no aprobado como MVP. La instalación, build y validación visual real deben completarse antes de cerrar las puertas de calidad.
+**Estado:** vertical jugable inicial implementada en código; no aprobada como MVP final. CI y validación visual real deben completarse antes de cerrar las puertas de calidad.
 
 ## Decisión
 
@@ -14,7 +14,10 @@ Se aplica el enfoque de composición de [Dioramas](https://github.com/blendi-rem
 - Estado de dominio independiente con ID estable; cambio de modo comprueba que el snapshot de dominio no cambie.
 - Cámara orbital por arrastre, zoom de rueda y rotación automática opcional.
 - Reloj acumulativo con pausa, avance manual y velocidades de 1× a 4×.
-- Pruebas unitarias del estado en `tests/state.test.js`.
+- Simulación determinista mínima con necesidades, exploración, búsqueda de alimento/refugio y límites por recipiente.
+- Controles de humedad/temperatura y acciones para añadir recursos.
+- Guardado local versionado con validación antes de restaurar.
+- Pruebas unitarias de estado, simulación y persistencia en `tests/state.test.js`.
 - Workflow CI para ejecutar tests y build en la rama del spike.
 
 ## Validación pendiente
