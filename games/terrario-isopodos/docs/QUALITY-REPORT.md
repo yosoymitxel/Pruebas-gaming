@@ -1,50 +1,61 @@
-# Informe de calidad — Terrario MVP
+# Informe de calidad — Terrario de isópodos
 
-- Rama: `feat/isopod-render-spike`
-- Alcance: vertical jugable inicial de simulación sandbox.
-- Skills locales leídas: `game-project-orchestrator`, `game-project-skeleton`.
-- Referencia visual aplicada: Dioramas, como guía de composición; no se declara instalada como skill.
-- Skills externas catalogadas no se consideran ejecutadas.
+- Rama de trabajo: `feat/isopod-render-spike`
+- Estado: **revisión correctiva en curso; no aprobado como MVP final**.
+- Alcance de esta revisión: flujo de inicio, estado de colonia, coherencia del hábitat, renderers, persistencia y pruebas de navegador.
 
-## Resultado de CI y gates
+## Correcciones en el código actual
 
-**Ejecución confirmada:** [Terrario MVP checks](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40927433681), SHA `64d55dc693a9bd4d551dffd838bbdac1b8871045`, conclusión **success**.
+- El menú de inicio y la configuración inicial son estados reales; el smoke test debe recorrerlos antes de esperar el canvas del juego.
+- Un terrario nuevo reinicia el estado de dominio en vez de reutilizar accidentalmente la colonia anterior.
+- La forma del recipiente se elige al crear el terrario; no se cambia durante la sesión. Esto sigue la especificación normativa.
+- La colonia inicial contiene cinco entidades con IDs estables.
+- El modo Voxel usa un sprite pixelado con filtrado nearest, en lugar de reutilizar el modelo orgánico con cajas 3D.
+- El entorno incorpora grupos de musgo, capas de sustrato más legibles y un ajuste de iluminación; el isópodo orgánico se escala para reducir su aspecto desproporcionado.
+- La temperatura afecta al estrés mediante parámetros lúdicos centralizados y documentados como heurísticos, no como biología validada.
+- Al entrar desde una pantalla oculta, el renderer recalcula explícitamente el tamaño del canvas.
+- El guardado conserva el nombre del terrario además del estado de dominio.
 
-| Puerta | Estado | Evidencia |
+## Baseline del esqueleto (game-project-skeleton)
+
+| Sistema | Estado | Criterio / motivo |
 |---|---|---|
-| CODE_GATE | PASS en el SHA indicado | `npm install`, `npm test` y `npm run build` terminaron correctamente en GitHub Actions. |
-| GAMEPLAY_GATE | PASS limitado al smoke test | Playwright cambió ambos modos, probó ambos recipientes, avanzó el reloj, confirmó la cantidad de entidades y terminó sin errores de consola/red. No sustituye la validación de toda la ecología. |
-| DESIGN_GATE | PARTIAL | Capturas reales generadas para 1440×1000 y 390×844; no se detectó overflow horizontal móvil. El artefacto existe, pero requiere inspección humana de composición, legibilidad y fidelidad visual. |
-| INTEGRATION_GATE | PARTIAL/BLOCKED | Build de producción pasa; falta probar hosting final y completar el alcance de la especificación. |
+| Menú, nueva partida y continuar | PENDIENTE | Menú y setup existen; continuar debe pasar Playwright tras guardar y recargar. |
+| Flujo de pantallas | PENDIENTE | Menú → setup → juego → pausa → menú; verificar transiciones sin estados ocultos. |
+| Estado autoritativo y HUD | INCLUIR | El modelo de estado gobierna reloj, colonia y condiciones; comprobar coherencia en navegador. |
+| Pausa y reanudación | PENDIENTE | Verificar que el tiempo se detiene y reanuda sin salto. |
+| Ajustes persistentes | PENDIENTE | Giro automático y calidad guardados; falta probar restauración real. |
+| Localización | NO APLICA por ahora | MVP inicial solo en español; documentar antes de ampliar idiomas. |
+| Temas | NO APLICA por ahora | No hay catálogo de temas; no fingir que existe. |
+| Guardado/carga versionados | PENDIENTE | Esquema v1 y validación existen; prueba de navegador falló en el botón Continuar. |
+| Exportar/importar | PENDIENTE | No implementado; criterio: exportación versionada y rechazo de datos inválidos sin mutar partida. |
+| Fin/victoria/derrota | NO APLICA | Sandbox ecológico sin condición terminal definida. |
+| Audio | NO APLICA por ahora | No hay audio en el MVP actual. |
+| Responsive/accesibilidad | PENDIENTE | Capturas actuales y prueba de overflow móvil requeridas. |
+| Build y QA | PENDIENTE | Tests y build pasaron en el SHA anterior; smoke de navegador falló y debe repetirse tras corregir. |
 
-Artefacto de capturas (retención de 14 días): [descargar evidencia visual](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40927433681/artifacts/12920753011).
+## Orquestación aplicada (game-project-orchestrator)
 
-## Funciones implementadas en esta vertical
+- Tipo: simulación sandbox 3D para navegador; tareas: estado/dominio, flujo de pantallas, renderizado y QA de integración.
+- Reutilización: estado y simulación existentes; dos renderers sobre el mismo estado; persistencia local existente. No se introduce motor ni dependencia de runtime nueva.
+- Orden: contrato de estado y guardado → menú/setup/pausa → renderers → smoke de navegador y capturas. Riesgo prioritario: estado real del juego y UI divergen durante pause/resume/save-load.
+- Validación exigida: tests de dominio, build de producción, Playwright real, consola/red limpia, escritorio 1440×1000 y móvil 390×844. Los artefactos deben salir de la revisión exacta.
 
-- Diorama orgánico provisional y modo cúbico 3D.
-- Recipiente rectangular/cilíndrico.
-- Cámara orbital táctil, zoom, reinicio y rotación automática.
-- Reloj acumulativo, pausa, avance manual y aceleración con límite de pasos por frame.
-- Simulación determinista mínima por pasos: energía/hidratación/estrés, exploración, búsqueda de comida/refugio, consumo de hojarasca y límites según la forma del recipiente.
-- Controles de humedad/temperatura y acciones para añadir recursos.
-- Guardado local versionado con validación antes de restaurar.
-- Tests unitarios de estado, simulación y persistencia.
-- CI con tests, build y smoke test Playwright; capturas reales desktop/móvil como artefactos.
+## Puertas de calidad
 
-## Desviaciones abiertas respecto a la especificación
+| Puerta | Estado | Evidencia / condición |
+|---|---|---|
+| CODE_GATE | PENDIENTE de ejecución en el SHA actual | Los tests unitarios pasaron en el primer commit correctivo; el build detectó un error de sintaxis en el renderer, corregido en el commit siguiente. No afirmar PASS hasta ejecutar el build sobre el HEAD actual. |
+| GAMEPLAY_GATE | PENDIENTE | El smoke test anterior expiraba esperando el canvas mientras el menú de inicio seguía visible. Se actualizó para recorrer menú, configuración, ambos recipientes, cambio de renderer, reloj, colonia y guardado/recarga. Falta ejecutar la versión actual. |
+| DESIGN_GATE | PENDIENTE | Las capturas anteriores corresponden a un SHA anterior y muestran una escena demasiado vacía y un isópodo desproporcionado. No sirven como evidencia de la revisión actual. Hace falta inspeccionar capturas nuevas de escritorio y móvil. |
+| INTEGRATION_GATE | BLOCKED hasta validar y publicar el SHA aprobado | El workflow de Pages construye y publica desde `main`; una rama de trabajo no actualiza por sí sola la URL pública. |
 
-- El modo Voxel usa geometría cúbica 3D; falta sprites voxelizados desde atlas/spritesheets.
-- No hay ciclo vital completo, muda, reproducción, nacimientos, mortalidad balanceada ni sistema de descubrimientos.
-- No hay flujo completo BOOT → MAIN_MENU → TERRARIUM_SETUP → PLAYING ↔ PAUSED, ni gestión de varios guardados, renombrado, borrado con confirmación, configuración global e i18n.
-- El guardado usa un único slot y no implementa migraciones entre versiones.
-- Los parámetros biológicos son heurísticos de juego, no valores científicamente validados.
-- Falta `package-lock.json` versionado; CI usa `npm install`, no `npm ci`.
+## Pendientes antes de aprobar
 
-## Próximos hitos
+1. Ejecutar tests, build y smoke test Playwright en el HEAD actual.
+2. Inspeccionar las capturas actuales y corregir cualquier defecto visual/responsive que muestren.
+3. Validar interacción táctil, pausa/reanudación, persistencia tras recarga y ausencia de errores de consola/red.
+4. Completar el alcance MVP pendiente: ciclo vital, IA ecológica más completa, guardados múltiples/migrables, ajustes/localización y ficha/descubrimientos según la especificación.
+5. Verificar que el deployment público corresponde al SHA aprobado antes de usarlo como evidencia.
 
-1. Versionar lockfile reproducible y cambiar CI a `npm ci`.
-2. Inspeccionar las capturas de escritorio y móvil, no solo generarlas.
-3. Implementar sprites voxelizados/atlas, ciclo vital y guardados múltiples/migrables.
-4. Completar flujo de pantallas y localización.
-5. Probar persistencia tras recarga real y casos de almacenamiento lleno/corrupto.
-6. Repetir todas las puertas para el SHA final; no declarar MVP final mientras las desviaciones esenciales sigan abiertas.
+**No declarar el MVP terminado mientras alguna puerta aplicable permanezca en FAIL o BLOCKED.**
