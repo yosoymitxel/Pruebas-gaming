@@ -30,10 +30,10 @@ try {
   await page.getByRole("button", { name: "Cilíndrico" }).click();
   if (await page.locator('[data-shape="cilindrico"]').getAttribute("aria-pressed") !== "true") throw new Error("No seleccionó el recipiente cilíndrico");
   await page.getByRole("button", { name: "Rectangular" }).click();
-  await page.getByRole("button", { name: "+1 min" }).click();
+  await page.getByRole("button", { name: "Avanzar 1 min" }).click();
   if (!(await page.locator("#clock").textContent()).includes("08:01")) throw new Error("El reloj no avanzó un minuto");
   if (await page.locator("#count").textContent() !== "01") throw new Error("La cantidad de entidades cambió al alternar renderers");
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.getByRole("button", { name: "Guardar terrario" }).click();
   await page.locator("#humidity-input").evaluate(el => { el.value = "0.4"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   if (await page.locator("#humidity").textContent() !== "40") throw new Error("No se pudo cambiar la humedad");
   await page.reload({ waitUntil: "networkidle" });
