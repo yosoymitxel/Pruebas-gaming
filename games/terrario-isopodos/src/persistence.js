@@ -26,7 +26,7 @@ export function parseTerrarium(raw){
  try{data=JSON.parse(raw);}catch{throw new Error("El guardado no es JSON válido");}
  if(data?.schemaVersion>SCHEMA_VERSION)throw new Error("El guardado pertenece a una versión más reciente del juego");
  const s=data?.state;
- if(data?.schemaVersion!==SCHEMA_VERSION||data?.gameId!=="terrario-isopodos"||!s||s.version!==1||
+ if(data?.schemaVersion!==SCHEMA_VERSION||(data?.gameId&&data.gameId!=="terrario-isopodos")||!s||s.version!==1||
   !Number.isFinite(s.clockMinutes)||s.clockMinutes<0||!Number.isFinite(s.speed)||s.speed<1||s.speed>4||
   !s.habitat||!Array.isArray(s.entities)||!Array.isArray(s.resources))
   throw new Error("El guardado no coincide con el esquema 1");
