@@ -72,7 +72,8 @@ function validateStateShape(state){
     speed:Number.isFinite(state.speed)?Number(state.speed):1,
     habitat,
     entities,
-    resources
+    resources,
+    coins:Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0
   };
 }
 
