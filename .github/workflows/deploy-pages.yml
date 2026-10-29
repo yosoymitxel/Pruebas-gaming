@@ -32,10 +32,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: games/terrario-isopodos/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Unit tests
         run: npm test
       - name: Production build
@@ -68,12 +66,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: games/terrario-isopodos/package-lock.json
       - name: Build production game
         working-directory: games/terrario-isopodos
         run: |
-          npm ci
+          npm install
           npm run build
       - name: Assemble complete Pages site
         run: |
