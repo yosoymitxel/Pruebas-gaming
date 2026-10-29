@@ -34,7 +34,7 @@ export function parseTerrarium(raw){
  if(!SHAPES.has(h.shape)||!Number.isFinite(h.humidity)||h.humidity<.2||h.humidity>1||
   !Number.isFinite(h.temperatureC)||h.temperatureC<10||h.temperatureC>30||
   !s.entities.every(e=>e&&typeof e.id==="string"&&e.id.length>0&&typeof e.kind==="string"&&
-   Number.isFinite(e.x)&&e.x>=-1&&e.x<=1&&Number.isFinite(e.z)&&e.z>=-1&&e.z<=1)||
+   Number.isFinite(e.x)&&e.x>=-1.75&&e.x<=1.75&&Number.isFinite(e.z)&&e.z>=-1.28&&e.z<=1.28)||
   new Set(s.entities.map(e=>e.id)).size!==s.entities.length||
   !s.resources.every(r=>r&&typeof r.id==="string"&&typeof r.type==="string"&&
    Number.isFinite(r.amount)&&r.amount>=0&&Number.isFinite(r.x)&&Number.isFinite(r.z)))
