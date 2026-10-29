@@ -16,11 +16,13 @@ No requieren agentes separados: pueden ejecutarse en una sola sesión. La separa
 4. Clasifica cada tarea con uno o más perfiles de TASK-PROFILES.md.
 5. Lee completos los SKILL.md seleccionados desde el checkout. Si la skill está local, no vuelvas a instalarla ni declares que falta. No confundas disponible, leída y aplicada.
 6. Define criterios de aceptación antes de implementar.
-7. Inspecciona la solución existente para reutilizar mecánicas, assets, animaciones, componentes y dependencias.
-8. Implementa el cambio mínimo que satisfaga el criterio.
-9. Ejecuta las puertas aplicables de QUALITY-GATES.md.
-10. Si una puerta falla, vuelve a implementación y repite las pruebas afectadas. Límite recomendado: 3 ciclos automáticos; después, reporta bloqueo con evidencia, sin bucles infinitos.
-11. Registra el informe usando REPORT-TEMPLATE.md.
+7. Inspecciona la solución existente para reutilizar mecánicas, assets, animaciones, componentes, SVG, spritesheets, atlas y dependencias.
+8. Antes de crear un recurso visual desde cero, consulta docs/CATALOGO-REFERENCIAS.md y registra por qué no sirve ningún candidato existente cuando corresponda.
+9. Implementa el cambio mínimo que satisfaga el criterio.
+10. Para cambios visuales, ejecuta el protocolo docs/EVIDENCIA-VISUAL.md: capturas nuevas desde el checkout/deployment verificado, ligadas al SHA exacto, y artefactos descargables con enlaces comprobados cuando se soliciten.
+11. Ejecuta las puertas aplicables de QUALITY-GATES.md.
+12. Si una puerta falla, vuelve a implementación y repite las pruebas afectadas. Límite recomendado: 3 ciclos automáticos; después, reporta bloqueo con evidencia, sin bucles infinitos.
+13. Registra el informe usando REPORT-TEMPLATE.md.
 
 ## Resolución de conflictos
 Orden de autoridad:
