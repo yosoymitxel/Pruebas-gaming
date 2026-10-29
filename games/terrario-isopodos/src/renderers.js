@@ -165,7 +165,7 @@ export class TerrariumRenderer {
         const pts=[...pointers.values()];
         const nextDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
         if(pinchDistance!==null){
-          const delta=(nextDistance-pinchDistance)*0.015;
+          const delta=-(nextDistance-pinchDistance)*0.015;
           zoomBy(delta);
         }
         pinchDistance=nextDistance;
