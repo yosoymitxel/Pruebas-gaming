@@ -16,18 +16,18 @@ function openModal(title,body,{push=true}={}){
  if(!modal.hidden&&push)modalHistory.push({title:$("#modal-title").textContent,body:$("#modal-body").innerHTML,focusId:document.activeElement?.id??""});
  else if(modal.hidden){lastModalFocus=document.activeElement;modalHistory.length=0;}
  $("#modal-title").textContent=title;$("#modal-body").innerHTML=body;modal.hidden=false;
- requestAnimationFrame(()=>{if(!modal.hidden)$("#close-modal").focus({preventScroll:true});});
+ $("#close-modal").focus({preventScroll:true});
 }
 function closeModal({all=false}={}){
  if(!all&&modalHistory.length){
   const previous=modalHistory.pop();openModal(previous.title,previous.body,{push:false});
   const restore=previous.focusId?[...modal.querySelectorAll("[id]")].find(el=>el.id===previous.focusId):null;
-  requestAnimationFrame(()=>{if(restore?.isConnected)restore.focus({preventScroll:true});});
+  if(restore?.isConnected)restore.focus({preventScroll:true});
   return;
  }
  modal.hidden=true;modalHistory.length=0;
  const target=lastModalFocus;lastModalFocus=null;
- requestAnimationFrame(()=>{if(target?.isConnected&&target.getClientRects().length)target.focus({preventScroll:true});});
+ if(target?.isConnected&&target.getClientRects().length)target.focus({preventScroll:true});
 }
 function dismissModal(){
  if(modalHistory.length){closeModal();return;}
