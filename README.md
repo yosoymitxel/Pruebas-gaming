@@ -10,13 +10,16 @@ No es una colección pasiva de prompts. El framework define un proceso obligator
 3. [Orquestación de skills](framework/ORCHESTRATION.md)
 4. [Puertas obligatorias de calidad](framework/QUALITY-GATES.md)
 5. [Perfiles y selección de skills](framework/TASK-PROFILES.md)
-6. [Registro persistente de skills](docs/REGISTRO-SKILLS.md)
-7. [Índice de skills locales](skills/INDEX.md)
-8. [Catálogo de fuentes](docs/CATALOGO.md)
-9. [Catálogo de referencias por contexto](docs/CATALOGO-REFERENCIAS.md)
-10. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
-11. [Estándares](docs/ESTANDARES.md)
-12. [Estructura prevista](docs/ESTRUCTURA.md)
+6. [Esqueleto transversal de videojuegos](framework/BASELINE-VIDEOJUEGO.md)
+7. [Fuente única de verdad y conflictos](framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md)
+8. [Descubrimiento de skills](docs/DESCUBRIMIENTO-SKILLS.md)
+9. [Registro persistente de skills](docs/REGISTRO-SKILLS.md)
+10. [Índice de skills locales](skills/INDEX.md)
+11. [Catálogo de fuentes](docs/CATALOGO.md)
+12. [Catálogo de referencias por contexto](docs/CATALOGO-REFERENCIAS.md)
+13. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
+14. [Estándares](docs/ESTANDARES.md)
+15. [Estructura prevista](docs/ESTRUCTURA.md)
 
 ## Filtros obligatorios
 Cada tarea debe registrar resultados para:
