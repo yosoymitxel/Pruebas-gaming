@@ -1,10 +1,12 @@
 # Índice de skills locales
 
-Regenerar con scripts/index-skills.sh después de instalar, actualizar o eliminar skills. El índice detecta archivos locales; no certifica licencia ni aplicación en una tarea.
+Generado por scripts/index-skills.sh. Detecta archivos locales; no certifica licencia, calidad ni ejecución.
 
-- **game-project-orchestrator** — Orquesta tareas de juegos con puertas de calidad obligatorias.  
+- **game-project-orchestrator** — Use at the start of a game project or substantial game task to inspect the existing repository, select only relevant skills from this toolkit, plan minimal changes, and define verifiable gameplay, visual, and regression checks.  
   Ruta: .agents/skills/game-project-orchestrator/SKILL.md
-- **game-project-skeleton** — Define y verifica sistemas transversales de un videojuego nuevo.  
+- **game-project-skeleton** — Use when starting a videogame or reviewing a prototype that lacks common systems: menus, settings, pause, localization, themes, persistence, export/import, input, results, and QA.  
   Ruta: .agents/skills/game-project-skeleton/SKILL.md
 
-**Skills externas de GameDev identificadas para incorporación/revisión:** game-ui-ux, save-systems, input-systems. Consultar docs/DESCUBRIMIENTO-SKILLS.md. No marcar como instaladas localmente hasta que existan sus archivos en este checkout.
+**Total de archivos SKILL.md detectados:** 2
+
+**Skills externas identificadas para revisión, no instaladas localmente:** game-ui-ux, save-systems, input-systems. Consultar docs/DESCUBRIMIENTO-SKILLS.md.
