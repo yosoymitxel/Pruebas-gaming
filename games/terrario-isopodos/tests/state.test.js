@@ -1,6 +1,6 @@
 import test from "node:test";import assert from "node:assert/strict";import{advanceMinutes,createTerrariumState,formatClock,snapshotDomain}from"../src/state.js";
 test("estado inicial tiene entidad estable y reloj propio",()=>{const s=createTerrariumState();assert.equal(s.entities[0].id,"isopod-001");assert.equal(s.clockMinutes,480);assert.equal(s.running,false);});
 test("cambiar presentación no muta el dominio",()=>{const s=createTerrariumState(),before=snapshotDomain(s);s.presentation.mode="voxel";s.presentation.autoRotate=false;assert.equal(snapshotDomain(s),before);});
-test("el reloj avanza y conserva el rango diario",()=>{const s=createTerrariumState();advanceMinutes(s,20);assert.equal(s.clockMinutes,500);advanceMinutes(s,1440);assert.equal(s.clockMinutes,500);});
-test("rechaza minutos inválidos",()=>{const s=createTerrariumState();assert.throws(()=>advanceMinutes(s,-1),RangeError);assert.throws(()=>advanceMinutes(s,NaN),RangeError);});
+test("el reloj conserva el tiempo acumulado y cruza de día",()=>{const s=createTerrariumState();advanceMinutes(s,20);assert.equal(s.clockMinutes,500);advanceMinutes(s,1440);assert.equal(s.clockMinutes,1940);assert.equal(formatClock(s.clockMinutes),"DÍA 02 · 08:20");});
+test("rechaza minutos inválidos",()=>{const s=createTerrariumState();assert.throws(()=>advanceMinutes(s,-1),RangeError);assert.throws(()=>advanceMinutes(s,NaN),RangeError);assert.throws(()=>advanceMinutes(s,Infinity),RangeError);});
 test("formatea días y horas",()=>{assert.equal(formatClock(480),"DÍA 01 · 08:00");assert.equal(formatClock(1440),"DÍA 02 · 00:00");});
