@@ -926,3 +926,12 @@ footer{display:none}
 @media(forced-colors:active){
   button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid Highlight}
 }
+.panel-toggle-mark{
+  flex:0 0 9px;
+  width:9px;
+  height:9px;
+  border:1px solid var(--moss-dark);
+  border-radius:50%;
+  background:var(--moss);
+  box-shadow:0 0 0 4px rgba(88,123,67,.12);
+}
