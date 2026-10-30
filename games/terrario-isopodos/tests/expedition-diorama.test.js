@@ -34,6 +34,10 @@ test("el mapa de expedición contiene cinco nodos seleccionables y biomas del ki
   assert.equal(scene.userData.biomeId,"woodland-map");
   assert.equal(Object.keys(scene.userData.mapPositions).length,5);
   assert.ok(collect(scene,"dioramaBiome").length>=6);
+  const groundcover=scene.getObjectByName("expedition-groundcover");
+  const leafLitter=scene.getObjectByName("expedition-leaf-litter");
+  assert.ok(groundcover?.isInstancedMesh&&groundcover.count>=250,"el mapa tiene cobertura baja instanciada");
+  assert.ok(leafLitter?.isInstancedMesh&&leafLitter.count>=190,"el suelo conserva hojarasca visible instanciada");
   let meshes=0;scene.traverse(object=>{if(object.isMesh||object.isInstancedMesh)meshes++;});
   assert.ok(meshes>45,"la escena debe contener vegetación y nodos 3D");
 });

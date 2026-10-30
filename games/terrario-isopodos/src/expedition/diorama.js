@@ -80,8 +80,14 @@ export function buildExpeditionMapDiorama(T, {
     ];
   }
   kit.addBiome(root, biomeId, { groundY: 0.078, density: 1 });
+  kit.addAsset(root, "groundcover", {
+    groundY: 0.078, count: Math.round(260 * scatterDensity), kind: "groundcover",
+    name: "expedition-groundcover",
+    colors: [0x496b3b, 0x5d7d43, 0x759451]
+  });
   kit.addAsset(root, "leaf-litter", {
-    groundY: 0.078, count: Math.round(104 * scatterDensity), kind: "ground",
+    groundY: 0.078, count: Math.round(200 * scatterDensity), kind: "ground",
+    name: "expedition-leaf-litter",
     colors: [0x6c5038, 0x856343, 0xa17c4f, 0x596542, 0xb18a58]
   });
   const links = new Set();

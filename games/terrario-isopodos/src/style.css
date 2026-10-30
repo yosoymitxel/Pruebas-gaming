@@ -1362,11 +1362,11 @@ footer{display:none}
 .expedition-settlement-card>#expedition-home{width:100%;margin-top:15px}
 .expedition-footer{display:none}
 .expedition-screen.is-settlement .expedition-diorama{bottom:0}
-.expedition-screen.is-exhausted .expedition-stage{--expedition-panel-height:320px}
 .expedition-screen.has-pending-event .expedition-stage{--expedition-panel-height:194px}
 @media(max-width:760px){
   .expedition-screen,.expedition-shell{height:100dvh;min-height:100svh}
   .expedition-stage{--expedition-panel-height:282px}
+  .expedition-screen.is-exhausted .expedition-stage{--expedition-panel-height:320px}
   .expedition-screen.has-pending-event .expedition-stage{--expedition-panel-height:196px}
   .expedition-header{grid-template-columns:auto minmax(0,1fr);min-height:calc(62px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 10px 0;gap:9px}
   .expedition-back{min-height:44px;padding:8px 10px;font-size:11px}
