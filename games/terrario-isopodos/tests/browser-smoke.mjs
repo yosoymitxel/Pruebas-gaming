@@ -341,6 +341,27 @@ try{
   if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en móvil");
  }
  if(await page.locator("#expedition-close").isVisible())throw new Error("El botón de cabecera no debe aparecer durante un encuentro activo");
+ const assertExpeditionNodesDoNotOverlap=async()=>{
+  const boxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+   const a=boxes[i],b=boxes[j],overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x),overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+   if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en responsive");
+  }
+ };
+ await assertExpeditionNodesDoNotOverlap();
+ await page.setViewportSize({width:360,height:640});
+ await page.waitForTimeout(150);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 360x640");
+ await assertExpeditionNodesDoNotOverlap();
+ await page.screenshot({path:"artifacts/visual/expedition-map-360x640.png",fullPage:true});
+ await page.setViewportSize({width:1440,height:1000});
+ await page.waitForTimeout(150);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 1440x1000");
+ await assertExpeditionNodesDoNotOverlap();
+ await page.screenshot({path:"artifacts/visual/expedition-map-1440x1000.png",fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.waitForTimeout(150);
+
  if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
  await page.locator("#expedition-save").click();
  const activeRun=await page.evaluate(()=>{
