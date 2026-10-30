@@ -60,6 +60,8 @@ try{
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  const cameraCanvas=page.locator("#scene canvas");
  if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
+ if(await cameraCanvas.getAttribute("data-isopod-model")!=="voxel-sprite")throw new Error("No se aplicó el modelo voxel de la especie");
+
   if(await cameraCanvas.getAttribute("data-container-shape")!=="cilindrico"||await cameraCanvas.getAttribute("data-container-wall-count")!=="1")throw new Error("El terrario cilíndrico no construyó sus paredes verticales");
  const terrainRelief=Number(await cameraCanvas.getAttribute("data-terrain-relief"));
  if(!(terrainRelief>=0.12))throw new Error(`El relieve del microbosque es insuficiente: ${terrainRelief}`);
@@ -94,6 +96,9 @@ try{
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
+ if(await cameraCanvas.getAttribute("data-isopod-model")!=="seven-tergites-fourteen-pereopods")throw new Error("El modelo Diorama no presenta placas y patas articuladas");
+ if(await cameraCanvas.getAttribute("data-isopod-dorsal-plates")!=="7"||await cameraCanvas.getAttribute("data-isopod-walking-legs")!=="14"||await cameraCanvas.getAttribute("data-isopod-antennae")!=="2")throw new Error("El isópodo Diorama no completa su anatomía base");
+
  if(Number(await cameraCanvas.getAttribute("data-render-triangles"))<=0)throw new Error("Diorama quedó sin geometría tras cambiar de modo");
  await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
  await page.getByRole("button",{name:/Voxel/}).click();
