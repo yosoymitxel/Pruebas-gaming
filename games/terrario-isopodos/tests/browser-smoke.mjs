@@ -34,7 +34,7 @@ try{
  await mkdir("artifacts/visual",{recursive:true});
  browser=await chromium.launch({headless:true,args:["--use-gl=angle","--use-angle=swiftshader","--enable-webgl","--ignore-gpu-blocklist"]});
  const page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1});
- page.on("pageerror",e=>errors.push(e.message));
+ page.on("pageerror",e=>errors.push(e.stack||e.message));
  page.on("console",m=>{if(m.type()==="error")errors.push(m.text());});
  page.on("requestfailed",r=>errors.push(`request failed: ${r.url()} ${r.failure()?.errorText??""}`));
  await page.addInitScript(()=>{if(!sessionStorage.getItem("terrario-test-corrupt-save-injected")){localStorage.setItem("terrario-isopodos.save.v1","{");sessionStorage.setItem("terrario-test-corrupt-save-injected","1");}});
@@ -50,7 +50,7 @@ try{
  // Flujo real por tacto en un teléfono compacto: menú, opciones y creación de partida.
  const mobileMenuPage=await browser.newPage({viewport:{width:360,height:640},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const mobileMenuErrors=[];
- mobileMenuPage.on("pageerror",e=>mobileMenuErrors.push(e.message));
+ mobileMenuPage.on("pageerror",e=>mobileMenuErrors.push(e.stack||e.message));
  mobileMenuPage.on("console",m=>{if(m.type()==="error")mobileMenuErrors.push(m.text());});
  mobileMenuPage.on("requestfailed",r=>mobileMenuErrors.push(`request failed: ${r.url()} ${r.failure()?.errorText??""}`));
  await mobileMenuPage.goto(url,{waitUntil:"networkidle",timeout:30000});
