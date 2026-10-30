@@ -58,6 +58,14 @@ async function ensureRenderer(){
  attachRendererActions();
  return renderer;
 }
+function assertWebGL2Available(){
+ const probe=document.createElement("canvas");
+ let context=null;
+ try{context=probe.getContext("webgl2",{failIfMajorPerformanceCaveat:false});}
+ catch(error){throw new Error("No se pudo consultar WebGL 2: "+error.message);}
+ if(!context)throw new Error("WebGL 2 no está disponible en este navegador o dispositivo.");
+ context.getExtension("WEBGL_lose_context")?.loseContext();
+}
 async function enterGame(){
  let loaderVisible=false;
  const theme=loadingThemes[Math.floor(Math.random()*loadingThemes.length)];
@@ -66,6 +74,7 @@ async function enterGame(){
  const loaderTimer=setTimeout(()=>{loaderVisible=true;loadingScreen.hidden=false;},120);
  try{
   setLoadingStage("Cargando el motor 3D…");
+  assertWebGL2Available();
   await ensureRenderer();
   setLoadingStage("Montando el bosque y sus refugios…");
   renderer.setShape(state.habitat.shape);
