@@ -154,11 +154,11 @@ try{
  if(await page.locator("#camera-toggle").getAttribute("aria-expanded")!=="false")throw new Error("El rail de cámara no se repliega");
 
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
- await page.locator('[data-weather="rain"]').click();
+ await page.locator('.weather-control button[data-weather="rain"]').click();
  if(await cameraCanvas.getAttribute("data-weather")!=="rain"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==1)throw new Error("La lluvia procedural no aparece en el terrario");
- await page.locator('[data-weather="mist"]').click();
+ await page.locator('.weather-control button[data-weather="mist"]').click();
  if(await cameraCanvas.getAttribute("data-weather")!=="mist"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==7)throw new Error("La bruma no crea sus capas animadas");
- await page.locator('[data-weather="clear"]').click();
+ await page.locator('.weather-control button[data-weather="clear"]').click();
  if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
  await page.locator('[data-weather="rain"]').click();
  await page.locator("#open-game-menu").click();
