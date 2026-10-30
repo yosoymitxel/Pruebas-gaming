@@ -264,25 +264,32 @@ try{
  if(await cameraCanvas.getAttribute("data-active-tool")!=="hand")throw new Error("No se puede recuperar la herramienta Mano");
  // Mano: comprobar arrastre real de recursos e isópodos sobre el canvas 3D.
  const interactionCanvas=await cameraCanvas.boundingBox();
- const dragAcrossCanvas=async(accept)=>{
+ await page.locator("#save").click();
+ const dragAcrossCanvas=async(kind,accept)=>{
   let result=null;
+  const savedBeforeSelection=await page.evaluate(()=>localStorage.getItem("terrario-isopodos.save.v1"));
   for(let y=.22;y<=.78&&!result;y+=.055){
    for(let x=.22;x<=.78&&!result;x+=.055){
-    const before=await page.locator("#resource-note").textContent();
     const px=interactionCanvas.x+interactionCanvas.width*x,py=interactionCanvas.y+interactionCanvas.height*y;
+    await page.mouse.click(px,py);
+    const selected=await cameraCanvas.getAttribute("data-selected-target");
+    if(!selected?.startsWith(kind+":"))continue;
+    if(await cameraCanvas.getAttribute("data-selection-outline")!=="3d-inverted-hull")throw new Error("La selección no dibujó un contorno 3D sobre la silueta real");
+    const savedAfterSelection=await page.evaluate(()=>localStorage.getItem("terrario-isopodos.save.v1"));
+    if(savedAfterSelection!==savedBeforeSelection)throw new Error("El primer toque modificó el estado persistido antes de iniciar el arrastre");
     await page.mouse.move(px,py);await page.mouse.down();await page.mouse.move(px+32,py+18,{steps:2});await page.mouse.up();
     const after=await page.locator("#resource-note").textContent();
-    if(after!==before&&accept(after))result=after;
+    if(after!==""&&accept(after))result=after;
    }
   }
   return result;
  };
- const draggedIsopodNote=await dragAcrossCanvas(note=>note.includes("Isópodo ")&&note.includes("reubicado"));
+const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Isópodo ")&&note.includes("reubicado"));
  if(!draggedIsopodNote)throw new Error("La herramienta Mano no pudo arrastrar un isópodo en el renderer real");
  const draggedId=draggedIsopodNote.match(/Isópodo (isopod-[0-9]+)/)?.[1];
  const savedAfterEntityDrag=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state);
  if(!draggedId||!savedAfterEntityDrag.entities.some(entity=>entity.id===draggedId&&Number.isFinite(entity.x)&&Number.isFinite(entity.z)))throw new Error("El arrastre del isópodo no se persistió");
- const draggedResourceNote=await dragAcrossCanvas(note=>/^(Hojarasca|Refugio|Tronco|Musgo|Helecho|Piedra|Setas) reubicado$/.test(note));
+ const draggedResourceNote=await dragAcrossCanvas("resource",note=>/^(Hojarasca|Refugio|Tronco|Musgo|Helecho|Piedra|Setas) reubicado$/.test(note));
  if(!draggedResourceNote)throw new Error("La herramienta Mano no pudo arrastrar hojarasca/refugio en el renderer real");
  const savedAfterResourceDrag=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state);
  if(!savedAfterResourceDrag.resources.some(resource=>Number.isFinite(resource.x)&&Number.isFinite(resource.z)))throw new Error("El arrastre del recurso no se persistió");

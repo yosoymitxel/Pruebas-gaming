@@ -61,7 +61,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente Playwright actualizado |
 | 3 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
 | 4 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | En progreso · pendiente CI |
-| 5 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | Pendiente |
+| 5 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · picking real y outline 3D enviados a CI |
 | 6 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 7 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
 | 8 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
@@ -98,12 +98,13 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Verificar eventos mouse/touch, cambio de pantalla, Playwright y capturas en CI.
 
 ### INPUT-02 — Selección y contorno
-- [ ] Usar picking 3D sobre la malla real y respetar profundidad.
-- [ ] Primer toque marca selección; segundo gesto permite arrastrar.
-- [ ] Mostrar outline/highlight adaptado a la silueta 3D si el renderer lo permite.
-- [ ] Evitar rectángulo 2D genérico como solución final.
-- [ ] Deseleccionar con espacio vacío/cambio de herramienta; probar Diorama y Voxel.
-- [ ] Highlight nunca modifica geometría, collider ni reglas del dominio.
+- [x] Picking 3D combinado sobre las mallas reales de isópodos y recursos; el primer impacto visible determina el objetivo.
+- [x] Primer toque selecciona sin iniciar movimiento; un segundo gesto sobre el mismo objetivo permite arrastrar.
+- [x] Outline 3D por silueta con hull invertido sobre una copia visual de la malla seleccionada.
+- [x] No se usa rectángulo 2D; el marcador respeta profundidad y no participa en picking.
+- [x] Deseleccionar con espacio vacío/cambio de herramienta; limpiar selección al reconstruir malla/modelo.
+- [x] Highlight no modifica geometría fuente, collider ni reglas del dominio.
+- [ ] Validar mouse/touch y modelos Diorama/Voxel con Playwright y capturas ligadas al SHA.
 
 ### INV-02 — Tienda y economía
 - [ ] Catalogar artículos reales (hongos, plantas, musgo, piedras, tronco, refugios, comida y hojarasca).

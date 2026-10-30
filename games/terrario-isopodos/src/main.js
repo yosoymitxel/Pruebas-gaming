@@ -29,6 +29,14 @@ function activateTool(tool){
  renderer?.setTool(tool);
 }
 function attachRendererActions(){
+ renderer.onSelectionChange=target=>{
+  if(!target){saveMessage="";update();return;}
+  const resource=state.resources.find(item=>item.id===target.id);
+  const labels={"leaf-litter":"Hojarasca","shelter":"Refugio","bark":"Tronco","moss":"Musgo","fern":"Helecho","stone":"Piedra","mushroom":"Setas"};
+  const label=target.kind==="entity"?"Isópodo "+target.id:(labels[resource?.type]??"Elemento");
+  saveMessage=label+" seleccionado · vuelve a tocar y arrastra para mover";
+  update();
+ };
  renderer.onInteractionStart=target=>{
   if(target.kind!=="entity")return;
   startleIsopod(state,target.id);
