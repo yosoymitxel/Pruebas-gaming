@@ -1617,3 +1617,9 @@ footer{display:none}
 @media(prefers-reduced-motion:reduce){
   .expedition-screen.is-level .expedition-choice{transition:none}
 }
+
+/* La bandeja de decisiones llena la reserva inferior para no dejar una franja vacía. */
+.expedition-screen.is-level .expedition-decision-panel{height:100%}
+@media(max-width:760px){
+  .expedition-screen.is-level .expedition-decision-panel{grid-template-rows:auto minmax(0,1fr)}
+}
