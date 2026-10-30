@@ -581,7 +581,6 @@ export class TerrariumRenderer {
         if(object.material){
           const list=Array.isArray(object.material)?object.material:[object.material];
           for(const material of list){
-            if(material===voxelMaterial)continue;
             materials.add(material);
             for(const value of Object.values(material)){
               if(value?.isTexture&&value!==isopodShellTexture)textures.add(value);
@@ -880,7 +879,6 @@ export class TerrariumRenderer {
     this.clear(this.world);
     this.renderer.dispose();
     isopodShellTexture?.dispose();isopodShellTexture=null;
-    if(voxelMaterial){voxelMaterial.map?.dispose();voxelMaterial.dispose();voxelMaterial=null;}
     this.renderer.domElement.remove();
   }
 }
