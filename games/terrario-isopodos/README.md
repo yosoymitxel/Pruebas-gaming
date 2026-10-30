@@ -26,6 +26,10 @@ npm run dev
 
 Verificación de producción: `npm run build`. Aún falta generar y versionar el lockfile para habilitar `npm ci`. La automatización CI ejecuta tests, build y smoke test Playwright, con capturas desktop/móvil como artefactos.
 
+## Dioramas reutilizables
+
+El juego incluye un kit procedural compartido para configurar biomas, piezas, semillas, densidades y paletas en el terrario y las expediciones: [Kit de dioramas](docs/DIORAMA-KIT.md).
+
 ## Documentación
 
 - [Expediciones por turnos: diseño, economía, máquina de estados y aceptación](docs/EXPEDICIONES-POR-TURNOS.md)

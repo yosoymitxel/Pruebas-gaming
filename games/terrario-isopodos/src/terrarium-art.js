@@ -312,7 +312,8 @@ function addSubstrate(group, shape, spec, materials) {
   group.add(top);
 }
 
-function addFerns(group, random, shape, radius, materials, leafGeo) {
+function addFerns(group, random, shape, radius, materials, leafGeo, options = {}) {
+  const density=clamp(Number(options.density??1),0.15,2);
   const seeds = shape === "esferico"
     ? [
         {x:-.72,z:-.55,size:.68,fronds:5,phase:.18},
@@ -330,8 +331,8 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
         {x:-.12,z:.68,size:.34,fronds:4,phase:1.82},
         {x:.14,z:-.98,size:.3,fronds:3,phase:2.74}
       ];
-  const leaves = new T.InstancedMesh(leafGeo, materials.fern, 1800);
-  const stems = new T.InstancedMesh(new T.CylinderGeometry(.006,.012,1,6), materials.fernStem, 1050);
+  const leaves = new T.InstancedMesh(leafGeo, materials.fern, Math.ceil(1800*density));
+  const stems = new T.InstancedMesh(new T.CylinderGeometry(.006,.012,1,6), materials.fernStem, Math.ceil(1050*density));
   const dummy = new T.Object3D();
   const greens=[0x496e39,0x638447,0x779651,0x8ca85e,0x5a7941];
   let used=0,stemCount=0;
@@ -340,7 +341,7 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
     const {x,z,size,fronds,phase}=plant;
     if(!inside(x,z,shape,radius))continue;
     const base=terrainHeightAt(x,z,shape,radius);
-    const count=fronds+(random()>.65?1:0);
+    const count=Math.max(1,Math.round((fronds+(random()>.65?1:0))*density));
     for(let f=0;f<count;f++){
       const angle=phase+(f/count)*Math.PI*2+(random()-.5)*.34;
       const direction=new T.Vector3(Math.cos(angle),0,Math.sin(angle));
@@ -413,18 +414,19 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
   return used;
 }
 
-function addForestRosettes(group,random,shape,radius,materials,leafGeo){
+function addForestRosettes(group,random,shape,radius,materials,leafGeo,options={}){
+  const density=clamp(Number(options.density??1),0.15,2);
   const sites=shape==="esferico"
     ? [[-.22,-.86,.76],[.62,.48,.68],[-.86,.34,.59],[.08,.64,.48],[.92,-.08,.43]]
     : [[-.18,-.82,1.02],[.62,.55,.9],[-.88,.38,.72],[.08,.64,.56],[.92,-.08,.52]];
-  const leaves=new T.InstancedMesh(leafGeo,materials.groundcover,88);
+  const leaves=new T.InstancedMesh(leafGeo,materials.groundcover,Math.ceil(88*density));
   const dummy=new T.Object3D();
   const palette=[0x496b3b,0x5b7c43,0x78944f,0x8ca45d];
   let used=0;
   for(const [x,z,size] of sites){
     if(!inside(x,z,shape,radius))continue;
     const base=terrainHeightAt(x,z,shape,radius);
-    const count=7+Math.floor(random()*3);
+    const count=Math.max(1,Math.round((7+Math.floor(random()*3))*density));
     const phase=random()*Math.PI*2;
     for(let i=0;i<count;i++){
       const angle=phase+i/count*Math.PI*2+(random()-.5)*.32;
@@ -450,7 +452,9 @@ function addForestRosettes(group,random,shape,radius,materials,leafGeo){
   return used;
 }
 
-function addMoss(group, random, shape, radius, materials, leafGeo) {
+function addMoss(group, random, shape, radius, materials, leafGeo, options = {}) {
+  const density=clamp(Number(options.density??1),0.12,2);
+  const patchCount=Math.max(1,Math.round(32*density));
   const cushionGeometry = new T.IcosahedronGeometry(1, 2);
   const cushionPosition = cushionGeometry.attributes.position;
   for (let i = 0; i < cushionPosition.count; i++) {
@@ -459,8 +463,8 @@ function addMoss(group, random, shape, radius, materials, leafGeo) {
     cushionPosition.setXYZ(i, x * ripple, y * (0.78 + Math.sin(x * 5) * 0.06) * ripple, z * ripple);
   }
   cushionGeometry.computeVertexNormals();
-  const cushions = new T.InstancedMesh(cushionGeometry, materials.moss, 32);
-  const leaflets = new T.InstancedMesh(leafGeo, materials.mossSprig, 2100);
+  const cushions = new T.InstancedMesh(cushionGeometry, materials.moss, patchCount);
+  const leaflets = new T.InstancedMesh(leafGeo, materials.mossSprig, Math.ceil(2100*density));
   const dummy = new T.Object3D();
   const tones = [0x405d36, 0x527341, 0x65834a, 0x789655, 0x8aa45d];
   let cushionCount = 0, leafletCount = 0;
@@ -468,7 +472,7 @@ function addMoss(group, random, shape, radius, materials, leafGeo) {
   const mossSites = shape==="esferico"
     ? [[-.82,-.18],[.78,.22],[-.12,-.78],[.96,-.45],[-.9,.48],[.18,.88],[-.42,.76]]
     : [[-0.82, -0.18], [0.78, 0.22], [-0.12, -0.78], [0.96, -0.45], [-1.02, 0.55], [0.18, 0.88], [-0.42, 0.76]];
-  for (let patch = 0; patch < 32; patch++) {
+  for (let patch = 0; patch < patchCount; patch++) {
     const site = mossSites[patch % mossSites.length];
     const center = {
       x:site[0] + (random() - 0.5) * 0.22,
@@ -529,7 +533,8 @@ function addMoss(group, random, shape, radius, materials, leafGeo) {
   return { patches: cushionCount, blades: leafletCount };
 }
 
-function addRocks(group, random, shape, radius, material) {
+function addRocks(group, random, shape, radius, material, options = {}) {
+  const count=Math.max(1,Math.ceil(9*clamp(Number(options.density??1),0.12,2)));
   const geometry = new T.IcosahedronGeometry(1, 1);
   const position = geometry.attributes.position;
   for (let i = 0; i < position.count; i++) {
@@ -538,7 +543,6 @@ function addRocks(group, random, shape, radius, material) {
     position.setXYZ(i, x * noise, y * (0.68 + random() * 0.25), z * noise);
   }
   geometry.computeVertexNormals();
-  const count = 9;
   const rocks = new T.InstancedMesh(geometry, material, count);
   const dummy = new T.Object3D();
   const sites = shape==="esferico"
@@ -676,13 +680,14 @@ function addRootArch(group, x, z, shape, radius, materials) {
   group.add(arch);
 }
 
-function addMushrooms(group, x, z, shape, radius, random, materials) {
+function addMushrooms(group, x, z, shape, radius, random, materials, options = {}) {
   if(!inside(x,z,shape,radius))return;
-  const stems=new T.InstancedMesh(new T.CylinderGeometry(.72,1,1,9),materials.mushroomStem,3);
-  const gills=new T.InstancedMesh(new T.SphereGeometry(1,12,8),materials.mushroomGills,3);
-  const caps=new T.InstancedMesh(new T.SphereGeometry(1,16,10),materials.mushroomCap,3);
+  const count=Math.max(1,Math.ceil(3*clamp(Number(options.density??1),0.12,2)));
+  const stems=new T.InstancedMesh(new T.CylinderGeometry(.72,1,1,9),materials.mushroomStem,count);
+  const gills=new T.InstancedMesh(new T.SphereGeometry(1,12,8),materials.mushroomGills,count);
+  const caps=new T.InstancedMesh(new T.SphereGeometry(1,16,10),materials.mushroomCap,count);
   const dummy=new T.Object3D();
-  for(let i=0;i<3;i++){
+  for(let i=0;i<count;i++){
     const px=x+(i-1)*.055,pz=z+(random()-.5)*.08;
     const height=.052+random()*.042,capRadius=.023+random()*.014;
     const base=terrainHeightAt(px,pz,shape,radius);
@@ -838,7 +843,7 @@ export function buildWoodlandInterior(shape, spec) {
   addLogAndRoots(group, shape === "esferico" ? -0.08 : -0.16, shape === "esferico" ? -0.62 : -0.64, shape, radius, materials, random);
   addRootArch(group, shape === "esferico" ? 0.34 : 0.94, shape === "esferico" ? -0.46 : -0.72, shape, radius, materials);
   addMushrooms(group, shape === "esferico" ? -0.3 : -0.58, shape === "esferico" ? -0.42 : -0.55, shape, radius, random, materials);
-  addMushrooms(shape === "esferico" ? 0.32 : 0.72, shape === "esferico" ? -0.39 : -0.58, shape, radius, random, materials);
+  addMushrooms(group, shape === "esferico" ? 0.32 : 0.72, shape === "esferico" ? -0.39 : -0.58, shape, radius, random, materials);
 
   group.traverse(object => {
     if (object.isMesh) {
@@ -876,3 +881,6 @@ export function buildWoodlandInterior(shape, spec) {
   };
   return group;
 }
+
+
+export { rng as createSeededRandom, leafGeometry as createLeafGeometry, makeLeaves as buildLeafInstances, addFerns as buildFernBed, addForestRosettes as buildForestRosettes, addMoss as buildMossBed, addRocks as buildRockScatter, addLogAndRoots as buildFallenLog, addRootArch as buildRootArch, addMushrooms as buildMushroomCluster, palette as createWoodlandMaterials };

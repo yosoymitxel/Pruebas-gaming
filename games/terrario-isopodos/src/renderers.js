@@ -548,7 +548,9 @@ export class TerrariumRenderer {
     c.addEventListener("pointerdown",e=>{
       if(e.pointerType==="mouse" && e.button!==0) return;
       if(this.expeditionMode){
-        expeditionTap={pointerId:e.pointerId,target:expeditionTargetAt(e),x:e.clientX,y:e.clientY,moved:false};
+        const target=expeditionTargetAt(e);
+        c.dataset.expeditionLastPointerTarget=target?target.kind+":"+target.id:"none";
+        expeditionTap={pointerId:e.pointerId,target,x:e.clientX,y:e.clientY,moved:false};
         pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
         if(pointers.size===1)drag={x:e.clientX,y:e.clientY,id:e.pointerId};
         if(pointers.size===2){const pts=[...pointers.values()];pinchDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}
@@ -624,7 +626,7 @@ export class TerrariumRenderer {
 
     c.addEventListener("pointerup",e=>{
       if(interaction?.pointerId===e.pointerId){const completed=interaction;interaction=null;this.onInteractionEnd?.(completed);return;}
-      if(expeditionTap?.pointerId===e.pointerId){const completed=expeditionTap;expeditionTap=null;if(!completed.moved&&completed.target)this.expeditionHandler?.(completed.target);}
+      if(expeditionTap?.pointerId===e.pointerId){const completed=expeditionTap;expeditionTap=null;if(!completed.moved&&completed.target){c.dataset.expeditionLastActivated=completed.target.kind+":"+completed.target.id;this.expeditionHandler?.(completed.target);}else if(!completed.moved){c.dataset.expeditionLastActivated="none";}}
       pointers.delete(e.pointerId);
       if(pointers.size<2) pinchDistance=null;
       if(pointers.size===0) drag=null;

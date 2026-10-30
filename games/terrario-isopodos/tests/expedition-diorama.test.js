@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
 import {buildExpeditionMapDiorama,buildExpeditionLevelDiorama} from "../src/expedition/diorama.js";
+import {createDioramaKit,DIORAMA_BIOMES} from "../src/diorama-kit.js";
 import {EXPEDITION_NODES,EXPEDITION_EVENT_TYPES} from "../src/expedition/content.js";
 
 function collect(group,property){
@@ -10,33 +11,51 @@ function collect(group,property){
   return values;
 }
 
-test("el mapa procedural construye cinco lugares físicos seleccionables y conserva el grafo",()=>{
+test("el kit compartido expone piezas configurables y biomas reutilizables",()=>{
+  assert.ok(DIORAMA_BIOMES["woodland-map"]);
+  assert.ok(DIORAMA_BIOMES["mossy-stone"]);
+  const kit=createDioramaKit({shape:"esferico",radius:1.48,seed:42,paletteOverrides:{rock:0x123456}});
+  const scene=new THREE.Group();
+  kit.addAsset(scene,"rock-scatter",{density:.28,position:[.4,0,-.2],groundY:.078,scale:.7});
+  kit.addAsset(scene,"fallen-fruit",{position:[-.3,0,.2],groundY:.078,size:.38});
+  const biome=kit.addBiome(scene,"rotting-log",{groundY:.078,scale:.9});
+  assert.equal(biome.userData.dioramaBiome,"rotting-log");
+  assert.equal(kit.materials.rock.color.getHex(),0x123456);
+  assert.ok(collect(scene,"dioramaAsset").includes("fallen-fruit"));
+  assert.throws(()=>kit.addAsset(scene,"missing"),/Asset de diorama desconocido/);
+  assert.throws(()=>kit.addBiome(scene,"missing"),/Bioma de diorama desconocido/);
+});
+
+test("el mapa de expedición contiene cinco nodos seleccionables y biomas del kit",()=>{
   const scene=buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,currentNodeId:"garden-entry",visitedNodes:["garden-entry"],seed:7821});
   const ids=[...new Set(collect(scene,"expeditionNodeId"))].sort();
   assert.deepEqual(ids,Object.keys(EXPEDITION_NODES).sort());
   assert.equal(scene.userData.expeditionScene,"map");
+  assert.equal(scene.userData.biomeId,"woodland-map");
   assert.equal(Object.keys(scene.userData.mapPositions).length,5);
-  assert.ok(scene.children.length>20,"el mapa debe contener terreno, senderos y elementos naturales");
+  assert.ok(collect(scene,"dioramaBiome").length>=6);
+  let meshes=0;scene.traverse(object=>{if(object.isMesh||object.isInstancedMesh)meshes++;});
+  assert.ok(meshes>45,"la escena debe contener vegetación y nodos 3D");
 });
 
-test("la distribución del mapa se reproduce con la misma semilla y varía con otra",()=>{
+test("la distribución del mapa es determinista por semilla y cambia con otra",()=>{
   const build=seed=>buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,seed});
   const a=build(1234),b=build(1234),c=build(9876);
   assert.deepEqual(a.userData.mapPositions,b.userData.mapPositions);
   assert.notDeepEqual(a.userData.mapPositions,c.userData.mapPositions);
 });
 
-test("cada familia de encuentro monta un diorama y un hotspot real por opción",()=>{
+test("los biomas de nivel y las familias de encuentro crean hotspots por opción",()=>{
   const nodeByType={web:"rotting-log",fruit:"rotten-fruit",mites:"mossy-stone",dew:"garden-entry",compost:"compost-bin"};
   for(const [type,template] of Object.entries(EXPEDITION_EVENT_TYPES)){
-    const event={type,nodeId:nodeByType[type],options:template.options};
-    const scene=buildExpeditionLevelDiorama(THREE,{nodeId:event.nodeId,event,seed:91});
+    const nodeId=nodeByType[type],event={type,nodeId,options:template.options};
+    const scene=buildExpeditionLevelDiorama(THREE,{nodeId,event,seed:91});
     const targets=scene.children.filter(child=>typeof child.userData?.expeditionChoiceId==="string");
     assert.equal(scene.userData.expeditionScene,"level");
     assert.equal(scene.userData.eventType,type);
+    assert.equal(scene.userData.biomeId,nodeId);
     assert.deepEqual(targets.map(target=>target.userData.expeditionChoiceId),template.options.map(option=>option.id));
-    const colliders=[];
-    scene.traverse(object=>{if(object.userData?.expeditionChoiceId)colliders.push(object);});
-    assert.ok(colliders.length>=template.options.length*2,"cada interacción requiere grupo visible y volumen seleccionable");
+    const colliders=collect(scene,"expeditionChoiceId");
+    assert.ok(colliders.length>=template.options.length*2);
   }
 });
