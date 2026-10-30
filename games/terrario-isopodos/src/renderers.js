@@ -414,6 +414,7 @@ function updateIsopodRig(object,phase,moving,curled){
 export class TerrariumRenderer {
   constructor(el,state){
     this.interpolationAlpha=1;
+    this.motionQuery=window.matchMedia?.("(prefers-reduced-motion: reduce)")??null;
     this.el=el;
     this.state=state;
     this.scene=new T.Scene();
@@ -655,6 +656,9 @@ export class TerrariumRenderer {
   }
 
   updateWeather(time){
+    const motionAllowed=this.state.running&&!this.motionQuery?.matches;
+    this.renderer.domElement.dataset.weatherMotion=motionAllowed?"running":"static";
+    if(!motionAllowed)return;
     if(this.weather==="mist"){
       for(const cloud of this.weatherGroup.children){
         cloud.position.x=cloud.userData.baseX+Math.sin(time*.18+cloud.userData.phase)*.12;
