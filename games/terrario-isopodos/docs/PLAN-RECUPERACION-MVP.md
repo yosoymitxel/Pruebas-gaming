@@ -173,3 +173,41 @@ La especificación de diseño está implementada en el dominio y conectada a una
 | INTEGRATION_GATE | PENDIENTE | Save/load, render modes y flujos previos sin regresión |
 
 No integrar a `main` hasta que las cuatro puertas aplicables estén verificadas en el mismo SHA.
+
+
+## Seguimiento de implementación visual y expediciones — 30-10-2026
+
+**Integración periódica:** PR #18, `feat(terrario): add turn-based expeditions`, fusionada mediante squash en `main`. SHA integrado: `c09945d6e5e683e96eb9a96655ee748a8b009d89`. La rama de trabajo única `feat/isopod-render-spike` quedó sincronizada al mismo SHA.
+
+**Validación del SHA de trabajo previo al squash:** Terrario MVP checks [41071083299](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071083299) — PASS; Framework checks [41071094067](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071094067) — PASS; Terrario game checks [41071094062](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071094062) terminó PASS tras el merge. El artefacto de navegador [12985955331](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071083299/artifacts/12985955331) contiene capturas desktop y móvil, mapa de expedición 360×640/390×844/1440×1000 y liquidación; su evidence.json liga el resultado al SHA `463cf765daf8cada5b84d3009b6e7f2cf3637662`.
+
+### Estado de requisitos visuales solicitados
+
+| Requisito | Estado actual | Evidencia / siguiente prueba |
+|---|---|---|
+| Refugios con tamaño legible y animales encima | Implementado: refugio de 0.88 de longitud, offset de posado y refugio de corteza | Captura Diorama 1440×1000; añadir test que valide la regla de posado según distancia |
+| Mover isópodos, alimento y refugios con Mano | Hand tool y callbacks conectados a `moveIsopod`/`moveResource`; al tocar un isópodo se activa defensa | Añadidos tests unitarios de posiciones/limites/persistencia en el lote siguiente; falta smoke de drag con puntero sobre el mesh real |
+| Evitar accesos duplicados a tienda/alimento/refugios | Herramientas de colocación en barra inferior; tienda separada | Verificado por estructura/captura y smoke de compra/colocación |
+| Rail de cámara plegable | Implementado | Playwright comprueba expandir/plegar y zoom táctil |
+| Mano/hojarasca/refugio como herramientas | Implementado | Playwright comprueba activación y colocación; test de arrastre pendiente |
+| Cabecera y pausa flotante | Pausa flotante implementada; cabecera mantiene barra superior compacta | Captura pausa flotante; refinamiento visual no bloqueante |
+| Microclima sin formulario duplicado | Implementado: lectura única, medidor y stepper con límites | Captura mobile-controls y Playwright comprueba bajar humedad a 40% |
+| Clima procedural | Lluvia y bruma con objetos animados | Playwright: lluvia, bruma, quitar clima y restauración desde save |
+| Pantalla completa | Acciones conectadas a configuración y menú de pausa | Verificar cambio real de Fullscreen API en browser en una prueba dedicada |
+| Jerarquía menú/ajustes/pausa | Implementada | Playwright comprueba foco, Escape, ayuda y pausa |
+| Once variantes de carga temáticas | Implementadas; selector de 11 motivos y animación de loader | Smoke comprueba una variante por ejecución; rotación visual de las once no es aún una aserción exhaustiva |
+
+### Estado de expediciones
+
+La pantalla de preparación, el grafo de cinco nodos, los encuentros de decisión, inventario, tres mejoras, liquidación y restauración de run activa están conectados a `src/expedition/ui.js`. Se conserva el mismo canvas/renderer, con test de identidad antes/después de pasar por mapa y volver. El dominio no ejecuta pasos ecológicos por acción de mapa; la jornada ecológica se procesa al regresar. Tests unitarios, build y recorrido de browser del MVP están en PASS para el SHA probado.
+
+### Despliegue Pages
+
+Para el commit integrado `c09945d6e5e683e96eb9a96655ee748a8b009d89`, el build de Pages terminó PASS, pero el job Deploy devolvió HTTP 500 al crear la deployment: el log de [run 41071640149](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071640149) indica explícitamente error de servidor de GitHub Pages. No apunta a fallo de compilación ni a permisos insuficientes (el job tenía `pages: write`). El workflow alternativo [41071639490](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41071639490) sigue ejecutándose; no declarar el sitio publicado hasta verificar el deployment y la URL.
+
+### Puertas pendientes
+
+- CODE_GATE: tests/build/análisis del SHA squash aprobados por CI; se refuerza ahora cobertura de interacción directa.
+- GAMEPLAY_GATE: recorrido de expedición validado; drag sobre meshes y casos de borde quedan por demostrar en navegador.
+- DESIGN_GATE: capturas reales actuales del SHA pre-squash; la siguiente ejecución sobre `main` debe volver a producir evidencia tras los cambios nuevos.
+- INTEGRATION_GATE: no se observó pérdida del renderer en la expedición; deployment Pages pendiente del servicio.
