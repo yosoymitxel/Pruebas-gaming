@@ -76,7 +76,7 @@ test("la base es un suelo orgánico con relieve y estratos, no un disco plano",(
   kit.dispose();
 });
 
-test("el mapa de expedición tiene cinco lugares físicos sobre un suelo continuo",()=>{
+test("el mapa de expedición tiene ocho lugares físicos sobre un suelo continuo",()=>{
   const scene=buildExpeditionMapDiorama(THREE,{
     nodes:EXPEDITION_NODES,currentNodeId:"garden-entry",visitedNodes:["garden-entry"],seed:7821
   });
@@ -85,11 +85,11 @@ test("el mapa de expedición tiene cinco lugares físicos sobre un suelo continu
   assert.equal(scene.userData.expeditionScene,"map");
   assert.equal(scene.userData.biomeId,"woodland-map");
   assert.equal(scene.userData.surfaceType,"organic-soil-cutaway");
-  assert.equal(scene.userData.landmarkCount,5);
-  assert.equal(Object.keys(scene.userData.mapPositions).length,5);
-  assert.ok(collect(scene,"dioramaBiome").length>=6);
+  assert.equal(scene.userData.landmarkCount,8);
+  assert.equal(Object.keys(scene.userData.mapPositions).length,8);
+  assert.ok(collect(scene,"dioramaBiome").length>=9);
   const landmarks=scene.children.filter(child=>typeof child.userData?.expeditionNodeId==="string");
-  assert.equal(landmarks.length,5,"cada lugar se integra como landmark en el mismo terreno");
+  assert.equal(landmarks.length,8,"cada lugar se integra como landmark en el mismo terreno");
   const groundcover=scene.getObjectByName("expedition-groundcover");
   const leafLitter=scene.getObjectByName("expedition-leaf-litter");
   assert.ok(groundcover?.isInstancedMesh&&groundcover.count>=250);
@@ -109,6 +109,26 @@ test("el mapa de expedición tiene cinco lugares físicos sobre un suelo continu
   assert.ok(meshes>45);
 });
 
+test("los tres destinos avanzados conservan una barrera física hasta descubrir el acceso",()=>{
+  const unlockedNodeIds=Object.values(EXPEDITION_NODES)
+    .filter(node=>!node.unlockDiscovery)
+    .map(node=>node.id);
+  const scene=buildExpeditionMapDiorama(THREE,{
+    nodes:EXPEDITION_NODES,currentNodeId:"garden-entry",visitedNodes:["garden-entry"],
+    unlockedNodeIds,seed:7822
+  });
+  assert.equal(scene.userData.landmarkCount,8);
+  assert.equal(scene.userData.lockedNodeCount,3);
+  assert.deepEqual([...scene.userData.lockedNodeIds].sort(),["compost-bin","mite-nest","web-zone"]);
+  const lockedLandmarks=[];
+  const gates=[];
+  scene.traverse(object=>{
+    if(object.userData?.isLocked)lockedLandmarks.push(object.userData.expeditionNodeId);
+    if(object.name==="expedition-locked-root-gate")gates.push(object);
+  });
+  assert.deepEqual(lockedLandmarks.sort(),["compost-bin","mite-nest","web-zone"]);
+  assert.equal(gates.length,3,"cada destino cerrado muestra una barrera 3D en el terreno");
+});
 test("la selección previa no se confunde con la posición actual",()=>{
   const scene=buildExpeditionMapDiorama(THREE,{
     nodes:EXPEDITION_NODES,currentNodeId:null,previewNodeId:"rotten-fruit",seed:7821
@@ -127,7 +147,7 @@ test("la distribución del mapa es determinista por semilla y cambia con otra",(
 });
 
 test("los encuentros muestran el actor y usan objetos físicos para cada opción",()=>{
-  const nodeByType={web:"rotting-log",fruit:"rotten-fruit",mites:"mossy-stone",dew:"garden-entry",compost:"compost-bin"};
+  const nodeByType={web:"rotting-log",fruit:"rotten-fruit",mites:"mossy-stone",dew:"garden-entry",compost:"compost-bin",roots:"abandoned-pot"};
   for(const [type,template] of Object.entries(EXPEDITION_EVENT_TYPES)){
     const nodeId=nodeByType[type],event={type,nodeId,options:template.options};
     const scene=buildExpeditionLevelDiorama(THREE,{
