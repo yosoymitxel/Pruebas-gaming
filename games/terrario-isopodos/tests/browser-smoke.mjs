@@ -65,7 +65,7 @@ try{
   if(await cameraCanvas.getAttribute("data-container-shape")!=="cilindrico"||await cameraCanvas.getAttribute("data-container-wall-count")!=="1")throw new Error("El terrario cilíndrico no construyó sus paredes verticales");
  const terrainRelief=Number(await cameraCanvas.getAttribute("data-terrain-relief"));
  if(!(terrainRelief>=0.12))throw new Error(`El relieve del microbosque es insuficiente: ${terrainRelief}`);
- if(await cameraCanvas.getAttribute("data-art-version")!=="woodland-diorama-v3")throw new Error("No se montó el nuevo kit de ecosistema");
+ if(await cameraCanvas.getAttribute("data-art-version")!=="woodland-diorama-v4")throw new Error("No se montó el nuevo kit de ecosistema");
  if(await cameraCanvas.getAttribute("data-terrain-layer-count")!=="3")throw new Error("El sustrato no expone sus tres estratos");
  if(Number(await cameraCanvas.getAttribute("data-leaf-count"))<150)throw new Error("Falta hojarasca individual instanciada");
  if(Number(await cameraCanvas.getAttribute("data-fern-leaves"))<300)throw new Error("No se generaron frondas suficientes en el diorama");
@@ -195,6 +195,8 @@ try{
  await page.locator('[data-setup-shape="esferico"]').click();
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
+ await page.waitForTimeout(450);
+ if(Number(await page.locator("#scene canvas").getAttribute("data-render-calls"))>150)throw new Error("Diorama esférico excede 150 draw calls en móvil");
  const orb=page.locator("#scene canvas");
  if(await orb.getAttribute("data-container-shape")!=="esferico"||await orb.getAttribute("data-container-kind")!=="spherical-globe")throw new Error("No se creó el globo esférico real");
  const orbDistance=Number(await orb.getAttribute("data-camera-distance")),orbFit=Number(await orb.getAttribute("data-camera-fit-distance"));
