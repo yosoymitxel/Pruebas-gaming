@@ -60,7 +60,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | En progreso · pendiente Playwright actualizado |
 | 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente Playwright actualizado |
 | 3 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
-| 4 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | Pendiente |
+| 4 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | En progreso · pendiente CI |
 | 5 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | Pendiente |
 | 6 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 7 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
@@ -91,11 +91,11 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Probar contadores iniciales, compra, colocación, saldo insuficiente y restauración en Playwright/CI.
 
 ### INPUT-01 — Cámara y Mano
-- [ ] Agregar icono Cámara antes de Mano.
-- [ ] Cámara: arrastrar fondo para orbitar; zoom/pinch independiente; no mover entidades.
-- [ ] Mano: toque selecciona, gesto posterior mueve; no disparar drag con el primer toque.
-- [ ] Colocación se activa solo con un artículo del inventario.
-- [ ] Mouse/touch no deben competir por el mismo pointer; cambio de pantalla limpia gestos.
+- [x] Agregar herramienta Cámara antes de Mano, con Cámara como estado inicial explícito.
+- [x] Cámara: arrastrar fondo orbita; zoom/pinch permanece; no hace picking ni mueve entidades.
+- [x] Mano: solo interactúa con objetivos; arrastrar el fondo no rota la cámara.
+- [ ] Selección en primer toque y gesto posterior de movimiento corresponde a INPUT-02.
+- [ ] Verificar eventos mouse/touch, cambio de pantalla, Playwright y capturas en CI.
 
 ### INPUT-02 — Selección y contorno
 - [ ] Usar picking 3D sobre la malla real y respetar profundidad.

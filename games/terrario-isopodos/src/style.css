@@ -1639,3 +1639,5 @@ footer{display:none}
 .action-tools button.active small.placed-count{color:#43543c}
 .action-tools button.active small.placed-count b{color:#233622}
 @media(max-width:760px){.action-tools button>span{line-height:1.12}}
+
+.action-tools #tool-camera svg{width:20px;height:20px}

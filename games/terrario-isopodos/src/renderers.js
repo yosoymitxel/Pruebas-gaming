@@ -465,7 +465,7 @@ export class TerrariumRenderer {
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life,this.weatherGroup);
     this.scene.add(this.world,this.expeditionGroup);
-    this.tool="hand";
+    this.tool="camera";
     this.onInteractionStart=null;
     this.onInteractionMove=null;
     this.onInteractionEnd=null;
@@ -570,7 +570,8 @@ export class TerrariumRenderer {
         e.preventDefault();
         return;
       }
-      if(this.tool==="hand"&&!e.shiftKey){
+      if(this.tool==="hand"){
+        if(e.shiftKey)return;
         const entityId=entityAt(e);
         const point=projectGround(e);
         const resourceId=entityId?null:resourceAt(point);
@@ -579,9 +580,10 @@ export class TerrariumRenderer {
           c.setPointerCapture?.(e.pointerId);
           if(entityId)this.onInteractionStart?.(interaction);
           e.preventDefault();
-          return;
         }
+        return;
       }
+      if(this.tool!=="camera")return;
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
       if(pointers.size===1){
         drag={x:e.clientX,y:e.clientY,id:e.pointerId};
@@ -758,7 +760,7 @@ export class TerrariumRenderer {
   }
 
   setTool(tool){
-    if(!new Set(["hand","leaf-litter","shelter"]).has(tool))throw new Error("Herramienta desconocida: "+tool);
+    if(!new Set(["camera","hand","leaf-litter","shelter"]).has(tool))throw new Error("Herramienta desconocida: "+tool);
     this.tool=tool;
     this.renderer.domElement.dataset.activeTool=tool;
   }
@@ -882,6 +884,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);
     this.renderer.domElement.dataset.cameraFitDistance=this.fitDistance().toFixed(2);
     this.renderer.domElement.dataset.cameraElevation=this.elevation.toFixed(2);
+    this.renderer.domElement.dataset.cameraAngle=this.angle.toFixed(4);
     this.renderer.domElement.dataset.fogNear=this.scene.fog.near.toFixed(2);
     this.renderer.domElement.dataset.fogFar=this.scene.fog.far.toFixed(2);
   }

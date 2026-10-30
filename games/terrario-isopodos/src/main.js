@@ -92,7 +92,7 @@ async function enterGame(){
   renderer.setMode(state.presentation.mode);
   renderer.setQuality(settings.quality);
   renderer.setWeather(state.habitat.weather??"clear");
-  activateTool("hand");
+  activateTool("camera");
   await nextFrame();
   setLoadingStage("Despertando a los isópodos…");
   menu.hidden=true;setup.hidden=true;modal.hidden=true;modal.classList.remove("is-pause");
