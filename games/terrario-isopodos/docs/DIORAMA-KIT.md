@@ -8,6 +8,7 @@
 
 - `createBase(radius, options)`: suelo orgánico con relieve procedural, corte lateral de estratos y soporte delgado. El mesh principal se identifica como `organic-diorama-surface`; la cara de tierra expuesta, como `soil-strata-cutaway`.
 - `surfaceHeightAt(x, z)`: altura del terreno para colocar senderos, recursos, hotspots y actores sin que floten ni se entierren.
+- `surfaceOffset`: plano base Y de la superficie. Por defecto es `.078` para los cortes de suelo de expedición; el terrario principal usa `.19`, que coincide con el piso del hábitat.
 - `addAsset(parent, type, options)`: inserta una pieza y **siempre devuelve un `THREE.Group`** propietario de sus geometrías. No importa si internamente genera instancias, mallas o varios objetos.
 - `addBiome(parent, id, options)`: compone un conjunto declarativo de piezas físicas y devuelve un grupo de composición.
 
@@ -37,6 +38,7 @@ const kit = createDioramaKit({
   shape: "esferico",
   radius: 2.75,
   seed: 20261030,
+  surfaceOffset: 0.078,
   paletteOverrides: { moss: 0x6f8b53, rock: 0x899184 }
 });
 
@@ -58,6 +60,7 @@ kit.addBiome(scene, "rotting-log", {
 
 - `seed`: distribución reproducible de instancias y variaciones.
 - `shape` y `radius`: límites del terreno y altura procedural.
+- `surfaceOffset`: plano vertical base. Mantener `.078` en mapas/niveles de expedición y usar `.19` al renderizar recursos sobre el piso del terrario; no compensar ese desfase con offsets por asset.
 - `position`: desplazamiento local `[x, y, z]`.
 - `groundY`: altura real de superficie bajo el asset; debe proceder de `surfaceHeightAt` o de la geometría activa del hábitat.
 - `scale`: escala uniforme del asset o del perfil.
