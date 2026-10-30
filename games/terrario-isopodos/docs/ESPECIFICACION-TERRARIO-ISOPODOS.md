@@ -1,8 +1,8 @@
 # Especificación técnica — Terrario sandbox de isópodos
 
-**Estado:** especificación normativa del juego; la implementación inicial está en progreso y sus criterios siguen vigentes.  
+**Estado:** especificación normativa y criterios vigentes del juego. La vertical inicial ya está implementada; el estado real y las brechas pendientes se registran en [PLAN-RECUPERACION-MVP.md](PLAN-RECUPERACION-MVP.md). El MVP completo continúa NO APROBADO.  
 **Juego:** `games/terrario-isopodos/`  
-**Alcance de esta fase:** diseño, contratos y criterios de aceptación. No implementar todavía el runtime hasta validar el spike técnico.
+**Alcance:** contrato del producto y criterios de aceptación; no confundir decisiones previstas con funciones ya implementadas.
 
 ## 1. Visión y límites
 
@@ -266,8 +266,10 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 
 ## 12. Plan de ejecución por fases
 
-1. **Cerrar especificación y riesgos:** aprobar este documento; confirmar que no se necesita backend ni más especies para el MVP.
-2. **Spike técnico de render:** prototipo desechable fuera de `games/` o rama técnica aislada para verificar Three.js, sprite voxelizado en escena 3D, cámara orbital y formas de recipiente. No construir gameplay completo durante este spike.
+> Esta secuencia conserva las dependencias del diseño original. El estado actual de implementación y las pruebas aceptadas están en [PLAN-RECUPERACION-MVP.md](PLAN-RECUPERACION-MVP.md). La política del repositorio es una sola rama larga por juego: los experimentos, correcciones, pruebas y documentación se realizan dentro de la rama activa, sin abrir ramas `spike/*`, `fix/*` o `validation/*` paralelas.
+
+1. **Cerrar especificación y riesgos:** mantener decisiones de producto y excepciones explícitas; no convertir los criterios pendientes en requisitos supuestamente cumplidos.
+2. **Spike técnico de render:** Three.js, sprites voxelizados en escena 3D, cámara orbital y formas de recipiente se validan dentro de la misma rama activa del juego. Los experimentos temporales pueden aislarse por carpeta o fixture, no por una rama paralela.
 3. **Modelo de dominio y reloj:** entidades, RNG, comandos, reglas, pruebas deterministas y límites.
 4. **Persistencia:** esquema, validación, migración y pruebas de recuperación.
 5. **Renderer Diorama:** recipiente, entorno, modelos provisionales licenciados/propios y selección.
@@ -275,7 +277,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 7. **HUD, menús, ajustes e input:** responsive, accesibilidad y controles de velocidad.
 8. **Biología MVP y descubrimientos:** comportamientos mínimos y pruebas de límites.
 9. **Integración y pulido:** profiling, QA independiente, capturas actuales, build y reporte.
-10. **Implementar dentro de `games/terrario-isopodos/`** solo después de que el diseño quede cerrado y el spike confirme el riesgo técnico principal.
+10. **Mantener la implementación dentro de `games/terrario-isopodos/`**. Los cambios de código, pruebas y documentación se trabajan en la única rama activa del juego y se integran a `main` mediante un commit lógico revisado.
 
 ## 13. Riesgos abiertos y reglas de bloqueo
 
@@ -286,4 +288,4 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 - **Rendimiento:** fijar dispositivos de referencia antes de prometer FPS o un máximo de animales.
 - **Persistencia local:** explicar que los datos son propios de ese navegador/perfil y pueden perderse si se borran sus datos.
 - **No se bloquea por audio ni por multijugador:** no son requisitos del MVP.
-- **No se inicia el juego completo** si el spike no demuestra cambio de renderer sin pérdida de estado, o si no existe un plan viable para sprites voxelizados móviles.
+- **No se declara completo el MVP** mientras el cambio de renderer, la estabilidad de estado o los sprites voxelizados móviles no cumplan los criterios verificables correspondientes. Las brechas están enumeradas en el plan de recuperación.

@@ -2,8 +2,10 @@
 
 **Auditoría normativa:** `framework/BASELINE-VIDEOJUEGO.md` y `framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md`.  
 **Producto:** [Especificación técnica](ESPECIFICACION-TERRARIO-ISOPODOS.md).  
-**Base de auditoría:** `main` en `6590ff5ffc7f892962d17f389015cde0ba6eacd2` (29-10-2026), contrastada con el código de esta rama.  
-**Estado general:** vertical jugable; **MVP completo no aprobado**. No confundir código presente con criterio de aceptación demostrado.
+**Base de auditoría:** `main` en `6590ff5ffc7f892962d17f389015cde0ba6eacd2` (29-10-2026), contrastada con el código de la rama activa.  
+**Integración actual:** PR #14 se fusionó mediante squash en `main` como `7bf5ff65521b4581126367c0190226f2115a0e9e`; las correcciones documentales posteriores se mantienen en la única rama activa `feat/isopod-render-spike`.  
+**Validación de PR #14:** Framework checks [40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450) y Terrario checks [40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742) terminaron correctamente. Playwright registró el merge ref `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75`; su evidencia está en el [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). No se ha verificado todavía el deployment de Pages del SHA integrado.  
+**Estado general:** vertical jugable; **MVP completo NO APROBADO**. No confundir código presente con criterio de aceptación demostrado.
 
 ## Tabla de verdad obligatoria del esqueleto
 
@@ -30,7 +32,7 @@ La columna «Decisión» utiliza los estados del framework. «Estado de implemen
 | Accesibilidad | INCLUIR | Parcial | Diálogos tienen foco/retorno y la CSS respeta reduced-motion, pero la rotación automática del renderer aún no consulta esa preferencia. Revisar foco visible, contraste, teclado y estados activos. |
 | Errores y diagnóstico | INCLUIR | Parcial | Guardado/carga informan errores; no está resuelta la pérdida o indisponibilidad de contexto WebGL con una salida recuperable. Añadir prueba de fallo de contexto o registrar bloqueo técnico si no puede simularse en CI. |
 | Build y publicación estática | INCLUIR | Build pasa en revisiones probadas; reproducción de dependencias pendiente | Vite genera build con rutas relativas; falta lockfile versionado y `npm ci`. Confirmar Pages sobre el SHA exacto tras merge. |
-| QA y evidencia visual | INCLUIR | PASS para la corrección de esta revisión | Tests Node, build y Playwright pasan en [run 40979376927](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979376927); evidencia actual [artefacto](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979376927/artifacts/12944127529) inspeccionada. Integration gate post-merge/deployment aún pendiente. |
+| QA y evidencia visual | INCLUIR | PASS para el alcance de PR #14 | Tests Node, build y smoke Playwright pasaron en [run 40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742); framework checks en [run 40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450). La evidencia trazable está en [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). El deployment post-merge sigue pendiente de verificación. |
 
 ## Lo que ya existe
 
@@ -45,12 +47,13 @@ La columna «Decisión» utiliza los estados del framework. «Estado de implemen
 
 | Prioridad | Sistema | Estado | Acción requerida |
 |---|---|---|---|
-| P0 | Continuar con partida corrupta | Corregido en código; tests unitarios pasan en ejecuciones previas, falta confirmar CI del HEAD más nuevo | `hasValidTerrariumSave()` valida con el parser antes de habilitar Continuar. Mantener prueba de JSON corrupto y versión futura en Node y navegador. |
-| P0 | Screenshot timeout en Diorama | RESUELTO y validado | Las ejecuciones iniciales agotaron 30 s al capturar después de cambiar de Voxel a Diorama. Se quitó `transmission` y se usa sombreado estándar transparente. La ejecución actual termina el smoke completo y se inspeccionaron nuevas capturas reales: [run 40979376927](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979376927). |
+| P0 | Continuar con partida corrupta | Corregido y validado en tests Node y smoke Playwright de PR #14 | `hasValidTerrariumSave()` valida con el parser antes de habilitar Continuar. Las pruebas cubren almacenamiento vacío, JSON corrupto, guardado válido y esquema futuro; el navegador confirma que una partida nueva sigue disponible. |
+| P0 | Screenshot timeout en Diorama | RESUELTO y validado | Las ejecuciones iniciales agotaron 30 s al capturar después de cambiar de Voxel a Diorama. Se quitó `transmission` y se usa sombreado estándar transparente. La ejecución actual termina el smoke completo y se inspeccionaron capturas reales de Diorama y Voxel en escritorio y del recipiente rectangular en móvil: [run 40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742), [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). |
 | P0 | Paredes de vidrio | Implementadas y validadas visualmente | El renderer dibuja paredes y bordes en ambas formas. El panel inferior está debajo del sustrato; las paredes rectangulares usan opacidad menor para no velar el hábitat. El artefacto móvil actual muestra el recipiente completo. |
 | P0 | Límites compartidos | Implementados y probados | `src/habitat.js` centraliza dimensiones y `constrainToHabitat`; simulación y compra de recursos lo usan. Tests de dominio comprueban límites rectangular y circular; el browser verifica distancia de cámara mínima. |
 | P0 | Dependencias reproducibles | Pendiente | Generar `package-lock.json` con npm/Node compatibles, revisarlo y pasar CI a `npm ci`; no inventar el lockfile. |
-| P0 | Cámara / niebla | Implementado y validado en móvil | La cámara calcula el fit mínimo por forma/aspecto; `scene.fog.near/far` escalan con la distancia para que un encuadre más lejano no lave el modelo contra el fondo. El smoke comprueba el fit y el rango de niebla para ambas formas. |\n| P0 | Ajustes / estado autoritativo | Parcial | Separar claramente preferencias persistentes de la sesión y del dominio; dejar de mutar estado de partida desde UI fuera de comandos/funciones validadas. |
+| P0 | Cámara / niebla | Implementado y validado en móvil | La cámara calcula el fit mínimo por forma/aspecto; `scene.fog.near/far` escalan con la distancia para que un encuadre más lejano no lave el modelo contra el fondo. El smoke comprueba el fit y el rango de niebla para ambas formas. |
+| P0 | Ajustes / estado autoritativo | Parcial | Separar claramente preferencias persistentes de la sesión y del dominio; dejar de mutar estado de partida desde UI fuera de comandos/funciones validadas. |
 | P1 | Población y dimensiones iniciales | Ausente en configuración | Permitir configurar cantidad y dimensiones/tamaño, con límites validados y pruebas de colisiones/IDs. |
 | P1 | Selección y ficha de isópodo | Ausente | Selección por ID estable; mostrar especie, necesidades, conducta y ciclo vital derivados del modelo, consistente entre renderers. |
 | P1 | Reproducción / ciclo vital | Incompleto | Hay mortalidad simplificada, pero no nacimiento/reproducción ni eventos de ciclo vital coherentes. Separar reglas de renderer y fijar parámetros como lúdicos. |
@@ -62,7 +65,7 @@ La columna «Decisión» utiliza los estados del framework. «Estado de implemen
 | P1 | Recuperación WebGL | Ausente/no demostrada | Mostrar error recuperable si no se crea o se pierde el contexto. |
 | P2 | Movimiento reducido | Parcial | CSS reduce transiciones, pero giro automático de cámara debe respetar `prefers-reduced-motion`. |
 | P2 | Recursos no renderizados | Parcial | Verificar que cada tipo comprado tenga geometría adecuada, límites de colocación y roundtrip de guardado/carga. |
-| P2 | Documentación | En corrección | Mantener `README.md`, `DECISION-RENDER.md`, `SPIKE-RENDER.md` y este informe alineados con el código y SHA reales. |
+| P2 | Documentación | Esta sincronización corrige los estados de CI, merge, ramas y brechas del esqueleto | Mantener `README.md`, `DECISION-RENDER.md`, `SPIKE-RENDER.md` y este informe alineados con el código, evidencia y SHA reales. |
 
 ## Correcciones añadidas en esta rama
 
@@ -78,10 +81,10 @@ La columna «Decisión» utiliza los estados del framework. «Estado de implemen
 
 | Puerta | Estado actual | Evidencia |
 |---|---|---|
-| CODE_GATE | PASS para la revisión probada | Tests Node y build pasan en la revisión actual; lockfile sigue pendiente como brecha de reproducibilidad. |
-| GAMEPLAY_GATE | PASS para el alcance de smoke | Flujo de menú, modos, pausa, recursos y persistencia pasa en Playwright. Los sistemas ausentes del esqueleto siguen pendientes. |
-| DESIGN_GATE | PASS para la corrección de render | Capturas reales nuevas inspeccionadas: Diorama/Voxel y mobile; recipiente rectangular visible y completo, sin overflow ni errores de consola. |
-| INTEGRATION_GATE | PENDIENTE | Faltan commit final único, merge, workflows post-merge y deployment de Pages confirmado para el SHA integrado. |
+| CODE_GATE | PASS para el alcance validado de PR #14 | Tests Node y build de producción pasaron en [run 40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742); framework checks en [run 40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450). La instalación estricta sigue pendiente por falta de lockfile. |
+| GAMEPLAY_GATE | PASS para el alcance del smoke | Menú, setup, renderer, pausa, recursos, guardado/recarga y controles móviles pasan en Playwright. Esto no certifica los sistemas ausentes del esqueleto. |
+| DESIGN_GATE | PASS para la corrección visual probada | Se inspeccionaron capturas actuales del artefacto 12944302939: Diorama y Voxel en escritorio y recipiente rectangular en móvil. El smoke no registró overflow ni errores de consola. |
+| INTEGRATION_GATE | PENDIENTE SOLO PARA PUBLICACIÓN | PR #14 está fusionada; `main` recibió el commit `7bf5ff65521b4581126367c0190226f2115a0e9e`. Ambos workflows de PR pasaron. Falta verificar que GitHub Pages publicó ese SHA. |
 
 ## Orden de recuperación
 

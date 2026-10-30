@@ -1,6 +1,6 @@
 # Decisión de render: diorama web + representación voxelizada
 
-**Fecha de revisión:** 2026-10-29. **Estado:** renderer integrado; validación de rendimiento pendiente de la última corrección.
+**Fecha de revisión:** 2026-10-29. **Estado:** renderer integrado; tests, build y smoke Playwright aprobaron el alcance de PR #14. Perfilado en dispositivos físicos y pipeline de atlas Voxel siguen pendientes.
 
 ## Referencias consultadas
 
@@ -24,6 +24,6 @@ No se agrega una librería de runtime, postprocesado ni assets externos por defe
 
 ## Estado de validación
 
-En la revisión actual, tests unitarios, build y smoke de Playwright pasan: [run 40979376927](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979376927). Se revisaron capturas reales nuevas en escritorio y móvil; ambas formas caben en el viewport y el rectángulo ya no queda lavado por la niebla. Se conserva como pendiente el uso de atlas/spritesheets versionados para Voxel.
+En PR #14, tests unitarios, build y smoke de Playwright pasaron: [run 40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742); los checks del framework pasaron en [run 40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450). Las capturas reales están en el [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). El manifiesto identifica el merge ref sintético `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75`; PR #14 fue fusionada después por squash en `7bf5ff65521b4581126367c0190226f2115a0e9e`. La publicación de Pages para ese SHA no se da por comprobada. Se conserva como pendiente el uso de atlas/spritesheets versionados para Voxel.
 
 El inventario de sistemas pendientes y las cuatro puertas de calidad se mantienen en [PLAN-RECUPERACION-MVP.md](PLAN-RECUPERACION-MVP.md) y [QUALITY-REPORT.md](QUALITY-REPORT.md).
