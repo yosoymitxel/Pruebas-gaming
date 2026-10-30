@@ -1,15 +1,36 @@
-import { spawn } from "node:child_process";
-import { setTimeout as delay } from "node:timers/promises";
-import { mkdir, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import { extname, resolve, sep } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const port=4173,url=`http://127.0.0.1:${port}/`;
-const server=spawn("npx",["vite","--host","127.0.0.1","--port",String(port),"--strictPort"],{stdio:"ignore"});
+const port=4173;
+const requestedBasePath=process.env.TERRARIO_TEST_BASE_PATH||"/Pruebas-gaming/games/terrario-isopodos/";
+const basePrefix=`/${requestedBasePath.split("/").filter(Boolean).join("/")}/`;
+const url=`http://127.0.0.1:${port}${basePrefix}`;
+const distRoot=resolve("dist");
+const mimeTypes={".css":"text/css; charset=utf-8",".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".json":"application/json; charset=utf-8",".svg":"image/svg+xml",".png":"image/png",".webp":"image/webp",".woff2":"font/woff2"};
+const server=createServer(async(req,res)=>{
+ try{
+  const pathname=decodeURIComponent(new URL(req.url,url).pathname);
+  if(!pathname.startsWith(basePrefix)){res.writeHead(404);res.end("Not found");return;}
+  const relative=pathname.slice(basePrefix.length);
+  let filePath=resolve(distRoot,relative||"index.html");
+  if(filePath!==distRoot&&!filePath.startsWith(`${distRoot}${sep}`)){res.writeHead(403);res.end("Forbidden");return;}
+  let body;
+  try{body=await readFile(filePath);}
+  catch(error){
+   if(relative&&extname(relative)){res.writeHead(404);res.end("Not found");return;}
+   filePath=resolve(distRoot,"index.html");body=await readFile(filePath);
+  }
+  res.writeHead(200,{"content-type":mimeTypes[extname(filePath)]||"application/octet-stream","cache-control":"no-store"});
+  res.end(body);
+ }catch(error){res.writeHead(500);res.end("Static build test server: "+error.message);}
+});
 let browser;const errors=[];
 try{
- let ready=false;
- for(let i=0;i<60;i++){try{const r=await fetch(url);if(r.ok){ready=true;break;}}catch{}await delay(500);}
- if(!ready)throw new Error("Vite no respondió en 30 segundos");
+ await new Promise((resolveListen,reject)=>{server.once("error",reject);server.listen(port,"127.0.0.1",resolveListen);});
+ const response=await fetch(url);
+ if(!response.ok)throw new Error(`Build estático no disponible en ${url}: HTTP ${response.status}`);
  await mkdir("artifacts/visual",{recursive:true});
  browser=await chromium.launch({headless:true,args:["--use-gl=angle","--use-angle=swiftshader","--enable-webgl","--ignore-gpu-blocklist"]});
  const page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1});
@@ -40,6 +61,14 @@ try{
  const cameraCanvas=page.locator("#scene canvas");
  if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
   if(await cameraCanvas.getAttribute("data-container-shape")!=="cilindrico"||await cameraCanvas.getAttribute("data-container-wall-count")!=="1")throw new Error("El terrario cilíndrico no construyó sus paredes verticales");
+ if(await cameraCanvas.getAttribute("data-art-version")!=="woodland-diorama-v2")throw new Error("No se montó el nuevo kit de ecosistema");
+ if(await cameraCanvas.getAttribute("data-terrain-layer-count")!=="3")throw new Error("El sustrato no expone sus tres estratos");
+ if(Number(await cameraCanvas.getAttribute("data-leaf-count"))<150)throw new Error("Falta hojarasca individual instanciada");
+ if(Number(await cameraCanvas.getAttribute("data-fern-leaves"))<300)throw new Error("No se generaron frondas suficientes en el diorama");
+ if(Number(await cameraCanvas.getAttribute("data-moss-count"))<30)throw new Error("El tapiz de musgo no está presente");
+ await page.waitForFunction(()=>Number(document.querySelector("#scene canvas")?.dataset.renderCalls)>0&&Number(document.querySelector("#scene canvas")?.dataset.renderTriangles)>0);
+ if(Number(await cameraCanvas.getAttribute("data-render-calls"))>150)throw new Error("La escena excede el presupuesto orientativo de llamadas de dibujo móvil");
+ if(Number(await cameraCanvas.getAttribute("data-render-triangles"))>300000)throw new Error("La escena excede el presupuesto orientativo de triángulos móvil");
  await page.screenshot({path:"artifacts/visual/gameplay-voxel-1440x1000.png",fullPage:true});
  const initialDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
  await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
@@ -63,9 +92,11 @@ try{
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
+ if(Number(await cameraCanvas.getAttribute("data-render-triangles"))<=0)throw new Error("Diorama quedó sin geometría tras cambiar de modo");
  await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
  await page.getByRole("button",{name:/Voxel/}).click();
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("No volvió realmente a Voxel");
+ if(Number(await cameraCanvas.getAttribute("data-render-triangles"))<=0)throw new Error("Voxel quedó sin el terrario 3D después del cambio de modo");
  await page.getByRole("button",{name:/Pausar/}).click();
  await page.locator("#pause-settings").click();
  if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("No se abre Ajustes desde pausa");
@@ -162,8 +193,26 @@ try{
  const orbDistance=Number(await orb.getAttribute("data-camera-distance")),orbFit=Number(await orb.getAttribute("data-camera-fit-distance"));
  if(!Number.isFinite(orbDistance)||!Number.isFinite(orbFit)||orbDistance+.02<orbFit)throw new Error("La cámara no encuadra el globo en móvil");
  await page.screenshot({path:"artifacts/visual/spherical-orb-390x844.png",fullPage:true});
+
+ const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
+ const unsupportedErrors=[];
+ unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
+ await unsupportedPage.addInitScript(()=>{
+  const original=HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext=function(type,...args){
+   if(typeof type==="string"&&["webgl2","webgl","experimental-webgl"].includes(type.toLowerCase()))return null;
+   return original.call(this,type,...args);
+  };
+ });
+ await unsupportedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
+ await unsupportedPage.getByRole("button",{name:/Nuevo terrario/}).click();
+ await unsupportedPage.getByRole("button",{name:/Entrar al terrario/}).click();
+ if(!await unsupportedPage.locator("#screen-modal").isVisible())throw new Error("La falta de WebGL no muestra un aviso recuperable");
+ if(!(await unsupportedPage.locator("#modal-title").textContent()).includes("No se pudo iniciar"))throw new Error("El aviso WebGL no identifica el fallo");
+ if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
+ await unsupportedPage.close();
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,consoleErrors:errors}},null,2));
- console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",errors},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors}},null,2));
+ console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
-finally{await browser?.close();server.kill("SIGTERM");}
+finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}
