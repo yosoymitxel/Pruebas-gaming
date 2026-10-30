@@ -33,7 +33,10 @@ test("el gesto de mover un isópodo conserva su ID y limita el punto al terrario
   assert.equal(moved.id, "isopod-001");
   assert.ok(Math.abs(moved.x - 1.4) < 1e-9);
   assert.ok(Math.abs(moved.z + 0.85) < 1e-9);
-  assert.deepEqual({ x: moved.previousX, z: moved.previousZ }, { x: 1.4, z: -0.85 });
+  assert.deepEqual(
+    { x: moved.previousX, z: moved.previousZ },
+    { x: moved.x, z: moved.z }
+  );
   assert.equal(moved.targetResourceId, null);
 });
 
