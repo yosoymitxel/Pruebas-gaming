@@ -184,12 +184,12 @@ function addSubstrate(group, shape, spec, materials) {
     ? new T.CylinderGeometry(spec.floorRadius, spec.floorRadius, 0.13, segments)
     : new T.BoxGeometry(spec.floorWidth, 0.13, spec.floorDepth);
   const humus = round
-    ? new T.CylinderGeometry(spec.floorRadius, spec.floorRadius, 0.035, segments)
+    ? new T.CylinderGeometry(spec.floorRadius, spec.floorRadius, 0.025, segments)
     : new T.BoxGeometry(spec.floorWidth, 0.035, spec.floorDepth);
   const layers = [
     [gravel, materials.gravel, 0.035],
     [soil, materials.soil, 0.135],
-    [humus, materials.humus, 0.1975]
+    [humus, materials.humus, 0.18]
   ];
   for (const [geometry, material, y] of layers) {
     const mesh = new T.Mesh(geometry, material);
