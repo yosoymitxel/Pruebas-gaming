@@ -1473,3 +1473,147 @@ footer{display:none}
 @media(max-width:380px){
  .expedition-screen.has-active-expedition.has-pending-event:not(.is-level) .expedition-stage{--expedition-panel-height:206px}
 }
+
+
+/* Encuentros: una sola superficie de decisión y el diorama libre de overlays. */
+.expedition-screen.is-level .expedition-stage{--expedition-panel-height:clamp(250px,30svh,320px)}
+.expedition-screen.is-level .expedition-diorama{bottom:var(--expedition-panel-height)}
+.expedition-screen.is-level .expedition-header{
+  grid-template-columns:auto minmax(0,1fr) auto;
+  min-height:calc(70px + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) clamp(12px,2.4vw,32px) 0;
+  gap:clamp(8px,1.5vw,18px);
+  background:linear-gradient(180deg,rgba(10,20,12,.94),rgba(10,20,12,.58));
+  pointer-events:auto;
+}
+.expedition-screen.is-level .expedition-heading{grid-column:2;grid-row:1;min-width:0;text-align:left}
+.expedition-screen.is-level .expedition-heading p{margin:0 0 3px;font-size:8px;letter-spacing:.12em}
+.expedition-screen.is-level .expedition-heading h1{font-size:clamp(20px,2.3vw,29px);line-height:1.02}
+.expedition-screen.is-level .expedition-wordmark{display:none}
+.expedition-screen.is-level .expedition-map-back{
+  position:static;grid-column:1;grid-row:1;justify-self:start;
+  min-height:40px;padding:8px 11px;border-color:rgba(232,237,214,.34);
+  border-radius:7px;font-size:10px;white-space:nowrap;
+}
+.expedition-screen.is-level .expedition-vitals{
+  position:static;grid-column:3;grid-row:1;align-self:center;
+  display:flex;gap:5px;
+}
+.expedition-screen.is-level .expedition-vitals>div{
+  min-width:0;display:grid;grid-template-columns:auto auto;align-items:center;
+  gap:5px;padding:6px 8px;border-radius:7px;box-shadow:none;
+}
+.expedition-screen.is-level .expedition-vitals small{font-size:7px;letter-spacing:.07em}
+.expedition-screen.is-level .expedition-vitals strong{margin:0;font-size:15px}
+.expedition-level-layer{
+  position:absolute;inset:auto 0 0;z-index:10;height:var(--expedition-panel-height);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:10px clamp(12px,2.4vw,32px) max(10px,env(safe-area-inset-bottom,0px));
+  pointer-events:none;
+}
+.expedition-decision-panel{
+  display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);
+  align-items:stretch;gap:14px;width:min(1040px,100%);max-height:100%;
+  overflow:auto;padding:14px;border:1px solid rgba(224,232,209,.3);
+  border-radius:12px;color:#f0f1e4;background:rgba(15,29,19,.96);
+  box-shadow:0 12px 34px rgba(0,0,0,.27);pointer-events:auto;
+}
+.expedition-screen.is-level .expedition-event{
+  position:relative;inset:auto;align-self:center;width:auto;max-width:none;
+  padding:2px 0;border:0;border-radius:0;background:transparent;
+  box-shadow:none;pointer-events:auto;
+}
+.expedition-screen.is-level .expedition-event-location{margin:0 0 7px;font-size:8px;letter-spacing:.13em}
+.expedition-screen.is-level .expedition-event h2{font-size:clamp(22px,2.4vw,30px);line-height:1.02}
+.expedition-screen.is-level .expedition-event>p:not(.expedition-event-location){
+  margin:8px 0 0;color:#d5ddca;font-size:12px;line-height:1.42;
+}
+.expedition-screen.is-level .expedition-event .expedition-run-actions{
+  position:static;display:flex;justify-content:flex-start;gap:7px;
+  margin-top:12px;padding-top:10px;border-top:1px solid rgba(231,237,218,.17);
+}
+.expedition-screen.is-level .expedition-run-actions button{min-height:38px;padding:7px 11px;font-size:10px}
+.expedition-screen.is-level .expedition-choice-dock{
+  position:relative;left:auto;bottom:auto;align-self:stretch;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:stretch;
+  gap:9px;width:auto;max-width:none;transform:none;
+}
+.expedition-screen.is-level .expedition-choice{
+  grid-template-columns:25px minmax(0,1fr);align-content:center;
+  min-height:102px;padding:11px;border-radius:8px;box-shadow:none;
+}
+.expedition-screen.is-level .expedition-choice-letter{width:24px;height:24px}
+.expedition-screen.is-level .expedition-choice-copy strong{font-size:11px}
+.expedition-screen.is-level .expedition-choice-copy small{font-size:10px;line-height:1.34}
+.expedition-screen.is-level .expedition-choice em{font-size:9px}
+.expedition-screen.is-level .expedition-decision-panel .expedition-message{
+  position:static;grid-column:1/-1;max-width:none;margin:0;padding:5px 0 0;
+  border:0;border-top:1px solid rgba(231,237,218,.14);border-radius:0;
+  background:transparent;box-shadow:none;font-size:9px;line-height:1.35;
+  text-align:left;transform:none;
+}
+.expedition-screen.is-level .expedition-decision-panel .expedition-message:empty{display:none}
+@media(max-width:760px){
+  .expedition-screen.is-level .expedition-stage{--expedition-panel-height:clamp(270px,35dvh,320px)}
+  .expedition-screen.is-level .expedition-header{
+    grid-template-columns:auto minmax(0,1fr) auto;min-height:calc(66px + env(safe-area-inset-top,0px));
+    padding:env(safe-area-inset-top,0px) 10px 0;gap:7px;
+  }
+  .expedition-screen.is-level .expedition-heading{text-align:left}
+  .expedition-screen.is-level .expedition-heading p{font-size:7px}
+  .expedition-screen.is-level .expedition-heading h1{font-size:clamp(18px,5.2vw,22px)}
+  .expedition-screen.is-level .expedition-map-back{min-height:38px;padding:7px 9px;font-size:9px}
+  .expedition-screen.is-level .expedition-vitals{gap:3px}
+  .expedition-screen.is-level .expedition-vitals>div{grid-template-columns:1fr;gap:1px;padding:5px 6px;text-align:center}
+  .expedition-screen.is-level .expedition-vitals small{font-size:6px}
+  .expedition-screen.is-level .expedition-vitals strong{font-size:14px}
+  .expedition-level-layer{padding:8px 9px max(9px,env(safe-area-inset-bottom,0px))}
+  .expedition-decision-panel{
+    grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;
+    gap:8px;padding:11px;border-radius:11px;
+  }
+  .expedition-screen.is-level .expedition-event{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"eyebrow actions" "title actions" "description description";
+    align-items:center;column-gap:10px;row-gap:3px;
+  }
+  .expedition-screen.is-level .expedition-event-location{grid-area:eyebrow;margin:0;font-size:7px}
+  .expedition-screen.is-level .expedition-event h2{grid-area:title;font-size:22px;line-height:1.03}
+  .expedition-screen.is-level .expedition-event>p:not(.expedition-event-location){
+    grid-area:description;margin:4px 0 0;font-size:10px;line-height:1.32;
+  }
+  .expedition-screen.is-level .expedition-event .expedition-run-actions{
+    grid-area:actions;display:flex;flex-direction:column;align-items:stretch;gap:5px;
+    margin:0;padding:0;border:0;
+  }
+  .expedition-screen.is-level .expedition-run-actions button{min-height:34px;padding:6px 9px;font-size:9px}
+  .expedition-screen.is-level .expedition-choice-dock{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .expedition-screen.is-level .expedition-choice{
+    grid-template-columns:20px minmax(0,1fr);gap:6px;min-height:92px;padding:8px;border-radius:8px;
+  }
+  .expedition-screen.is-level .expedition-choice-letter{width:20px;height:20px;font-size:10px}
+  .expedition-screen.is-level .expedition-choice-copy{gap:3px}
+  .expedition-screen.is-level .expedition-choice-copy strong{font-size:10px;line-height:1.22}
+  .expedition-screen.is-level .expedition-choice-copy small{font-size:9px;line-height:1.27}
+  .expedition-screen.is-level .expedition-choice em{font-size:8px}
+}
+@media(max-width:420px){
+  .expedition-screen.is-level .expedition-stage{--expedition-panel-height:clamp(270px,36dvh,306px)}
+  .expedition-screen.is-level .expedition-decision-panel{padding:10px;gap:7px}
+  .expedition-screen.is-level .expedition-event h2{font-size:20px}
+  .expedition-screen.is-level .expedition-choice{min-height:86px;padding:7px}
+}
+@media(max-width:360px){
+  .expedition-screen.is-level .expedition-stage{--expedition-panel-height:270px}
+  .expedition-screen.is-level .expedition-header{grid-template-columns:auto minmax(0,1fr) auto;gap:5px;padding-inline:7px}
+  .expedition-screen.is-level .expedition-map-back{padding-inline:7px;font-size:8px}
+  .expedition-screen.is-level .expedition-heading h1{font-size:18px}
+  .expedition-screen.is-level .expedition-vitals>div{padding:4px}
+  .expedition-screen.is-level .expedition-vitals small{font-size:5px}
+  .expedition-screen.is-level .expedition-vitals strong{font-size:13px}
+  .expedition-screen.is-level .expedition-decision-panel{padding:8px}
+  .expedition-screen.is-level .expedition-choice{grid-template-columns:18px minmax(0,1fr);gap:5px;padding:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .expedition-screen.is-level .expedition-choice{transition:none}
+}
