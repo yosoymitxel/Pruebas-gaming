@@ -360,6 +360,10 @@ try{
  await page.locator("#expedition-start").click();
  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("No se generó el encuentro inicial");
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="level"||Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==2)throw new Error("El encuentro no abrió su diorama con dos interacciones");
+ if(!await page.locator("#expedition-run-actions").isVisible())throw new Error("Guardar/retirarse no está disponible dentro del nivel");
+ const firstChoiceBox=await page.locator(".expedition-choice:not(:disabled)").first().boundingBox();
+ const firstChoiceHit=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest("[data-choice-id]")?.dataset.choiceId??null,{x:firstChoiceBox.x+firstChoiceBox.width/2,y:firstChoiceBox.y+firstChoiceBox.height/2});
+ if(!firstChoiceHit)throw new Error("El HUD tapa la zona de decisión del encuentro");
  await page.screenshot({path:"artifacts/visual/expedition-level-garden-390x844.png",fullPage:true});
  const chooseFirstExpeditionAction=async()=>{
   const first=page.locator(".expedition-choice:not(:disabled)").first();
@@ -403,11 +407,13 @@ try{
  await page.setViewportSize({width:360,height:640});
  await page.waitForTimeout(120);
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El diorama del mapa genera overflow a 360x640");
+ if(await expeditionCanvas.getAttribute("data-expedition-portrait")!=="true")throw new Error("El mapa no adopta composición vertical en móvil");
  await assertExpeditionNodesDoNotOverlap();
  await page.screenshot({path:"artifacts/visual/expedition-map-360x640.png",fullPage:true});
  await page.setViewportSize({width:1440,height:1000});
  await page.waitForTimeout(120);
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El diorama del mapa genera overflow a 1440x1000");
+ if(await expeditionCanvas.getAttribute("data-expedition-portrait")!=="false")throw new Error("El mapa conserva composición de teléfono en escritorio");
  await assertExpeditionNodesDoNotOverlap();
  await page.screenshot({path:"artifacts/visual/expedition-map-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});

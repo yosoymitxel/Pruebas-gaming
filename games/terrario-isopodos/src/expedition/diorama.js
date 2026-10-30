@@ -286,12 +286,14 @@ export function buildExpeditionMapDiorama(T,{nodes,visitedNodes=[],currentNodeId
     actor.userData.baseZ=actor.position.z;
     root.add(actor);
   }
+  const localMapPositions=structuredClone(positionMap);
   if(portrait){
     // Un mapa vertical se lee mejor en teléfonos sin sacrificar el terreno.
     root.scale.set(.55,1,1.05);
     for(const [id,position] of Object.entries(positionMap))positionMap[id]=[position[0]*.55,position[1]*1.05];
   }
   root.userData.mapPositions=positionMap;
+  root.userData.mapPositionsLocal=localMapPositions;
   root.userData.expeditionPortrait=portrait;
   root.userData.expeditionScene="map";
   return root;

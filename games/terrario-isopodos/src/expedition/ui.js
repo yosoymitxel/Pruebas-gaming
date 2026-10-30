@@ -64,7 +64,7 @@ export function mountExpeditionScreen({
           '</div>',
         '</section>',
         '<section id="expedition-level-layer" class="expedition-level-layer" hidden>',
-          '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p></div>',
+          '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
           '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
           '<button type="button" id="expedition-map-back" class="expedition-map-back">← Volver al mapa</button>',
         '</section>',
@@ -78,7 +78,7 @@ export function mountExpeditionScreen({
         '<p id="expedition-session-message" class="expedition-message" role="status" aria-live="polite"></p>',
         '<footer class="expedition-footer">',
           '<span id="expedition-run-label">UNA EXPEDICIÓN POR DÍA</span>',
-          '<div><button type="button" id="expedition-save" class="expedition-secondary" hidden>Guardar recorrido</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat" hidden>Regresar al terrario</button></div>',
+
         '</footer>',
       '</div>',
     '</div>'
@@ -160,8 +160,8 @@ export function mountExpeditionScreen({
     $("#expedition-event").hidden=true;
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden= !run;
-    $("#expedition-save").hidden=!run;
-    $("#expedition-return").hidden=!run;
+    $("#expedition-map-layer").append($("#expedition-run-actions"));
+    $("#expedition-run-actions").hidden=!run;
     $("#expedition-map-back").hidden=true;
     $("#expedition-resume-event").hidden=!hasPending;
     $("#expedition-close").hidden=Boolean(run);
@@ -197,8 +197,8 @@ export function mountExpeditionScreen({
     $("#expedition-event").hidden=false;
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden=false;
-    $("#expedition-save").hidden=false;
-    $("#expedition-return").hidden=false;
+    $("#expedition-event").append($("#expedition-run-actions"));
+    $("#expedition-run-actions").hidden=false;
     $("#expedition-map-back").hidden=false;
     $("#expedition-resume-event").hidden=true;
     $("#expedition-close").hidden=true;
@@ -235,8 +235,7 @@ export function mountExpeditionScreen({
     $("#expedition-map-back").hidden=true;
     $("#expedition-resume-event").hidden=true;
     $("#expedition-vitals").hidden=true;
-    $("#expedition-save").hidden=true;
-    $("#expedition-return").hidden=true;
+    $("#expedition-run-actions").hidden=true;
     $("#expedition-title").textContent="Regreso al terrario";
     $("#expedition-day").textContent="DÍA "+String(settlement.dayAfter).padStart(2,"0")+" · REGRESO";
     $("#expedition-kicker").textContent="REGISTRO DE CAMPO";

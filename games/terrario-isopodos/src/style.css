@@ -1304,10 +1304,15 @@ footer{display:none}
 .expedition-secondary{border-color:rgba(225,232,210,.3);color:#edf0df;background:rgba(17,30,18,.72)}
 .expedition-explorer-dock>.expedition-primary{min-width:130px;min-height:42px}
 .expedition-level-layer{z-index:6}
+.expedition-run-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;pointer-events:auto}
+.expedition-run-actions[hidden]{display:none!important}
+.expedition-run-actions button{min-height:31px;padding:6px 10px;border-radius:3px;font-size:8px}
+.expedition-map-layer .expedition-run-actions{position:absolute;right:clamp(12px,2vw,28px);bottom:82px;z-index:9}
 .expedition-event{position:absolute;top:clamp(130px,20vh,205px);left:clamp(14px,3vw,42px);width:min(360px,calc(100vw - 28px));padding:13px 15px;border:1px solid rgba(231,237,218,.23);border-radius:4px;color:#f3f1e6;background:rgba(18,30,19,.82);box-shadow:0 8px 24px rgba(0,0,0,.16);pointer-events:none}
 .expedition-event-location{margin:0 0 7px;color:#d0dba9;font-size:8px;font-weight:850;letter-spacing:.15em}
 .expedition-event h2{margin:0;color:#f4f0df;font:500 clamp(21px,2.8vw,29px)/1.04 var(--display-face);letter-spacing:-.02em}
 .expedition-event>p:not(.expedition-event-location){margin:7px 0 0;color:#e0e5d3;font-size:10px;line-height:1.5}
+.expedition-event .expedition-run-actions{position:relative;margin-top:10px;padding-top:9px;border-top:1px solid rgba(231,237,218,.2)}
 .expedition-choice-dock{position:absolute;left:50%;bottom:16px;display:flex;gap:8px;width:min(790px,calc(100vw - 28px));transform:translateX(-50%);pointer-events:auto}
 .expedition-choice{display:grid;grid-template-columns:27px minmax(0,1fr);align-items:center;gap:8px;flex:1;min-width:0;min-height:70px;padding:9px 11px;border:1px solid rgba(232,237,214,.34);border-radius:4px;color:#f1f0e3;background:rgba(17,30,18,.91);text-align:left;box-shadow:0 7px 22px rgba(0,0,0,.18);transition:background-color .16s,border-color .16s}
 .expedition-choice:hover:not(:disabled){border-color:#d6dfa9;background:#2c432d}.expedition-choice:disabled{opacity:.43;cursor:not-allowed}
@@ -1348,6 +1353,8 @@ footer{display:none}
  .expedition-choice-copy{gap:2px}.expedition-choice-copy strong{font-size:9px}.expedition-choice-copy small{font-size:7px}.expedition-choice em{grid-column:3;grid-row:1/3;font-size:7px;text-align:right}
  .expedition-map-back{top:calc(122px + env(safe-area-inset-top,0px));right:9px;min-height:33px;padding:6px 8px}
  .expedition-footer{right:9px;bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+ .expedition-map-layer .expedition-run-actions{right:9px;bottom:calc(67px + env(safe-area-inset-bottom,0px))}
+ .expedition-event .expedition-run-actions{margin-top:8px;padding-top:7px}
  .expedition-footer>span{display:none}
  .expedition-message{bottom:calc(120px + env(safe-area-inset-bottom,0px));font-size:8px}
  .expedition-settlement-card{padding:18px}

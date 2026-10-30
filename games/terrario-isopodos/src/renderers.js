@@ -690,6 +690,7 @@ export class TerrariumRenderer {
     const canvas=this.renderer.domElement;
     canvas.dataset.expeditionMapPositions=JSON.stringify(scene.userData.mapPositions??{});
     canvas.dataset.expeditionView=kind;
+    canvas.dataset.expeditionPortrait=String(this.camera.aspect<.78);
     canvas.dataset.expeditionNodeCount=String(Object.keys(data.nodes??{}).length);
     canvas.dataset.expeditionInteractionTargets=String(scene.userData.expeditionScene==="level"?scene.children.filter(child=>child.userData?.expeditionChoiceId).length:scene.children.filter(child=>child.userData?.expeditionNodeId).length);
     this.cameraUpdate();
@@ -1278,6 +1279,25 @@ export class TerrariumRenderer {
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
   }
 
+  syncExpeditionComposition(){
+    const scene=this.expeditionGroup.children[0];
+    if(!scene)return;
+    const portrait=this.camera.aspect<.78;
+    if(Boolean(scene.userData.expeditionPortrait)===portrait)return;
+    scene.userData.expeditionPortrait=portrait;
+    if(scene.userData.expeditionScene==="map"){
+      const scaleX=portrait?.55:1,scaleZ=portrait?1.05:1;
+      scene.scale.set(scaleX,1,scaleZ);
+      const local=scene.userData.mapPositionsLocal??{};
+      const positions=Object.fromEntries(Object.entries(local).map(([id,[x,z]])=>[id,[x*scaleX,z*scaleZ]]));
+      scene.userData.mapPositions=positions;
+      this.renderer.domElement.dataset.expeditionMapPositions=JSON.stringify(positions);
+    }else if(scene.userData.expeditionScene==="level"){
+      scene.scale.set(portrait?.72:1,1,portrait?1.25:1);
+    }
+    this.renderer.domElement.dataset.expeditionPortrait=String(portrait);
+  }
+
   setQuality(quality){
     const economy=quality === "economy";
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, economy ? 1 : 1.65));
@@ -1290,6 +1310,7 @@ export class TerrariumRenderer {
     const h=Math.max(1,this.host?.clientHeight||this.el.clientHeight||260);
     this.camera.aspect=w/h;
     this.camera.updateProjectionMatrix();
+    if(this.expeditionMode)this.syncExpeditionComposition();
     const fit=this.fitDistance();
     if(this.expeditionMode){
       if(this.userAdjustedCamera)this.distance=Math.max(this.distance,fit);
