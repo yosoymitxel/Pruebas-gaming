@@ -112,6 +112,18 @@ try{
  if(await page.locator('[data-setup-shape="cilindrico"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-setup-mode="voxel"]').getAttribute("aria-pressed")!=="true")throw new Error("Las opciones de configuración no actualizan aria-pressed");
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
+ const refugeBounds=await page.locator("#scene canvas").evaluate(canvas=>({
+  length:Number(canvas.dataset.shelterModelLength),
+  height:Number(canvas.dataset.shelterModelHeight),
+  depth:Number(canvas.dataset.shelterModelDepth)
+ }));
+ if(!(refugeBounds.length>1.3&&refugeBounds.height>.6&&refugeBounds.depth>.3))
+  throw new Error("El refugio real no tiene las dimensiones 3D ampliadas esperadas: "+JSON.stringify(refugeBounds));
+ if(await page.locator('#shop-grid [data-buy="leaf-litter"], #shop-grid [data-buy="shelter"]').count()!==0)
+  throw new Error("Hojarasca y Refugio aparecen duplicados entre la barra rápida y la tienda");
+ if(await page.locator("#tool-food").count()!==1||await page.locator("#tool-shelter").count()!==1)
+  throw new Error("Las herramientas rápidas de Hojarasca y Refugio no están disponibles");
+
   if(await page.locator(".view-title").count()!==0)throw new Error("La cabecera todavía muestra el rótulo redundante Terrario vivo 001");
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  const cameraCanvas=page.locator("#scene canvas");

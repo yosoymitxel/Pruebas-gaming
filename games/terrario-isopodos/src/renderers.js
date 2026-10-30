@@ -1,5 +1,5 @@
 import * as T from "three";
-import { HABITAT_GEOMETRY, HOLLOW_BARK_ROTATION, getBarkFootprint } from "./habitat.js";
+import { HABITAT_GEOMETRY, HOLLOW_BARK_ROTATION, getBarkFootprint, REFUGE_MODEL_PROFILES } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
 import { createDioramaKit } from "./diorama-kit.js";
 import { resolveIsopodRefugePose } from "./isopod-placement.js";
@@ -1308,13 +1308,22 @@ export class TerrariumRenderer {
     });
     const profiles={
       "leaf-litter":{asset:"leaf-litter",options:{count:24,kind:"local-litter",scale:1.18}},
-      shelter:{asset:"bark-shelter",options:{length:1.04,thickness:.275,scale:1.04}},
-      bark:{asset:"bark-shelter",options:{length:.78,thickness:.18,scale:1.02}},
+      shelter:{asset:"bark-shelter",options:{
+        length:REFUGE_MODEL_PROFILES.shelter.length,
+        thickness:REFUGE_MODEL_PROFILES.shelter.thickness,
+        scale:REFUGE_MODEL_PROFILES.shelter.scale
+      }},
+      bark:{asset:"bark-shelter",options:{
+        length:REFUGE_MODEL_PROFILES.bark.length,
+        thickness:REFUGE_MODEL_PROFILES.bark.thickness,
+        scale:REFUGE_MODEL_PROFILES.bark.scale
+      }},
       fern:{asset:"fern-bed",options:{local:true,size:.4,fronds:5,density:.95,scale:1.08}},
       mushroom:{asset:"mushroom-cluster",options:{density:1.05,scale:1.08}},
       stone:{asset:"rock-scatter",options:{local:true,density:1.02,scale:1.02}},
       moss:{asset:"moss-bed",options:{local:true,size:.46,density:1.08,scale:1.12}}
     };
+    const canvas=this.renderer.domElement;
     for(const resource of this.state.resources){
       const profile=profiles[resource.type];
       if(!profile)continue;
@@ -1330,14 +1339,21 @@ export class TerrariumRenderer {
       object.name="resource-diorama-"+resource.type+"-"+resource.id;
       if(resource.type==="bark"){
         object.rotation.y=HOLLOW_BARK_ROTATION;
-        object.userData.barkFootprint=getBarkFootprint(1.02*amount);
+        object.userData.barkFootprint=getBarkFootprint(REFUGE_MODEL_PROFILES.bark.scale*amount);
       }
       object.userData.resourceId=resource.id;
       object.userData.resourceType=resource.type;
+      if(resource.type==="shelter"||resource.type==="bark"){
+        object.updateMatrixWorld(true);
+        const size=new T.Box3().setFromObject(object).getSize(new T.Vector3());
+        const key=resource.type==="shelter"?"shelterModel":"barkModel";
+        canvas.dataset[key+"Length"]=size.x.toFixed(3);
+        canvas.dataset[key+"Height"]=size.y.toFixed(3);
+        canvas.dataset[key+"Depth"]=size.z.toFixed(3);
+      }
     }
     this.resourceKit=kit;
     this.resourcesGroup.userData.dioramaKitDispose=kit.dispose;
-    const canvas=this.renderer.domElement;
     canvas.dataset.resourceCount=String(this.state.resources.length);
     canvas.dataset.shelterCount=String(this.state.resources.filter(r=>r.type==="shelter").length);
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
@@ -1347,7 +1363,7 @@ export class TerrariumRenderer {
     canvas.dataset.barkRotation=String(HOLLOW_BARK_ROTATION);
     canvas.dataset.barkFootprints=JSON.stringify(barkResources.map(resource=>({
       id:resource.id,x:resource.x,z:resource.z,
-      ...getBarkFootprint(1.02*Math.max(.4,Math.min(1.2,Number(resource.amount??1))))
+      ...getBarkFootprint(REFUGE_MODEL_PROFILES.bark.scale*Math.max(.4,Math.min(1.2,Number(resource.amount??1))))
     })));
   }
 

@@ -64,7 +64,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 5 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | Completada · órbita, pinch y bloqueo de giro en Mano PASS |
 | 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · halo dorado sobre vegetación; captura real pendiente |
 | 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
-| 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
+| 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | En progreso · refugio ampliado, huella y alturas sincronizadas |
 | 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | En progreso · orientación 36°, huella compartida y migración de guardados; CI pendiente |
 | 10 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | En progreso · pose bajo «Tronco hueco»; test de simulación añadido |
 | 11 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista; prueba exacta PASS |
@@ -84,6 +84,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [x] Verificar dimensiones/accesibilidad en Playwright desktop/móvil y consola sin errores en SHA c76600e.
 
 ### UI-03 — Herramientas móviles
+- [x] Hojarasca y Refugio están disponibles únicamente en la barra rápida; la tienda muestra los otros cinco artículos, sin duplicarlos.
 - [x] Reservar espacio para el botón de cámara sin tapar Refugio.
 - [x] Mantener Cámara, Mano, Hojarasca y Refugio accesibles mediante desplazamiento horizontal.
 - [x] Mantener objetivos táctiles de al menos 44 px.
@@ -124,11 +125,13 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Persistir cantidad, identidad, ubicación y rotación; migrar guardados existentes sin duplicación.
 
 ### SPACE-01 — Espacio
-- [ ] Medir volumen real, escala de isópodos, vidrio, suelo y cámara.
-- [ ] Aumentar área funcional, no solo zoom visual.
-- [ ] Dimensionar refugios para que admitan individuos y entradas/salidas.
-- [ ] Reservar corredores de circulación y actualizar el encuadre móvil/escritorio.
-- [ ] Verificar paredes y suelo con geometría y límites coherentes.
+- [x] Aumentar el refugio normal a 1,22×0,32 (escala 1,10) y Tronco hueco a 1,18×0,24 (escala 1,08).
+- [x] Unificar perfil visual, altura de encaramado y huella del modelo.
+- [x] Limitar compra/arrastre de refugios y troncos completos; migrar posiciones de guardados antiguos.
+- [x] Recolocar refugios especiales al cambiar entre recipiente rectangular, cilíndrico y esférico.
+- [x] Añadir mediciones reales de bounding box del refugio para Playwright.
+- [ ] Validar capturas reales y la circulación de varios isópodos sobre el refugio ampliado.
+- [ ] Ampliar el volumen útil de suelo y reservar corredores de circulación.
 
 ### SPACE-02 — Tronco diagonal
 - [x] Auditar la malla y su pivote: la cáscara convierte el eje local Y en X; la rotación se aplica al grupo completo.

@@ -1,4 +1,4 @@
-import { constrainToHabitat, constrainBarkToHabitat } from "./habitat.js";
+import { constrainToHabitat, constrainBarkToHabitat, constrainShelterToHabitat, REFUGE_MODEL_PROFILES } from "./habitat.js";
 
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 const identity=entity=>[...String(entity.id)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
@@ -368,12 +368,31 @@ export function moveResource(state,id,x,z){
   if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError("La posición del recurso no es válida");
   const resource=state?.resources?.find(item=>item.id===id);
   if(!resource)return null;
+  const amount=Math.max(.4,Math.min(1.2,Number(resource.amount??1)));
   const point=resource.type==="bark"
-    ?constrainBarkToHabitat(x,z,state.habitat?.shape,1.02*Math.max(.4,Math.min(1.2,Number(resource.amount??1))))
-    :constrainToHabitat(x,z,state.habitat?.shape,.12);
+    ?constrainBarkToHabitat(x,z,state.habitat?.shape,REFUGE_MODEL_PROFILES.bark.scale*amount)
+    :resource.type==="shelter"
+      ?constrainShelterToHabitat(x,z,state.habitat?.shape,REFUGE_MODEL_PROFILES.shelter.scale*amount)
+      :constrainToHabitat(x,z,state.habitat?.shape,.12);
   resource.x=point.x;
   resource.z=point.z;
   return resource;
+}
+
+export function fitResourcesToHabitat(state){
+  if(!state||typeof state!=="object"||!Array.isArray(state.resources))throw new TypeError("Se requiere un estado válido del terrario");
+  const shape=state.habitat?.shape;
+  for(const resource of state.resources){
+    const amount=Math.max(.4,Math.min(1.2,Number(resource.amount??1)));
+    const point=resource.type==="bark"
+      ?constrainBarkToHabitat(resource.x,resource.z,shape,REFUGE_MODEL_PROFILES.bark.scale*amount)
+      :resource.type==="shelter"
+        ?constrainShelterToHabitat(resource.x,resource.z,shape,REFUGE_MODEL_PROFILES.shelter.scale*amount)
+        :constrainToHabitat(resource.x,resource.z,shape,.12);
+    resource.x=point.x;
+    resource.z=point.z;
+  }
+  return state.resources;
 }
 
 export const SHOP_ITEMS=Object.freeze([
@@ -398,9 +417,12 @@ export function purchaseItem(state,itemId,position=null){
   const shape=state.habitat?.shape;
   const proposedX=Number.isFinite(position?.x)?position.x:(shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.cos(angle)*radius);
   const proposedZ=Number.isFinite(position?.z)?position.z:(shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.sin(angle)*radius);
+  const amount=item.type==="leaf-litter"?.55:1;
   const point=item.type==="bark"
-    ?constrainBarkToHabitat(proposedX,proposedZ,shape,1.02)
-    :constrainToHabitat(proposedX,proposedZ,shape,.12);
+    ?constrainBarkToHabitat(proposedX,proposedZ,shape,REFUGE_MODEL_PROFILES.bark.scale*amount)
+    :item.type==="shelter"
+      ?constrainShelterToHabitat(proposedX,proposedZ,shape,REFUGE_MODEL_PROFILES.shelter.scale*amount)
+      :constrainToHabitat(proposedX,proposedZ,shape,.12);
   const existing=item.type==="leaf-litter"?state.resources.find(r=>r.type==="leaf-litter"&&Math.hypot(r.x-point.x,r.z-point.z)<.18):null;
   let resource;
   if(existing){

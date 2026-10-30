@@ -1,6 +1,6 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
-import{stepSimulation,purchaseItem,startleIsopod,moveIsopod,moveResource}from"./simulation.js";
+import{stepSimulation,purchaseItem,startleIsopod,moveIsopod,moveResource,fitResourcesToHabitat}from"./simulation.js";
 import{hasValidTerrariumSave,saveTerrarium,loadTerrarium}from"./persistence.js";
 import{mountExpeditionScreen}from"./expedition/ui.js";
 function createWorldSeed(){const words=new Uint32Array(1);if(globalThis.crypto?.getRandomValues){globalThis.crypto.getRandomValues(words);return words[0];}return(Date.now()^Math.floor(performance.now()*1000))>>>0;}
@@ -224,7 +224,13 @@ expeditionUI=mountExpeditionScreen({
  onChange:()=>{renderer?.syncEntities();renderer?.syncResources();update();}
 });
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{const before=snapshotDomain(state);renderer.setMode(b.dataset.mode);if(snapshotDomain(state)!==before)throw Error("El renderer alteró el estado de dominio");state.presentation.mode=b.dataset.mode;settings.mode=b.dataset.mode;saveSettings();saveMessage="";update();}));
-document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>{state.habitat.shape=b.dataset.shape;renderer.setShape(b.dataset.shape);update();}));
+document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>{
+ state.habitat.shape=b.dataset.shape;
+ fitResourcesToHabitat(state);
+ renderer.setShape(b.dataset.shape);
+ renderer.syncResources();
+ update();
+}));
 $("#pause").addEventListener("click",()=>{if(state.running){showPauseMenu();}else{state.running=true;last=performance.now();acc=0;closeModal();update();}});
 $("#step").addEventListener("click",()=>{stepSimulation(state,1);renderer.interpolationAlpha=1;update();});
 $("#speed").addEventListener("input",e=>{state.speed=Number(e.target.value);update();});

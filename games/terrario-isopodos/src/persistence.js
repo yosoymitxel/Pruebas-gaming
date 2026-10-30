@@ -1,5 +1,5 @@
 import { createExpeditionProgress, normalizeExpeditionProgress } from "./expedition/state.js";
-import { constrainBarkToHabitat } from "./habitat.js";
+import { constrainBarkToHabitat, constrainShelterToHabitat, REFUGE_MODEL_PROFILES } from "./habitat.js";
 const VALID_SHAPES=new Set(["rectangular","cilindrico","esferico"]);
 const VALID_MODES=new Set(["diorama","voxel"]);
 const VALID_WEATHER=new Set(["clear","mist","rain"]);
@@ -66,15 +66,18 @@ function validateStateShape(state){
   const habitat=normalizeHabitat(state.habitat ?? {shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35});
   const entities=Array.isArray(state.entities)?state.entities.map(normalizeEntity):[];
   const resources=Array.isArray(state.resources)?state.resources.map(normalizeResource):[];
-  // Migrate old saves so the full diagonal bark model stays within the glass.
+  // Keep legacy bark and shelter meshes inside the glass after model-size changes.
   for(const resource of resources){
-    if(resource.type!=="bark")continue;
-    const point=constrainBarkToHabitat(
-      resource.x,resource.z,habitat.shape,
-      1.02*Math.max(.4,Math.min(1.2,Number(resource.amount??1)))
-    );
-    resource.x=point.x;
-    resource.z=point.z;
+    const amount=Math.max(.4,Math.min(1.2,Number(resource.amount??1)));
+    const point=resource.type==="bark"
+      ?constrainBarkToHabitat(resource.x,resource.z,habitat.shape,REFUGE_MODEL_PROFILES.bark.scale*amount)
+      :resource.type==="shelter"
+        ?constrainShelterToHabitat(resource.x,resource.z,habitat.shape,REFUGE_MODEL_PROFILES.shelter.scale*amount)
+        :null;
+    if(point){
+      resource.x=point.x;
+      resource.z=point.z;
+    }
   }
   if(new Set(entities.map(e=>e.id)).size!==entities.length)throw new Error("El guardado contiene IDs duplicados");
   if(new Set(resources.map(r=>r.id)).size!==resources.length)throw new Error("El guardado contiene IDs duplicados en recursos");
