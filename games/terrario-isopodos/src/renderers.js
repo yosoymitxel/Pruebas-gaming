@@ -507,7 +507,7 @@ export class TerrariumRenderer {
       let closest=null,distance=Infinity;
       for(const resource of this.state.resources){
         const next=Math.hypot(resource.x-point.x,resource.z-point.z);
-        const radius=resource.type==="shelter"||resource.type==="bark"?.48:.19;
+        const radius=(resource.type==="shelter"||resource.type==="bark")?.48:.19;
         if(next<radius&&next<distance){closest=resource;distance=next;}
       }
       return closest?.id??null;
@@ -1010,7 +1010,7 @@ export class TerrariumRenderer {
         .map(resource=>({resource,distance:Math.hypot(resource.x-x,resource.z-z)}))
         .sort((a,b)=>a.distance-b.distance)[0];
       const perched=refuge&&refuge.distance<.43;
-      const refugeTop=perched?(refuge.resource.type==="shelter"?.33:.25):0;
+      const refugeTop=perched?(refuge.resource.type==="shelter"?.43:.28):0;
       object.position.set(x,floorY+refugeTop+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"&&!perched?.045:0)+gaitBob,z);
       // Both animal models are authored nose-forward along local +X;
       // simulation headings use +Z at zero (x=sin(h), z=cos(h)).
