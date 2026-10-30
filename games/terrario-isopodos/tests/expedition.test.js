@@ -27,10 +27,18 @@ test("la selección ponderada es determinista y rechaza tablas inválidas",()=>{
   assert.equal(weightedPick(123,[{value:"a",weight:1},{value:"b",weight:4}]),weightedPick(123,[{value:"a",weight:1},{value:"b",weight:4}]));
   assert.throws(()=>weightedPick(1,[]),/vacía/);assert.throws(()=>weightedPick(1,[{value:"x",weight:0}]),/positivos/);
 });
-test("el mapa tiene cinco nodos y es totalmente alcanzable",()=>{
-  assert.equal(Object.keys(EXPEDITION_NODES).length,5);assert.equal(isExpeditionGraphConnected(),true);
+test("el mapa tiene ocho nodos conectados con costes y riesgos explícitos",()=>{
+  assert.equal(Object.keys(EXPEDITION_NODES).length,8);
+  assert.equal(isExpeditionGraphConnected(),true);
   assert.ok(EXPEDITION_NODES[START_NODE_ID].links.length>0);
-  for(const node of Object.values(EXPEDITION_NODES))for(const other of node.links)assert.ok(EXPEDITION_NODES[other].links.includes(node.id));
+  for(const node of Object.values(EXPEDITION_NODES)){
+    assert.ok(Number.isSafeInteger(node.travelCost)&&node.travelCost>=0);
+    assert.ok(["low","medium","high"].includes(node.risk));
+    for(const other of node.links)assert.ok(EXPEDITION_NODES[other].links.includes(node.id),node.id+" ↔ "+other+" debe ser bidireccional");
+  }
+  assert.equal(EXPEDITION_NODES["compost-bin"].unlockDiscovery,"compost-access");
+  assert.equal(EXPEDITION_NODES["mite-nest"].unlockDiscovery,"mite-colony");
+  assert.equal(EXPEDITION_NODES["web-zone"].unlockDiscovery,"web-passage");
 });
 test("iniciar una expedición fija semilla, día, explorador y seis acciones",()=>{
   const state=fresh(),run=startExpedition(state,"isopod-001",{wasRunning:true});
@@ -40,12 +48,16 @@ test("iniciar una expedición fija semilla, día, explorador y seis acciones",()
   assert.throws(()=>startExpedition(fresh(),"missing"),/vivo/);
   const tired=fresh();tired.entities[0].energy=.2;assert.throws(()=>startExpedition(tired,"isopod-001"),/30 de energía/);
 });
-test("viajar valida conexiones, cobra acciones y genera un evento al descubrir nodo",()=>{
+test("viajar valida conexiones, bloqueos, costes y disponibilidad de acciones",()=>{
   const state=fresh(),run=startExpedition(state,"isopod-001");resolveFirst(state);
   const before=run.actionPoints,travel=travelToNode(state,"rotting-log");
   assert.equal(run.actionPoints,before-1);assert.equal(travel.nodeId,"rotting-log");assert.ok(run.pendingEvent);
   assert.throws(()=>travelToNode(state,"compost-bin"),/Resuelve/);resolveFirst(state);
-  run.actionPoints=0;assert.throws(()=>travelToNode(state,"compost-bin"),/No quedan acciones/);
+  assert.throws(()=>travelToNode(state,"compost-bin"),/bloqueado/);
+  assert.equal(run.currentNodeId,"rotting-log");
+  run.loot.discoveries.push("compost-access");
+  run.actionPoints=0;
+  assert.throws(()=>travelToNode(state,"compost-bin"),/No quedan acciones/);
   assert.throws(()=>travelToNode(state,"not-a-node"),/no existe/);
 });
 test("cada nodo entrega un solo evento por expedición y no regenera botín al revisitarlo",()=>{
@@ -54,6 +66,42 @@ test("cada nodo entrega un solo evento por expedición y no regenera botín al r
   travelToNode(state,"garden-entry");const actions=run.actionPoints;
   const visit=travelToNode(state,"mossy-stone");
   assert.equal(visit.event,null);assert.equal(run.pendingEvent,null);assert.ok(run.actionPoints<actions);assert.ok(run.resolvedEventIds.includes(eventId));
+});
+test("las tres rutas avanzadas se desbloquean al descubrir raíces, ácaros o telaraña",()=>{
+  const roots=fresh(),rootRun=startExpedition(roots,"isopod-001");
+  resolveFirst(roots);
+  travelToNode(roots,"abandoned-pot");
+  assert.equal(rootRun.pendingEvent.type,"roots");
+  assert.throws(()=>travelToNode(roots,"compost-bin"),/Resuelve/);
+  resolveExpeditionEvent(roots,"trace");
+  assert.ok(rootRun.loot.discoveries.includes("compost-access"));
+  travelToNode(roots,"compost-bin");
+  assert.equal(rootRun.currentNodeId,"compost-bin");
+
+  const mites=startAtEventType("mites"),miteRun=mites.expeditionProgress.active;
+  resolveExpeditionEvent(mites,"observe");
+  assert.ok(miteRun.loot.discoveries.includes("mite-colony"));
+  travelToNode(mites,"mite-nest");
+  assert.equal(miteRun.currentNodeId,"mite-nest");
+
+  const web=startAtEventType("web"),webRun=web.expeditionProgress.active;
+  resolveExpeditionEvent(web,"break");
+  assert.ok(webRun.loot.discoveries.includes("web-passage"));
+  travelToNode(web,"web-zone");
+  assert.equal(webRun.currentNodeId,"web-zone");
+});
+test("las rutas desbloqueadas en una run activa se guardan; las rutas manipuladas se rechazan",()=>{
+  const state=fresh(),run=startExpedition(state,"isopod-001");
+  resolveFirst(state);
+  travelToNode(state,"abandoned-pot");
+  resolveExpeditionEvent(state,"trace");
+  travelToNode(state,"compost-bin");
+  assert.equal(run.currentNodeId,"compost-bin");
+  const restored=parseTerrarium(serializeTerrarium(state));
+  assert.deepEqual(restored.expeditionProgress.active,state.expeditionProgress.active);
+  const tampered=JSON.parse(serializeTerrarium(state));
+  tampered.state.expeditionProgress.active.loot.discoveries=[];
+  assert.throws(()=>parseTerrarium(JSON.stringify(tampered)),/lugar aún bloqueado/);
 });
 test("las elecciones pagan puntos y energía antes de aplicar recompensa",()=>{
   const state=startAtEventType("mites"),run=state.expeditionProgress.active;
