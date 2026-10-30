@@ -45,6 +45,12 @@ test("la separación evita solapamientos incluso con dos isópodos en la misma c
   stepSimulation(first,1);
   stepSimulation(second,1);
   assert.deepEqual(first.entities,second.entities,"La separación debe ser determinista");
+  const firstPairDistance=Math.hypot(
+    first.entities[0].x-first.entities[1].x,
+    first.entities[0].z-first.entities[1].z
+  );
+  assert.ok(Math.abs(firstPairDistance-BIOLOGY_RULES.minimumCollisionDistance)<1e-6,
+    "La pareja coincidente debe separarse exactamente hasta el umbral físico");
   for(let i=0;i<first.entities.length;i++){
     for(let j=i+1;j<first.entities.length;j++){
       const a=first.entities[i],b=first.entities[j];

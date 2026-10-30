@@ -156,19 +156,21 @@ function applySocialSeparation(living,habitat){
     for(let j=i+1;j<living.length;j++){
       const other=living[j];
       if(other.alive===false)continue;
-      let dx=entity.x-other.x,dz=entity.z-other.z;
-      let distance=Math.hypot(dx,dz);
+      const dx=entity.x-other.x,dz=entity.z-other.z;
+      const distance=Math.hypot(dx,dz);
       if(distance>=minimumDistance)continue;
+      let nx,nz;
       if(distance<=1e-6){
         // Pair identity fixes the fallback axis; no random jitter or frame-dependent direction.
         const seed=(identity(entity)^identity(other))>>>0;
         const angle=seed/0x100000000*Math.PI*2;
-        dx=Math.cos(angle);
-        dz=Math.sin(angle);
-        distance=1;
+        nx=Math.cos(angle);
+        nz=Math.sin(angle);
+      }else{
+        nx=dx/distance;
+        nz=dz/distance;
       }
       const correction=(minimumDistance-distance)*.5;
-      const nx=dx/distance,nz=dz/distance;
       entity.x+=nx*correction;
       entity.z+=nz*correction;
       other.x-=nx*correction;
