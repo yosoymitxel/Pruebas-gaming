@@ -258,8 +258,9 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
         const a = new T.Vector3(...points[segment]), b = new T.Vector3(...points[segment + 1]);
         const direction = b.clone().sub(a);
         dummy.position.copy(a.add(b).multiplyScalar(.5));
-        dummy.quaternion.setFromUnitVectors(new T.Vector3(0,1,0), direction.normalize());
-        dummy.scale.set(1,direction.length(),1);
+        const segmentLength=direction.length();
+        dummy.quaternion.setFromUnitVectors(new T.Vector3(0,1,0), direction.clone().normalize());
+        dummy.scale.set(1,segmentLength,1);
         dummy.updateMatrix();
         stems.setMatrixAt(stemCount++,dummy.matrix);
       }
@@ -448,19 +449,19 @@ function addMushrooms(group, x, z, shape, radius, random, materials) {
   const dummy=new T.Object3D();
   for(let i=0;i<3;i++){
     const px=x+(i-1)*.055,pz=z+(random()-.5)*.08;
-    const height=.08+random()*.075,radius=.035+random()*.02;
-    const base=terrainHeightAt(px,pz,shape,radiusFor(shape,radius));
+    const height=.08+random()*.075,capRadius=.035+random()*.02;
+    const base=terrainHeightAt(px,pz,shape,radius);
     dummy.position.set(px,base+height/2,pz);
-    dummy.scale.set(radius,height,radius);
+    dummy.scale.set(capRadius,height,capRadius);
     dummy.rotation.y=random()*Math.PI;
     dummy.updateMatrix();stems.setMatrixAt(i,dummy.matrix);
 
     dummy.position.set(px,base+height,pz);
-    dummy.scale.set(radius*1.5,height*.11,radius*1.5);
+    dummy.scale.set(capRadius*1.5,height*.11,capRadius*1.5);
     dummy.updateMatrix();gills.setMatrixAt(i,dummy.matrix);
 
     dummy.position.set(px,base+height+height*.1,pz);
-    dummy.scale.set(radius*2.1,height*.4,radius*2.1);
+    dummy.scale.set(capRadius*2.1,height*.4,capRadius*2.1);
     dummy.updateMatrix();caps.setMatrixAt(i,dummy.matrix);
   }
   stems.instanceMatrix.needsUpdate=true;gills.instanceMatrix.needsUpdate=true;caps.instanceMatrix.needsUpdate=true;
