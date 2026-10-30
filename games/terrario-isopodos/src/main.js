@@ -74,7 +74,7 @@ async function enterGame(){
  const loaderTimer=setTimeout(()=>{loaderVisible=true;loadingScreen.hidden=false;},120);
  try{
   setLoadingStage("Cargando el motor 3D…");
-  assertWebGL2Available();
+  if(!renderer)assertWebGL2Available();
   await ensureRenderer();
   setLoadingStage("Montando el bosque y sus refugios…");
   renderer.setShape(state.habitat.shape);
