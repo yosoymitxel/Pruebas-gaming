@@ -2,8 +2,10 @@ import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
 import{stepSimulation,purchaseItem,startleIsopod,moveIsopod,moveResource}from"./simulation.js";
 import{hasValidTerrariumSave,saveTerrarium,loadTerrarium}from"./persistence.js";
-const state=createTerrariumState(),$=s=>document.querySelector(s);
-let renderer=null;
+import{mountExpeditionScreen}from"./expedition/ui.js";
+function createWorldSeed(){const words=new Uint32Array(1);if(globalThis.crypto?.getRandomValues){globalThis.crypto.getRandomValues(words);return words[0];}return(Date.now()^Math.floor(performance.now()*1000))>>>0;}
+const state=createTerrariumState({seed:createWorldSeed()}),$=s=>document.querySelector(s);
+let renderer=null,expeditionUI=null;
 let last=performance.now(),acc=0,saveMessage="",setupShape="rectangular",settings=loadSettings(),setupMode=settings.mode,lastModalFocus=null;
 const modalHistory=[];
 const loadingScreen=$("#screen-loading");
@@ -77,9 +79,12 @@ async function enterGame(){
   modalHistory.length=0;lastModalFocus=null;
   shell.hidden=false;
   renderer.resize();
-  state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();
+  state.running=false;last=performance.now();acc=0;update();renderer.resetCamera();
+  if(state.expeditionProgress?.active){expeditionUI?.show({resumeRunning:Boolean(state.expeditionProgress.active.wasRunning)});}
+  else state.running=true;
   return true;
  }catch(error){
+  if(expeditionUI?.element)expeditionUI.element.hidden=true;
   renderer?.dispose();renderer=null;$("#scene").replaceChildren();
   state.running=false;
   console.error("[Terrario] No se pudo iniciar:",error);
@@ -127,7 +132,7 @@ $("#new-game").addEventListener("click",()=>{setupMode=settings.mode;document.qu
 $("#back-to-menu").addEventListener("click",()=>{setup.hidden=true;menu.hidden=false;refreshMenu();});
 document.querySelectorAll("[data-setup-shape]").forEach(b=>b.addEventListener("click",()=>{setupShape=b.dataset.setupShape;document.querySelectorAll("[data-setup-shape]").forEach(x=>{const selected=x===b;x.classList.toggle("selected",selected);x.setAttribute("aria-pressed",String(selected));});}));
 document.querySelectorAll("[data-setup-mode]").forEach(b=>b.addEventListener("click",()=>{setupMode=b.dataset.setupMode;document.querySelectorAll("[data-setup-mode]").forEach(x=>{const selected=x===b;x.classList.toggle("selected",selected);x.setAttribute("aria-pressed",String(selected));});}));
-$("#start-game").addEventListener("click",async()=>{Object.assign(state,createTerrariumState());state.habitat.shape=setupShape;state.presentation.mode=setupMode;state.presentation.autoRotate=settings.autoRotate;settings.mode=setupMode;saveSettings();state.name=$("#setup-name").value.trim()||"Pequeño bosque";state.running=false;await enterGame();});
+$("#start-game").addEventListener("click",async()=>{Object.assign(state,createTerrariumState({seed:createWorldSeed()}));state.habitat.shape=setupShape;state.presentation.mode=setupMode;state.presentation.autoRotate=settings.autoRotate;settings.mode=setupMode;saveSettings();state.name=$("#setup-name").value.trim()||"Pequeño bosque";state.running=false;await enterGame();});
 $("#continue-game").addEventListener("click",async()=>{try{const loaded=loadTerrarium();if(!loaded){refreshMenu();return;}Object.assign(state,loaded);state.presentation={...state.presentation,mode:settings.mode,autoRotate:settings.autoRotate};await enterGame();}catch(e){openModal("No se pudo continuar",`<p>${e.message}</p>`);}});
 $("#open-settings").addEventListener("click",showSettings);$("#open-help").addEventListener("click",showHelp);$("#close-modal").addEventListener("click",dismissModal);
 $("#open-game-menu").addEventListener("click",showPauseMenu);
@@ -179,8 +184,15 @@ function update(){
  document.querySelectorAll("[data-mode]").forEach(b=>{const a=b.dataset.mode===state.presentation.mode;b.classList.toggle("active",a);b.setAttribute("aria-pressed",String(a));});
  document.querySelectorAll("[data-shape]").forEach(b=>{const a=b.dataset.shape===state.habitat.shape;b.classList.toggle("active",a);b.setAttribute("aria-pressed",String(a));});
  document.querySelectorAll("[data-weather]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.weather===(state.habitat.weather??"clear"))));
- renderer?.syncEntities(); 
+ renderer?.syncEntities();
 }
+expeditionUI=mountExpeditionScreen({
+ state,
+ onEnter:()=>{const wasRunning=state.running;state.running=false;last=performance.now();acc=0;update();return wasRunning;},
+ onExit:({resume})=>{state.running=Boolean(resume);last=performance.now();acc=0;renderer?.syncEntities();renderer?.syncResources();update();try{saveTerrarium(state);refreshMenu();}catch(error){saveMessage="No se pudo guardar el regreso: "+error.message;update();}},
+ onSave:()=>{try{saveTerrarium(state);refreshMenu();return true;}catch(error){saveMessage="No se pudo guardar la expedición: "+error.message;return false;}},
+ onChange:()=>{renderer?.syncEntities();renderer?.syncResources();update();}
+});
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{const before=snapshotDomain(state);renderer.setMode(b.dataset.mode);if(snapshotDomain(state)!==before)throw Error("El renderer alteró el estado de dominio");state.presentation.mode=b.dataset.mode;settings.mode=b.dataset.mode;saveSettings();saveMessage="";update();}));
 document.querySelectorAll("[data-shape]").forEach(b=>b.addEventListener("click",()=>{state.habitat.shape=b.dataset.shape;renderer.setShape(b.dataset.shape);update();}));
 $("#pause").addEventListener("click",()=>{if(state.running){showPauseMenu();}else{state.running=true;last=performance.now();acc=0;closeModal();update();}});

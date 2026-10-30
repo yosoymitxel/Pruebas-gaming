@@ -319,6 +319,42 @@ try{
  if(!Number.isFinite(orbDistance)||!Number.isFinite(orbFit)||orbDistance+.02<orbFit)throw new Error("La cámara no encuadra el globo en móvil");
  await page.screenshot({path:"artifacts/visual/spherical-orb-390x844.png",fullPage:true});
 
+
+ // Expedition smoke: the overlay keeps the terrarium canvas alive and restores an active run.
+ await page.evaluate(()=>{window.__terrariumCanvasBeforeExpedition=document.querySelector("#scene canvas");});
+ await page.locator("#open-expedition").click();
+ await page.locator("#screen-expedition").waitFor({state:"visible"});
+ if(await page.locator("#expedition-start").isDisabled())throw new Error("No hay explorador disponible aunque la colonia tiene energía");
+ await page.locator("#expedition-start").click();
+ if(!await page.locator("#expedition-event-title").isVisible())throw new Error("No se generó el encuentro inicial");
+ await page.locator(".expedition-choice:not(:disabled)").first().click();
+ const route=page.locator(".expedition-node:not(:disabled)").first();
+ if(await route.count()===0)throw new Error("No aparece una ruta conectada desde la entrada");
+ await route.click();
+ if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nuevo nodo no generó su evento");
+ if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
+ await page.locator("#expedition-save").click();
+ const activeRun=await page.evaluate(()=>{
+  const run=JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active;
+  localStorage.setItem("terrario-test.expedition-id",run.id);
+  return run;
+ });
+ if(!activeRun||!["mossy-stone","rotting-log"].includes(activeRun.currentNodeId))throw new Error("El guardado no conserva la posición de la expedición");
+ await page.reload({waitUntil:"networkidle"});
+ await page.getByRole("button",{name:/Continuar partida/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.locator("#screen-expedition").waitFor({state:"visible",timeout:15000});
+ const restored=await page.evaluate(()=>({run:JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active,expected:localStorage.getItem("terrario-test.expedition-id")}));
+ if(!restored.run||restored.run.id!==restored.expected||restored.run.currentNodeId!==activeRun.currentNodeId)throw new Error("La misma expedición y ubicación no se restauraron al recargar");
+ await page.locator("#expedition-return").click();
+ if(!await page.locator("#expedition-home").isVisible())throw new Error("No aparece la liquidación del regreso");
+ if(!(await page.locator("#expedition-day").textContent()).includes("Día 02"))throw new Error("El regreso no avanzó exactamente una jornada");
+ await page.screenshot({path:"artifacts/visual/expedition-settlement-390x844.png",fullPage:true});
+ await page.locator("#expedition-home").click();
+ if(await page.locator("#screen-expedition").isVisible())throw new Error("La pantalla de expedición no se cerró");
+ if(!await page.locator("#scene canvas").isVisible())throw new Error("El renderer desapareció al volver al terrario");
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("La expedición genera overflow horizontal en móvil");
+
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
  unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
