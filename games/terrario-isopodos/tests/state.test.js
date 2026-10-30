@@ -176,17 +176,23 @@ test("la geometría compartida mantiene entidades dentro de ambos recipientes",(
 });
 
 test("la simulación no permite que un isópodo atraviese el límite rectangular o circular",()=>{
-  for(const shape of ["rectangular","cilindrico"]){
+  for(const shape of ["rectangular","cilindrico","esferico"]){
     const s=createTerrariumState();
     s.habitat.shape=shape;
     s.entities[0].x=99;
     s.entities[0].z=-99;
     stepSimulation(s,1);
-    if(shape==="cilindrico"){
-      assert.ok(Math.hypot(s.entities[0].x,s.entities[0].z)<=1.28+1e-9);
+    if(shape!=="rectangular"){
+      assert.ok(Math.hypot(s.entities[0].x,s.entities[0].z)<=HABITAT_GEOMETRY[shape].floorRadius-.2+1e-9);
     }else{
       assert.ok(Math.abs(s.entities[0].x)<=1.4+1e-9);
       assert.ok(Math.abs(s.entities[0].z)<=.85+1e-9);
     }
   }
+});
+
+
+test("la forma esférica se conserva al guardar y restaurar",()=>{
+  const s=createTerrariumState();s.habitat.shape="esferico";
+  assert.equal(parseTerrarium(serializeTerrarium(s)).habitat.shape,"esferico");
 });

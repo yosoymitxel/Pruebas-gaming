@@ -32,6 +32,8 @@ export function stepSimulation(state,minutes=1){
 
     for(const e of state.entities){
       if(e.alive===false)continue;
+      e.previousX=e.x;
+      e.previousZ=e.z;
       const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
       e.hydration=clamp((e.hydration ?? .8)-(BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.2,1-h.humidity)),0,1);
       e.energy=clamp((e.energy ?? .8)-BIOLOGY_RULES.energyLossPerMinute,0,1);

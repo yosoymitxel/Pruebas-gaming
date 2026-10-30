@@ -58,45 +58,49 @@ function getVoxelMaterial(){
   return voxelMaterial;
 }
 
+function segmentBetween(a,b,r,m){
+  const start=new T.Vector3(...a),end=new T.Vector3(...b),direction=end.clone().sub(start);
+  const part=mesh(new T.CylinderGeometry(r*.72,r,direction.length(),7),m,start.clone().add(end).multiplyScalar(.5).toArray());
+  part.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());
+  return part;
+}
 function isopod(voxel){
-  const root=new T.Group();
-  const dark=mat(0x39392e), shell=mat(0x756c57), light=mat(0xb2a17d), seam=mat(0x4d4a3a);
-  const add=(g,m,p)=>root.add(mesh(g,m,p));
-  root.userData.legs=[];
-  root.userData.antennae=[];
+  const root=new T.Group(),dark=mat(0x39392e),shell=mat(0x756c57),light=mat(0xb2a17d),seam=mat(0x4d4a3a);
+  root.userData.legs=[];root.userData.antennae=[];root.userData.shellSegments=[];
   if(voxel){
-    const sprite=new T.Sprite(getVoxelMaterial());
-    sprite.position.y=.28;
-    sprite.scale.set(.88,.48,1);
-    root.add(sprite);
-  } else {
-    add(new T.SphereGeometry(.29,24,16),dark,[0,.17,0]);
+    const sprite=new T.Sprite(getVoxelMaterial());sprite.position.y=.28;sprite.scale.set(.88,.48,1);root.add(sprite);
+  }else{
+    const abdomen=mesh(new T.SphereGeometry(1,24,16),dark,[0,.19,0]);abdomen.scale.set(.29,.15,.19);root.add(abdomen);
     for(let i=0;i<7;i++){
-      const t=i/7;
-      const x=.25-t*.52;
-      const s=.22*Math.sin(Math.PI*(.13+t*.82));
-      const o=mesh(new T.SphereGeometry(1,18,12), i%2 ? shell : light, [x, .27 + Math.sin(t*Math.PI)*.055, 0]);
-      o.scale.set(.14,.19+s*.2,.22);
-      root.add(o);
-    }
-    add(new T.SphereGeometry(.145,20,14),shell,[.32,.25,0]);
-    for(const z of [-1,1]){
-      add(new T.SphereGeometry(.035,10,8),dark,[.39,.29,z*.105]);
-      for(let i=0;i<7;i++){
-        const l=mesh(new T.CylinderGeometry(.012,.018,.14,6),dark,[.2-i*.062,.105,z*.19]);
-        l.rotation.z = (z > 0 ? 1 : -1) * .45;
-        root.add(l);
+      const x=.23-i*.065,taper=.82+Math.sin((i+1)/8*Math.PI)*.18;
+      const plate=mesh(new T.SphereGeometry(1,18,12),i%2?light:shell,[x,.285,0]);
+      plate.scale.set(.082,.105*taper,.172*taper);plate.rotation.z=(i-3)*-.018;root.add(plate);
+      root.userData.shellSegments.push(plate);
+      for(const side of [-1,1]){
+        const pivot=new T.Group();pivot.position.set(x,.155,side*.115);
+        pivot.add(segmentBetween([0,0,0],[.006,-.043,side*.055],.012,dark));
+        pivot.add(segmentBetween([.006,-.043,side*.055],[.018,-.09,side*.105],.009,seam));
+        root.add(pivot);root.userData.legs.push({pivot,index:i,side});
       }
     }
+    const head=new T.Group();head.position.set(.335,.255,0);
+    const cephalon=mesh(new T.SphereGeometry(1,18,12),shell,[0,0,0]);cephalon.scale.set(.12,.105,.145);head.add(cephalon);
+    for(const side of [-1,1]){
+      head.add(mesh(new T.SphereGeometry(.025,9,7),dark,[.055,.018,side*.09]));
+      const antenna=new T.Group();antenna.position.set(.09,.025,side*.045);
+      antenna.add(segmentBetween([0,0,0],[.105,.055,side*.022],.008,light));
+      antenna.add(segmentBetween([.105,.055,side*.022],[.165,.095,side*.045],.006,light));
+      head.add(antenna);root.userData.antennae.push({pivot:antenna,side});
+    }
+    root.add(head);
   }
-  root.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
-  root.scale.setScalar(voxel ? .92 : .72);
-  root.userData.baseScale = voxel ? .92 : .72;
+  root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  root.scale.setScalar(voxel?.92:.72);root.userData.baseScale=voxel?.92:.72;
   return root;
 }
-
 export class TerrariumRenderer {
   constructor(el,state){
+    this.interpolationAlpha=1;
     this.el=el;
     this.state=state;
     this.scene=new T.Scene();
@@ -220,16 +224,12 @@ export class TerrariumRenderer {
   fitDistance(){
     const shape=this.state.habitat.shape;
     const spec=HABITAT_GEOMETRY[shape];
-    const halfWidth=shape==="cilindrico"?1.61:Math.max(spec.outerWidth,3.6)/2;
-    const halfDepth=shape==="cilindrico"?1.61:Math.max(spec.outerDepth,2.4)/2;
-    const projectedHalfWidth=shape==="cilindrico"
-      ? halfWidth
-      : Math.abs(Math.cos(this.angle))*halfWidth+Math.abs(Math.sin(this.angle))*halfDepth;
-    const projectedGroundHalfHeight=shape==="cilindrico"
-      ? halfWidth*Math.abs(Math.sin(this.elevation))
-      : (Math.abs(Math.sin(this.angle))*halfWidth+Math.abs(Math.cos(this.angle))*halfDepth)*Math.abs(Math.sin(this.elevation));
-    const projectedHalfHeight=projectedGroundHalfHeight+
-      (spec.wallHeight/2+.34)*Math.abs(Math.cos(this.elevation));
+    const round=shape!=="rectangular";
+    const halfWidth=round?spec.outerRadius:Math.max(spec.outerWidth,3.6)/2;
+    const halfDepth=round?spec.outerRadius:Math.max(spec.outerDepth,2.4)/2;
+    const projectedHalfWidth=round?halfWidth:Math.abs(Math.cos(this.angle))*halfWidth+Math.abs(Math.sin(this.angle))*halfDepth;
+    const projectedGroundHalfHeight=round?halfWidth*Math.abs(Math.sin(this.elevation)):(Math.abs(Math.sin(this.angle))*halfWidth+Math.abs(Math.cos(this.angle))*halfDepth)*Math.abs(Math.sin(this.elevation));
+    const projectedHalfHeight=shape==="esferico"?spec.outerRadius+.12:projectedGroundHalfHeight+(spec.wallHeight/2+.34)*Math.abs(Math.cos(this.elevation));
     const verticalFov=T.MathUtils.degToRad(this.camera.fov);
     const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*Math.max(this.camera.aspect,.1));
     const horizontalDistance=projectedHalfWidth/Math.tan(horizontalFov/2);
@@ -285,8 +285,8 @@ export class TerrariumRenderer {
   }
 
   terrain(shape){
-    if(shape === "cilindrico"){
-      const g=new T.CircleGeometry(1.61,56);
+    if(shape !== "rectangular"){
+      const g=new T.CircleGeometry(HABITAT_GEOMETRY[shape].floorRadius,56);
       const p=g.attributes.position;
       for(let i=0;i<p.count;i++){
         const x=p.getX(i), z=p.getY(i);
@@ -360,10 +360,10 @@ export class TerrariumRenderer {
     const frame=mat(0x9eafa0,.24,{metalness:.08});
     const base=this.terrain(shape);
     this.habitat.add(mesh(base, soil, [0,0,0]));
-    if(shape === "cilindrico"){
-      this.habitat.add(mesh(new T.CylinderGeometry(spec.floorRadius,spec.floorRadius,.12,48), humus, [0,.04,0]));
+    if(shape !== "rectangular"){
+      this.habitat.add(mesh(new T.CylinderGeometry(spec.floorRadius,spec.floorRadius,.12,56), humus, [0,.04,0]));
       // El vidrio inferior debe quedar bajo el sustrato, no como una lámina sobre él.
-      this.habitat.add(mesh(new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,.06,48), glass(), [0,-.055,0]));
+      this.habitat.add(mesh(new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,.06,56), glass(), [0,-.055,0]));
     } else {
       this.habitat.add(mesh(new T.BoxGeometry(spec.floorWidth,.12,spec.floorDepth), humus, [0,.04,0]));
       // Colocar la base de vidrio debajo del suelo evita velar la escena desde arriba.
@@ -374,7 +374,14 @@ export class TerrariumRenderer {
     // El borde superior ayuda a percibir su altura en ambas formas sin tapar los animales.
     const wallMaterial=glass(shape==="cilindrico"?.13:.055);
     const floorTop=.16, wallY=floorTop+spec.wallHeight/2, rimY=floorTop+spec.wallHeight;
-    if(shape==="cilindrico"){
+    if(shape==="esferico"){
+      const globe=mesh(new T.SphereGeometry(spec.outerRadius,64,48),glass(.055),[0,.1+spec.outerRadius,0]);
+      globe.renderOrder=5;this.habitat.add(globe);
+      const foot=mesh(new T.TorusGeometry(spec.outerRadius*.48,.025,10,64),frame,[0,.13,0]);
+      foot.rotation.x=Math.PI/2;this.habitat.add(foot);
+      this.renderer.domElement.dataset.containerWallCount="1";
+      this.renderer.domElement.dataset.containerKind="spherical-globe";
+    }else if(shape==="cilindrico"){
       const wall=mesh(
         new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,spec.wallHeight,64,1,true),
         wallMaterial,[0,wallY,0]
@@ -405,11 +412,11 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.containerShape=shape;
 
     const random=rng(shape === "cilindrico" ? 991 : 551);
-    const inside=(x,z)=>shape === "cilindrico" ? x*x + z*z < 1.45*1.45 : Math.abs(x)<1.88 && Math.abs(z)<1.22;
+    const inside=(x,z)=>shape!=="rectangular" ? x*x+z*z<(spec.floorRadius-.06)**2 : Math.abs(x)<1.88&&Math.abs(z)<1.22;
 
     for(let i=0;i<48;i++){
-      const x=(random()-.5)*(shape === "cilindrico" ? 2.7 : 3.7);
-      const z=(random()-.5)*(shape === "cilindrico" ? 2.7 : 2.35);
+      const x=(random()-.5)*(shape!=="rectangular"?2.25:3.7);
+      const z=(random()-.5)*(shape!=="rectangular"?2.25:2.35);
       if(!inside(x,z)) continue;
       const s=.09 + random()*.23;
       const o=mesh(new T.SphereGeometry(1,7,5), mat([0x736b5d,0x514f3c,0x8a8068][i%3], .96), [x,.22+s*.012,z]);
@@ -418,8 +425,8 @@ export class TerrariumRenderer {
     }
 
     for(let i=0;i<42;i++){
-      const x=(random()-.5)*(shape === "cilindrico" ? 2.6 : 3.7);
-      const z=(random()-.5)*(shape === "cilindrico" ? 2.6 : 2.35);
+      const x=(random()-.5)*(shape!=="rectangular"?2.25:3.7);
+      const z=(random()-.5)*(shape!=="rectangular"?2.25:2.35);
       if(!inside(x,z)) continue;
       this.addLeaf(x,z,.12 + random()*.29, random()*Math.PI, [0x87765d,0x6d7a48,0x87904c][i%3]);
     }
@@ -430,8 +437,8 @@ export class TerrariumRenderer {
       if(inside(x,z)) this.addFern(x,z,.45 + random()*.35,100+i);
     }
 
-    this.addMushrooms(-.95, -.55, .85);
-    this.addMushrooms(1.18, .48, .65);
+    this.addMushrooms(-.72, -.48, .85);
+    this.addMushrooms(shape==="esferico"?.72:1.18,shape==="esferico"?.3:.48,.65);
 
     for(let i=0;i<12;i++){
       const x=(random()-.5)*3.2;
@@ -454,18 +461,29 @@ export class TerrariumRenderer {
 
   syncEntities(){
     const byId=new Map(this.state.entities.map(e=>[e.id,e]));
-    const t=performance.now()*.001;
+    const simTime=this.state.clockMinutes+(this.interpolationAlpha??1);
+    const alpha=T.MathUtils.clamp(this.interpolationAlpha??1,0,1);
     for(const o of this.life.children){
       const e=byId.get(o.userData.entityId);
       if(!e){ o.visible=false; continue; }
       o.visible=e.alive !== false;
-      const phase=(t + Number((e.id||"0").slice(-2))) * 1.7;
-      o.position.set(e.x, .12 + (Math.sin(phase) * 0.04), e.z);
-      o.rotation.y = e.heading ?? 0;
-      o.rotation.x = e.behavior === "burrowing" ? -0.5 : 0;
-      o.rotation.z = e.behavior === "defensive-curl" ? 1.2 : 0;
-      const base = o.userData.baseScale ?? 1;
-      o.scale.setScalar(base * (e.behavior === "defensive-curl" ? 1.08 : 1));
+      const px=Number.isFinite(e.previousX)?e.previousX:e.x,pz=Number.isFinite(e.previousZ)?e.previousZ:e.z;
+      const x=T.MathUtils.lerp(px,e.x,alpha),z=T.MathUtils.lerp(pz,e.z,alpha);
+      const phase=simTime*.72+Number((e.id||"0").slice(-2))*.37;
+      const moving=["exploring","seeking-food","seeking-shelter"].includes(e.behavior);
+      o.position.set(x,e.behavior==="burrowing"?.065:.12,z);o.rotation.y=e.heading??0;
+      const base=o.userData.baseScale??1;o.scale.setScalar(base*(e.behavior==="defensive-curl"?1.12:1));
+      for(const leg of o.userData.legs??[]){
+        const gait=moving?Math.sin(phase-leg.index*.72+leg.side*Math.PI):Math.sin(phase*.28+leg.index)*.025;
+        leg.pivot.rotation.y=moving?gait*.38:0;leg.pivot.rotation.x=leg.side*(moving?.12+Math.abs(gait)*.12:.08);
+      }
+      for(const antenna of o.userData.antennae??[]){
+        antenna.pivot.rotation.z=Math.sin(phase*.24+antenna.side)*.085;
+        antenna.pivot.rotation.y=Math.sin(phase*.19+antenna.side)*.045;
+      }
+      for(let i=0;i<(o.userData.shellSegments??[]).length;i++){
+        o.userData.shellSegments[i].rotation.z=e.behavior==="defensive-curl"?(i-3)*.04:(i-3)*-.018;
+      }
     }
   }
 

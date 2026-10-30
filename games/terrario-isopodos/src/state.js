@@ -51,7 +51,7 @@ export function applyPresentationChange(state,next){
 
 export function applyHabitatShape(state,shape){
   if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
-  if(!new Set(["rectangular","cilindrico"]).has(shape))throw new Error("La forma del terrario no es válida");
+  if(!new Set(["rectangular","cilindrico","esferico"]).has(shape))throw new Error("La forma del terrario no es válida");
   state.habitat={...(state.habitat ?? {shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35}),shape};
   return state.habitat;
 }
