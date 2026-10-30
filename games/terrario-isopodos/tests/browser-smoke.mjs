@@ -160,7 +160,7 @@ try{
  if(await cameraCanvas.getAttribute("data-weather")!=="mist"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==7)throw new Error("La bruma no crea sus capas animadas");
  await page.locator('.weather-control button[data-weather="clear"]').click();
  if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
- await page.locator('[data-weather="rain"]').click();
+ await page.locator('.weather-control button[data-weather="rain"]').click();
  await page.locator("#open-game-menu").click();
  await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.weatherMotion==="static");
  await page.screenshot({path:"artifacts/visual/pause-floating-1440x1000.png",fullPage:true});
@@ -257,7 +257,7 @@ try{
  const savedResources=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources);
  if(!savedResources.some(r=>r.type==="mushroom")||!savedResources.some(r=>r.type==="shelter"&&r.id!=="shelter-1")||!savedResources.some(r=>r.type==="leaf-litter"))throw new Error("Los objetos colocados/comprados no sobrevivieron a guardar/cargar");
  if(await page.locator("#scene canvas").getAttribute("data-weather")!=="rain")throw new Error("El guardado no restauró el clima lluvioso");
- if(await page.locator('[data-weather="rain"]').getAttribute("aria-pressed")!=="true")throw new Error("El selector no refleja el clima restaurado");
+ if(await page.locator('.weather-control button[data-weather="rain"]').getAttribute("aria-pressed")!=="true")throw new Error("El selector no refleja el clima restaurado");
 
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
