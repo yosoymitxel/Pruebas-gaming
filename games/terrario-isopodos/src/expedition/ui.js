@@ -79,6 +79,7 @@ export function mountExpeditionScreen({
             '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
             '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
           '</div>',
+          '<button type="button" id="expedition-map-back" class="expedition-map-back">← Volver al mapa</button>',
         '</section>',
         '<section id="expedition-settlement" class="expedition-settlement" hidden>',
           '<div class="expedition-settlement-card"><span class="expedition-kicker">REGISTRO DE REGRESO</span><h2>De vuelta bajo la corteza.</h2><p id="expedition-settlement-copy"></p>',
