@@ -1464,3 +1464,12 @@ footer{display:none}
 .climate-stepper small{color:var(--muted);font-size:8px;line-height:1.25;text-align:center}
 @media(max-width:380px){.climate-readings{gap:9px}.climate-reading strong{font-size:20px}.climate-stepper{grid-template-columns:28px minmax(0,1fr) 28px;gap:3px}.climate-stepper button{width:28px;height:28px}}
 @media(prefers-reduced-motion:reduce){.climate-meter>span{transition:none}}
+
+/* Un encuentro pendiente necesita tres filas; gana a la reserva compacta del mapa activo. */
+.expedition-screen.has-active-expedition.has-pending-event:not(.is-level) .expedition-stage{--expedition-panel-height:194px}
+@media(max-width:760px){
+ .expedition-screen.has-active-expedition.has-pending-event:not(.is-level) .expedition-stage{--expedition-panel-height:196px}
+}
+@media(max-width:380px){
+ .expedition-screen.has-active-expedition.has-pending-event:not(.is-level) .expedition-stage{--expedition-panel-height:206px}
+}
