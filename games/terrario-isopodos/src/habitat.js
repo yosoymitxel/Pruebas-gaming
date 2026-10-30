@@ -21,15 +21,15 @@ export function constrainToHabitat(x,z,shape="rectangular",margin=0){
  
 // Shared dimensions are the source of truth for rendering, placement and perching.
 export const REFUGE_MODEL_PROFILES=Object.freeze({
-  shelter:Object.freeze({length:1.22,thickness:.32,scale:1.10,perchClearance:.05}),
-  bark:Object.freeze({length:1.18,thickness:.24,scale:1.08,perchClearance:.05})
+  shelter:Object.freeze({length:1.22,thickness:.32,scale:1.10,verticalScale:1.45,perchClearance:.015}),
+  bark:Object.freeze({length:1.18,thickness:.24,scale:1.08,verticalScale:1.45,perchClearance:.015})
 });
 
 export function refugePerchHeight(resource){
   const profile=REFUGE_MODEL_PROFILES[resource?.type];
   if(!profile)return 0;
   const amount=Math.min(1.2,Math.max(.4,Number(resource?.amount??1)));
-  return profile.thickness*profile.scale*amount+profile.perchClearance;
+  return profile.thickness*profile.scale*profile.verticalScale*amount+profile.perchClearance;
 }
 
 // Diagonal hollow-log orientation and complete horizontal footprint.

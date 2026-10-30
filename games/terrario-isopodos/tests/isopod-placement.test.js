@@ -18,14 +18,14 @@ test("los isópodos pueden seguir encaramándose sobre los refugios normales",()
   const pose=resolveIsopodRefugePose({behavior:"burrowing"},{resource:{type:"shelter"},distance:.2});
   assert.equal(pose.underCover,false);
   assert.equal(pose.perched,true);
-  assert.ok(Math.abs(pose.heightOffset-(REFUGE_MODEL_PROFILES.shelter.thickness*REFUGE_MODEL_PROFILES.shelter.scale+REFUGE_MODEL_PROFILES.shelter.perchClearance))<1e-9);
+  assert.ok(Math.abs(pose.heightOffset-(REFUGE_MODEL_PROFILES.shelter.thickness*REFUGE_MODEL_PROFILES.shelter.scale*REFUGE_MODEL_PROFILES.shelter.verticalScale+REFUGE_MODEL_PROFILES.shelter.perchClearance))<1e-9);
 });
 
 test("un isópodo que camina sobre Tronco hueco sigue usando la superficie superior",()=>{
   const pose=resolveIsopodRefugePose({behavior:"exploring"},{resource:{type:"bark"},distance:.2});
   assert.equal(pose.underCover,false);
   assert.equal(pose.perched,true);
-  assert.ok(Math.abs(pose.heightOffset-(REFUGE_MODEL_PROFILES.bark.thickness*REFUGE_MODEL_PROFILES.bark.scale+REFUGE_MODEL_PROFILES.bark.perchClearance))<1e-9);
+  assert.ok(Math.abs(pose.heightOffset-(REFUGE_MODEL_PROFILES.bark.thickness*REFUGE_MODEL_PROFILES.bark.scale*REFUGE_MODEL_PROFILES.bark.verticalScale+REFUGE_MODEL_PROFILES.bark.perchClearance))<1e-9);
 });
 
 test("excavar fuera de un refugio conserva la pose bajo la hojarasca",()=>{

@@ -126,11 +126,11 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 
 ### SPACE-01 — Espacio
 - [x] Aumentar el refugio normal a 1,22×0,32 (escala 1,10) y Tronco hueco a 1,18×0,24 (escala 1,08).
-- [x] Unificar perfil visual, altura de encaramado y huella del modelo.
+- [x] Unificar perfil visual, factor vertical del arco, altura de encaramado y huella del modelo.
 - [x] Limitar compra/arrastre de refugios y troncos completos; migrar posiciones de guardados antiguos.
 - [x] Recolocar refugios especiales al cambiar entre recipiente rectangular, cilíndrico y esférico.
 - [x] Añadir mediciones reales de bounding box del refugio para Playwright.
-- [ ] Validar capturas reales y la circulación de varios isópodos sobre el refugio ampliado.
+- [ ] Validar capturas reales de dimensiones 3D y circulación de varios isópodos sobre el refugio ampliado (CI en curso).
 - [ ] Ampliar el volumen útil de suelo y reservar corredores de circulación.
 
 ### SPACE-02 — Tronco diagonal
