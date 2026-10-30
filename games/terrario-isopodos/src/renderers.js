@@ -1,4 +1,5 @@
 import * as T from "three";
+import { HABITAT_GEOMETRY } from "./habitat.js";
 
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
 
@@ -131,7 +132,8 @@ export class TerrariumRenderer {
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
     this.scene.add(this.world);
-    this.angle=.68; this.elevation=.55; this.distance=6.8;
+    this.angle=.68; this.elevation=.78; this.distance=6.8;
+    this.userAdjustedCamera=false;
     this.resourceSignature="";
     this.bind();
     this.resizeObserver=new ResizeObserver(()=>this.resize());
@@ -150,7 +152,8 @@ export class TerrariumRenderer {
     let pinchDistance=null;
 
     const zoomBy=delta=>{
-      this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);
+      this.distance=T.MathUtils.clamp(this.distance+delta,3.1,24);
+      this.userAdjustedCamera=true;
       this.cameraUpdate();
     };
 
@@ -191,6 +194,7 @@ export class TerrariumRenderer {
         drag.y=e.clientY;
         this.angle -= dx * 0.006;
         this.elevation = T.MathUtils.clamp(this.elevation + dy * 0.004, 0.25, 1.2);
+        this.userAdjustedCamera=true;
         this.cameraUpdate();
       }
     });
@@ -213,6 +217,26 @@ export class TerrariumRenderer {
     },{passive:false});
   }
 
+  fitDistance(){
+    const shape=this.state.habitat.shape;
+    const spec=HABITAT_GEOMETRY[shape];
+    const halfWidth=shape==="cilindrico"?1.61:Math.max(spec.outerWidth,3.6)/2;
+    const halfDepth=shape==="cilindrico"?1.61:Math.max(spec.outerDepth,2.4)/2;
+    const projectedHalfWidth=shape==="cilindrico"
+      ? halfWidth
+      : Math.abs(Math.cos(this.angle))*halfWidth+Math.abs(Math.sin(this.angle))*halfDepth;
+    const projectedGroundHalfHeight=shape==="cilindrico"
+      ? halfWidth*Math.abs(Math.sin(this.elevation))
+      : (Math.abs(Math.sin(this.angle))*halfWidth+Math.abs(Math.cos(this.angle))*halfDepth)*Math.abs(Math.sin(this.elevation));
+    const projectedHalfHeight=projectedGroundHalfHeight+
+      (spec.wallHeight/2+.34)*Math.abs(Math.cos(this.elevation));
+    const verticalFov=T.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*Math.max(this.camera.aspect,.1));
+    const horizontalDistance=projectedHalfWidth/Math.tan(horizontalFov/2);
+    const verticalDistance=projectedHalfHeight/Math.tan(verticalFov/2);
+    return Math.max(4.4,horizontalDistance,verticalDistance)*1.12;
+  }
+
   cameraUpdate(){
     const target=new T.Vector3(0,.32,0);
     const horizontal=Math.cos(this.elevation)*this.distance;
@@ -222,18 +246,27 @@ export class TerrariumRenderer {
       Math.cos(this.angle)*horizontal
     );
     this.camera.lookAt(target);
+    // El fit móvil puede alejar la cámara más allá de la niebla fija original (8–17).
+    // Escalar el rango evita que un recipiente bien encuadrado desaparezca en el fondo.
+    this.scene.fog.near=Math.max(8,this.distance*1.2);
+    this.scene.fog.far=Math.max(17,this.distance*2.6);
     this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);
+    this.renderer.domElement.dataset.cameraFitDistance=this.fitDistance().toFixed(2);
+    this.renderer.domElement.dataset.fogNear=this.scene.fog.near.toFixed(2);
+    this.renderer.domElement.dataset.fogFar=this.scene.fog.far.toFixed(2);
   }
 
   zoom(delta){
-    this.distance=T.MathUtils.clamp(this.distance+delta,3.1,10.2);
+    this.distance=T.MathUtils.clamp(this.distance+delta,3.1,24);
+    this.userAdjustedCamera=true;
     this.cameraUpdate();
   }
 
   resetCamera(){
     this.angle=.68;
-    this.elevation=.55;
-    this.distance=6.8;
+    this.elevation=.78;
+    this.userAdjustedCamera=false;
+    this.distance=Math.max(6.8,this.fitDistance());
     this.cameraUpdate();
   }
 
@@ -316,18 +349,60 @@ export class TerrariumRenderer {
   setShape(shape){
     this.clear(this.habitat);
     this.resourceSignature="";
-    const soil=mat(0x40372a), humus=mat(0x5d4b34), glass=()=>new T.MeshPhysicalMaterial({color:0xc5d8bf,transparent:true,opacity:.11,roughness:.2,transmission:.4});
+    const spec=HABITAT_GEOMETRY[shape];
+    const soil=mat(0x40372a), humus=mat(0x5d4b34);
+    // Use transparent standard shading instead of physical transmission.
+    // Transmission adds another render pass per pane and can stall software WebGL.
+    const glass=(opacity=.13)=>new T.MeshStandardMaterial({
+      color:0xc5d8bf,transparent:true,opacity,roughness:.28,
+      metalness:.015,side:T.DoubleSide,depthWrite:false
+    });
+    const frame=mat(0x9eafa0,.24,{metalness:.08});
     const base=this.terrain(shape);
     this.habitat.add(mesh(base, soil, [0,0,0]));
     if(shape === "cilindrico"){
-      this.habitat.add(mesh(new T.CylinderGeometry(1.48,1.48,.12,48), humus, [0,.04,0]));
-      const glassMesh=mesh(new T.CylinderGeometry(1.52,1.52,.14,48), glass(), [0,.09,0]);
-      glassMesh.rotation.x = 0;
-      this.habitat.add(glassMesh);
+      this.habitat.add(mesh(new T.CylinderGeometry(spec.floorRadius,spec.floorRadius,.12,48), humus, [0,.04,0]));
+      // El vidrio inferior debe quedar bajo el sustrato, no como una lámina sobre él.
+      this.habitat.add(mesh(new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,.06,48), glass(), [0,-.055,0]));
     } else {
-      this.habitat.add(mesh(new T.BoxGeometry(3.2,.12,2.1), humus, [0,.04,0]));
-      this.habitat.add(mesh(new T.BoxGeometry(3.35,.14,2.2), glass(), [0,.09,0]));
+      this.habitat.add(mesh(new T.BoxGeometry(spec.floorWidth,.12,spec.floorDepth), humus, [0,.04,0]));
+      // Colocar la base de vidrio debajo del suelo evita velar la escena desde arriba.
+      this.habitat.add(mesh(new T.BoxGeometry(spec.outerWidth,.06,spec.outerDepth), glass(), [0,-.055,0]));
     }
+
+    // Paredes de vidrio verticales: el recipiente deja de parecer una bandeja abierta.
+    // El borde superior ayuda a percibir su altura en ambas formas sin tapar los animales.
+    const wallMaterial=glass(shape==="cilindrico"?.13:.055);
+    const floorTop=.16, wallY=floorTop+spec.wallHeight/2, rimY=floorTop+spec.wallHeight;
+    if(shape==="cilindrico"){
+      const wall=mesh(
+        new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,spec.wallHeight,64,1,true),
+        wallMaterial,[0,wallY,0]
+      );
+      this.habitat.add(wall);
+      const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.023,8,64),frame,[0,rimY,0]);
+      rim.rotation.x=Math.PI/2;
+      this.habitat.add(rim);
+      this.renderer.domElement.dataset.containerWallCount="1";
+    } else {
+      const halfW=spec.outerWidth/2-spec.wallThickness/2;
+      const halfD=spec.outerDepth/2-spec.wallThickness/2;
+      const walls=[
+        mesh(new T.BoxGeometry(spec.outerWidth,spec.wallHeight,spec.wallThickness),wallMaterial,[0,wallY,halfD]),
+        mesh(new T.BoxGeometry(spec.outerWidth,spec.wallHeight,spec.wallThickness),wallMaterial,[0,wallY,-halfD]),
+        mesh(new T.BoxGeometry(spec.wallThickness,spec.wallHeight,spec.outerDepth),wallMaterial,[halfW,wallY,0]),
+        mesh(new T.BoxGeometry(spec.wallThickness,spec.wallHeight,spec.outerDepth),wallMaterial,[-halfW,wallY,0])
+      ];
+      this.habitat.add(...walls);
+      this.habitat.add(
+        mesh(new T.BoxGeometry(spec.outerWidth,.045,.045),frame,[0,rimY,halfD]),
+        mesh(new T.BoxGeometry(spec.outerWidth,.045,.045),frame,[0,rimY,-halfD]),
+        mesh(new T.BoxGeometry(.045,.045,spec.outerDepth),frame,[halfW,rimY,0]),
+        mesh(new T.BoxGeometry(.045,.045,spec.outerDepth),frame,[-halfW,rimY,0])
+      );
+      this.renderer.domElement.dataset.containerWallCount="4";
+    }
+    this.renderer.domElement.dataset.containerShape=shape;
 
     const random=rng(shape === "cilindrico" ? 991 : 551);
     const inside=(x,z)=>shape === "cilindrico" ? x*x + z*z < 1.45*1.45 : Math.abs(x)<1.88 && Math.abs(z)<1.22;
@@ -438,7 +513,11 @@ export class TerrariumRenderer {
     const h=Math.max(1,this.el.clientHeight||260);
     this.camera.aspect=w/h;
     this.camera.updateProjectionMatrix();
+    const fit=this.fitDistance();
+    if(this.userAdjustedCamera) this.distance=Math.max(this.distance,fit);
+    else this.distance=Math.max(6.8,fit);
     this.renderer.setSize(w,h,false);
+    this.cameraUpdate();
   }
 
   draw(){

@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
 import {addFood,addShelter,stepSimulation} from "../src/simulation.js";
-import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,SAVE_KEY} from "../src/persistence.js";
+import {constrainToHabitat,HABITAT_GEOMETRY} from "../src/habitat.js";
+import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,hasValidTerrariumSave,SAVE_KEY} from "../src/persistence.js";
 
 test("el estado inicial contiene una colonia con IDs estables",()=>{
   const s=createTerrariumState();
@@ -151,4 +152,41 @@ test("la persistencia admite posiciones válidas en los bordes del recipiente",(
   const loaded=parseTerrarium(serializeTerrarium(s));
   assert.equal(loaded.entities[0].x,1.7);
   assert.equal(loaded.entities[0].z,1.1);
+});
+
+test("solo considera continuable un guardado que se puede restaurar",()=>{
+  const values=new Map(),storage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k)??null};
+  assert.equal(hasValidTerrariumSave(storage),false);
+  storage.setItem(SAVE_KEY,"{");
+  assert.equal(hasValidTerrariumSave(storage),false);
+  const valid=serializeTerrarium(createTerrariumState());
+  storage.setItem(SAVE_KEY,valid);
+  assert.equal(hasValidTerrariumSave(storage),true);
+  const future=JSON.parse(valid);future.schemaVersion=2;
+  storage.setItem(SAVE_KEY,JSON.stringify(future));
+  assert.equal(hasValidTerrariumSave(storage),false);
+});
+
+test("la geometría compartida mantiene entidades dentro de ambos recipientes",()=>{
+  const rectangular=constrainToHabitat(99,-99,"rectangular",.2);
+  assert.equal(rectangular.x,HABITAT_GEOMETRY.rectangular.floorWidth/2-.2);
+  assert.equal(rectangular.z,-(HABITAT_GEOMETRY.rectangular.floorDepth/2-.2));
+  const cylindrical=constrainToHabitat(10,10,"cilindrico",.2);
+  assert.ok(Math.hypot(cylindrical.x,cylindrical.z)<=HABITAT_GEOMETRY.cilindrico.floorRadius-.2+1e-9);
+});
+
+test("la simulación no permite que un isópodo atraviese el límite rectangular o circular",()=>{
+  for(const shape of ["rectangular","cilindrico"]){
+    const s=createTerrariumState();
+    s.habitat.shape=shape;
+    s.entities[0].x=99;
+    s.entities[0].z=-99;
+    stepSimulation(s,1);
+    if(shape==="cilindrico"){
+      assert.ok(Math.hypot(s.entities[0].x,s.entities[0].z)<=1.28+1e-9);
+    }else{
+      assert.ok(Math.abs(s.entities[0].x)<=1.4+1e-9);
+      assert.ok(Math.abs(s.entities[0].z)<=.85+1e-9);
+    }
+  }
 });

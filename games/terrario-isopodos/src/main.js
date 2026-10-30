@@ -1,7 +1,7 @@
 import "./style.css";
 import{createTerrariumState,formatClock,snapshotDomain}from"./state.js";
 import{stepSimulation,addFood,addShelter,purchaseItem}from"./simulation.js";
-import{SAVE_KEY,saveTerrarium,loadTerrarium}from"./persistence.js";
+import{hasValidTerrariumSave,saveTerrarium,loadTerrarium}from"./persistence.js";
 import{TerrariumRenderer}from"./renderers.js";
 const state=createTerrariumState(),renderer=new TerrariumRenderer(document.querySelector("#scene"),state),$=s=>document.querySelector(s);
 let last=performance.now(),acc=0,saveMessage="",setupShape="rectangular",settings=loadSettings(),setupMode=settings.mode,lastModalFocus=null;
@@ -9,8 +9,7 @@ const modalHistory=[];
 const menu=$("#screen-menu"),setup=$("#screen-setup"),modal=$("#screen-modal"),shell=document.querySelector(".shell"),workspace=$(".workspace"),panel=$("#controls-panel"),panelToggle=$("#panel-toggle");
 function loadSettings(){try{const raw=JSON.parse(localStorage.getItem("terrario-isopodos.settings.v1")||"{}");return{autoRotate:typeof raw.autoRotate==="boolean"?raw.autoRotate:true,quality:raw.quality==="economy"?"economy":"normal",mode:raw.mode==="voxel"?"voxel":"diorama"}}catch{return{autoRotate:true,quality:"normal",mode:"diorama"}}}
 function saveSettings(){try{localStorage.setItem("terrario-isopodos.settings.v1",JSON.stringify(settings));return true}catch(error){saveMessage="No se pudieron guardar los ajustes: "+error.message;return false}}
-function hasSave(){try{return Boolean(localStorage.getItem(SAVE_KEY))}catch{return false}}
-function refreshMenu(){ $("#continue-game").disabled=!hasSave(); }
+function refreshMenu(){ $("#continue-game").disabled=!hasValidTerrariumSave(); }
 function enterGame(){menu.hidden=true;setup.hidden=true;modal.hidden=true;modalHistory.length=0;lastModalFocus=null;shell.hidden=false;renderer.resize();state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();}
 function openModal(title,body,{push=true}={}){
  if(!modal.hidden&&push)modalHistory.push({title:$("#modal-title").textContent,body:$("#modal-body").innerHTML,focusId:document.activeElement?.id??""});

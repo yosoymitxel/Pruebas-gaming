@@ -1,3 +1,5 @@
+import { constrainToHabitat } from "./habitat.js";
+
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
 const identity=e=>[...String(e.id)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 export const MODEL_VERSION=1;
@@ -82,9 +84,12 @@ export function stepSimulation(state,minutes=1){
         }
       }
 
-      const radius=h.shape==="cilindrico"?1.28:1.55;
-      if(h.shape==="cilindrico"){const d=Math.hypot(e.x,e.z);if(d>radius){e.x=e.x/d*radius;e.z=e.z/d*radius;e.heading=Math.atan2(-e.x,-e.z);}}
-      else{if(e.x<-1.75||e.x>1.75)e.heading=-e.heading;e.x=clamp(e.x,-1.75,1.75);e.z=clamp(e.z,-1.15,1.15);if(e.z<=-1.15||e.z>=1.15)e.heading=-e.heading;}
+      const constrained=constrainToHabitat(e.x,e.z,h.shape,.2);
+      if(constrained.x!==e.x||constrained.z!==e.z){
+        e.x=constrained.x;
+        e.z=constrained.z;
+        e.heading= h.shape==="cilindrico" ? Math.atan2(-e.x,-e.z) : -(e.heading??0);
+      }
       if(e.hydration<=0||e.energy<=0)e.stress=clamp(e.stress+.002,0,1);
       if(e.hydration<.15&&e.energy<.1)e.alive=false;
     }
@@ -127,8 +132,9 @@ export function purchaseItem(state,itemId){
   const angle=index*2.399963229728653;
   const radius=.35+(index%4)*.22;
   const shape=state.habitat?.shape;
-  const x=shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.max(-1.55,Math.min(1.55,Math.cos(angle)*radius));
-  const z=shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.max(-.95,Math.min(.95,Math.sin(angle)*radius));
+  const proposedX=shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.cos(angle)*radius;
+  const proposedZ=shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.sin(angle)*radius;
+  const {x,z}=constrainToHabitat(proposedX,proposedZ,shape,.08);
   const resource={id:`shop-${item.id}-${index}`,type:item.type,amount:item.type==="leaf-litter"?.55:1,x,z};
   state.coins=coins-item.price;
   state.resources.push(resource);

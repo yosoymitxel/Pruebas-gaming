@@ -127,3 +127,9 @@ export function loadTerrarium(storage=globalThis.localStorage){
   if(!raw)return null;
   return parseTerrarium(raw);
 }
+
+
+/** Devuelve true únicamente si existe un guardado que pueda restaurarse de forma segura. */
+export function hasValidTerrariumSave(storage=globalThis.localStorage){
+  try{return loadTerrarium(storage)!==null;}catch{return false;}
+}
