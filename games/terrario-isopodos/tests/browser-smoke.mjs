@@ -222,7 +222,10 @@ try{
  await page.locator('[data-buy="mushroom"]').click();
  if(await page.locator("#coins").textContent()!=="23")throw new Error("La tienda no descontó el coste de las setas");
  if(!(await page.locator("#shop-note").textContent()).includes("Setas de bosque"))throw new Error("La tienda no confirmó el artículo comprado");
- await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.resourceArt==="shared-diorama-kit");
+ await page.waitForFunction(()=>{
+  const canvas=document.querySelector("#scene canvas");
+  return canvas?.dataset.resourceArt==="shared-diorama-kit"&&Number(canvas.dataset.resourceCount)>=3;
+ });
  if(Number(await cameraCanvas.getAttribute("data-resource-count"))<3)throw new Error("La tienda no montó los objetos en el motor compartido");
  await page.locator("#tool-food").click();
  if(await cameraCanvas.getAttribute("data-active-tool")!=="leaf-litter")throw new Error("No se activa la herramienta de hojarasca");
