@@ -14,7 +14,7 @@ Validación previa al squash sobre `99e860ad05bb06553bd29c5360dea17ab1638edd`:
 - [Framework checks — run 41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312): PASS.
 - [Evidencia Playwright — artefacto 12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214): capturas reales de escritorio, móvil, mapa, encuentros y liquidación. Chromium 156.0.8078.4; 1440×1000, 390×844 y 360×640; cero errores de consola y sin overflow horizontal.
 
-GitHub Pages publicó el merge SHA mediante [pages build and deployment — run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831). La URL del sitio es https://yosoymitxel.github.io/Pruebas-gaming/. El workflow adicional de validación post-deployment se sigue comprobando por separado; no confundirlo con el deploy ya confirmado.
+GitHub Pages publicó el merge SHA mediante [pages build and deployment — run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831). La URL del sitio es https://yosoymitxel.github.io/Pruebas-gaming/. La validación post-deployment adicional terminó PASS en [run 41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637), también sobre el merge SHA.
 
 **El MVP completo sigue NO APROBADO.** El mapa y los encuentros ya funcionan y son seleccionables, pero la composición todavía es demasiado despejada: falta densidad orgánica en el terreno, aumentar algunos props/hotspots y revisar solapamientos visuales del HUD. Las brechas del esqueleto siguen en el plan de recuperación.
 

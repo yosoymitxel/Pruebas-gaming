@@ -2,9 +2,9 @@
 
 **Auditoría normativa:** `framework/BASELINE-VIDEOJUEGO.md` y `framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md`.  
 **Producto:** [Especificación técnica](ESPECIFICACION-TERRARIO-ISOPODOS.md).  
-**Snapshot vigente — 30-10-2026:** `main` = `2f5dbe1c63f644f820d7897e022aabda0b7533c3`, PR #19 fusionada mediante squash. La rama `feat/isopod-render-spike` contiene después un commit exclusivamente documental (`b2a5c1d989cc781d24d46e393975a57bf69b288a`) pendiente de integrar; el código del juego no diverge del merge de PR #19. El SHA probado antes del squash fue `99e860ad05bb06553bd29c5360dea17ab1638edd`.  
+**Snapshot vigente — 30-10-2026:** `main` = `2f5dbe1c63f644f820d7897e022aabda0b7533c3`, PR #19 fusionada mediante squash. La rama `feat/isopod-render-spike` contiene únicamente seguimiento documental posterior; el código del juego no diverge del merge de PR #19. El SHA probado antes del squash fue `99e860ad05bb06553bd29c5360dea17ab1638edd`.  
 **Validación vigente:** Terrario MVP [41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251), Terrario game [41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122) y Framework [41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312) terminaron PASS. Artefacto visual inspeccionado: [12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214).  
-**Pages:** build y deployment publicados para el merge SHA por [run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831); URL: https://yosoymitxel.github.io/Pruebas-gaming/. El workflow post-deployment 41091167637 continúa una validación Playwright separada.  
+**Pages:** build y deployment publicados para el merge SHA por [run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831); URL: https://yosoymitxel.github.io/Pruebas-gaming/. La validación Playwright post-deployment [41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637) también terminó PASS.  
 **Estado general:** expediciones 3D funcionales e integradas; DESIGN_GATE parcial por deuda visual. **MVP completo NO APROBADO.** La auditoría vigente añadida al final de este documento supersede snapshots históricos.
 
 ## Auditoría histórica de errores y tareas — snapshot temprano f751e32 (30-10-2026)
@@ -223,7 +223,7 @@ Para el commit integrado `c09945d6e5e683e96eb9a96655ee748a8b009d89`, el build de
 - SHA probado antes del squash: `99e860ad05bb06553bd29c5360dea17ab1638edd`.
 - Terrario MVP [41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251), Terrario game [41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122) y Framework [41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312): PASS.
 - Evidencia Playwright [12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214): 1440×1000, 390×844 y 360×640; Chromium 156.0.8078.4; zero console errors; no horizontal overflow.
-- Pages build/deploy [41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831): build y deploy PASS para el merge SHA. El workflow de verificación post-deployment [41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637) seguía ejecutando su smoke cuando se escribió esta auditoría.
+- Pages build/deploy [41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831): build y deploy PASS para el merge SHA. El workflow de verificación post-deployment [41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637) también terminó PASS.
 
 ### Pendientes vigentes, por prioridad
 

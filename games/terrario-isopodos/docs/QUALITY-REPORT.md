@@ -39,7 +39,7 @@ Métricas del renderer del terrario en el smoke: 96 draw calls, 118.601 triángu
 | CODE_GATE | PASS | Auditoría de dependencias, tests Node y build de producción completados en los workflows del SHA probado. |
 | GAMEPLAY_GATE | PASS para el alcance probado | Inicio del sandbox, selección 3D de nodo, elección, guardado/reanudación, retorno y avance diario; tests de dominio de expediciones. No certifica funciones ecológicas aún ausentes. |
 | DESIGN_GATE | PARCIAL | El layout 3D, interacción y responsive se probaron y las capturas fueron inspeccionadas. El mapa sigue visualmente vacío en zonas amplias, varios props son pequeños y hay que pulir composición/HUD antes de considerar cerrada la dirección visual. |
-| INTEGRATION_GATE | PASS para PR #19 | El renderer/canvas se conserva; el sitio se construyó y publicó con el merge SHA. El workflow adicional post-deployment aún puede añadir validación, pero no revoca el deploy confirmado. |
+| INTEGRATION_GATE | PASS para PR #19 | El renderer/canvas se conserva; el sitio se construyó y publicó con el merge SHA. La validación post-deployment adicional terminó PASS en [run 41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637). |
 
 La integración se realizó como avance funcional bajo la petición de merge; **no implica que el DESIGN_GATE del arte general ni el MVP completo estén cerrados**.
 
