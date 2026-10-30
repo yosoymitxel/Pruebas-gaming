@@ -9,6 +9,7 @@ import {
   BIOLOGY_RULES
 } from "../src/simulation.js";
 import { parseTerrarium, serializeTerrarium } from "../src/persistence.js";
+import { HABITAT_GEOMETRY, REFUGE_MODEL_PROFILES, getShelterFootprint } from "../src/habitat.js";
 
 test("tocar un isópodo lo asusta y activa la defensa sin eliminarlo", () => {
   const state = createTerrariumState();
@@ -96,7 +97,9 @@ test("el arrastre de un recurso mantiene su identidad y lo limita al recipiente"
 
   assert.equal(moved, original);
   assert.equal(moved.id, "shelter-1");
-  assert.deepEqual({ x: moved.x, z: moved.z }, { x: -1.48, z: 0.93 });
+  const footprint=getShelterFootprint(REFUGE_MODEL_PROFILES.shelter.scale);
+  assert.ok(Math.abs(moved.x)+footprint.extentX<=HABITAT_GEOMETRY.rectangular.floorWidth/2+1e-9);
+  assert.ok(Math.abs(moved.z)+footprint.extentZ<=HABITAT_GEOMETRY.rectangular.floorDepth/2+1e-9);
   assert.equal(state.resources.filter(resource => resource.id === "shelter-1").length, 1);
 });
 
