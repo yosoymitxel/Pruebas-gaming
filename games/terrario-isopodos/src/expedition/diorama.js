@@ -2,18 +2,24 @@ import { createDioramaKit } from "../diorama-kit.js";
 
 const MAP_POSITIONS = {
   "garden-entry": [0, 1.45],
-  "mossy-stone": [-1.55, 0.63],
-  "rotting-log": [1.5, 0.58],
-  "rotten-fruit": [-0.98, -1.08],
-  "compost-bin": [1.17, -1.16]
+  "abandoned-pot": [-1.15, 1.15],
+  "mossy-stone": [-1.65, 0.05],
+  "mite-nest": [-1.1, -1.25],
+  "rotten-fruit": [0, -1.55],
+  "compost-bin": [1.15, -1.2],
+  "web-zone": [1.75, 0.05],
+  "rotting-log": [1.15, 1.15]
 };
 
 const PORTRAIT_MAP_POSITIONS = {
   "garden-entry": [0, -1.95],
+  "abandoned-pot": [-0.95, -1.35],
   "mossy-stone": [-0.95, -0.55],
-  "rotting-log": [0.95, -0.38],
-  "rotten-fruit": [-0.65, 0.76],
-  "compost-bin": [0.55, 1.9]
+  "mite-nest": [-0.85, 0.45],
+  "rotten-fruit": [-0.3, 1.65],
+  "compost-bin": [0.7, 1.65],
+  "web-zone": [0.95, 0.55],
+  "rotting-log": [0.9, -0.6]
 };
 
 function addPath(T,group,start,end,material,surfaceHeightAt,halfWidth=.085) {
@@ -55,7 +61,7 @@ function addPath(T,group,start,end,material,surfaceHeightAt,halfWidth=.085) {
   return trail;
 }
 
-function addNodeLandmark(T,kit,root,node,current,seen,preview,nodeScale) {
+function addNodeLandmark(T,kit,root,node,current,seen,preview,nodeScale,unlocked) {
   const [x,z]=node.position;
   const landmark=kit.addBiome(root,node.id,{
     position:[x,0,z],
@@ -67,6 +73,20 @@ function addNodeLandmark(T,kit,root,node,current,seen,preview,nodeScale) {
   landmark.userData.isCurrent=Boolean(current);
   landmark.userData.isPreview=Boolean(preview);
   landmark.userData.isVisited=Boolean(seen);
+  landmark.userData.isLocked=!unlocked;
+  if(!unlocked){
+    const gate=new T.Group();
+    gate.name="expedition-locked-root-gate";
+    for(const angle of [-.58,.58]){
+      const branch=new T.Mesh(new T.CylinderGeometry(.014,.021,.62,7),kit.materials.darkBark);
+      branch.position.set(0,.24,.13);
+      branch.rotation.z=angle;
+      branch.rotation.x=.2;
+      branch.castShadow=true;
+      gate.add(branch);
+    }
+    landmark.add(gate);
+  }
   const pick=new T.Mesh(
     new T.SphereGeometry(.53,14,10),
     new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
@@ -96,7 +116,7 @@ export function buildExpeditionMapDiorama(T,{
   nodes,visitedNodes=[],currentNodeId="garden-entry",previewNodeId=null,seed=0,
   aspect=1,makeIsopod=null,biomeId="woodland-map",
   paletteOverrides={},nodePositions=null,nodeScale=1.04,
-  actorScale=.86,scatterDensity=1
+  actorScale=.86,scatterDensity=1,unlockedNodeIds=null
 }={}) {
   const portrait=aspect<.78;
   const kit=createDioramaKit({shape:"esferico",radius:2.75,seed,paletteOverrides});
@@ -141,10 +161,14 @@ export function buildExpeditionMapDiorama(T,{
   }
 
   const visited=new Set(visitedNodes);
+  const unlocked=new Set(unlockedNodeIds??Object.keys(nodes??{}));
+  const lockedNodeIds=[];
   for(const node of Object.values(nodes??{})){
     const [x,z]=positionMap[node.id]??[0,0];
+    const isUnlocked=unlocked.has(node.id);
+    if(!isUnlocked)lockedNodeIds.push(node.id);
     addNodeLandmark(T,kit,root,{...node,position:[x,z]},
-      node.id===currentNodeId,visited.has(node.id),node.id===previewNodeId,nodeScale);
+      node.id===currentNodeId,visited.has(node.id),node.id===previewNodeId,nodeScale,isUnlocked);
   }
 
   if(currentNodeId&&positionMap[currentNodeId]){
@@ -167,6 +191,8 @@ export function buildExpeditionMapDiorama(T,{
   root.userData.biomeId=biomeId;
   root.userData.surfaceType="organic-soil-cutaway";
   root.userData.landmarkCount=Object.keys(nodes??{}).length;
+  root.userData.lockedNodeIds=lockedNodeIds;
+  root.userData.lockedNodeCount=lockedNodeIds.length;
   root.userData.expeditionTrailCount=links.size;
   return root;
 }
@@ -199,6 +225,13 @@ const EVENT_SCENES=Object.freeze({
       Object.freeze({type:"mushroom-cluster",position:[.52,0,-.08],scale:.98,density:.86})
     ],
     choices:[[-.48,.24,-.1],[.52,.2,-.08]]
+  }),
+  roots:Object.freeze({
+    assets:[
+      Object.freeze({type:"broken-pot",position:[-.36,0,-.1],scale:1.02,size:.62}),
+      Object.freeze({type:"root-arch",position:[.46,0,-.04],scale:1.08})
+    ],
+    choices:[[-.36,.22,-.1],[.46,.2,-.04]]
   }),
   compost:Object.freeze({
     assets:[
