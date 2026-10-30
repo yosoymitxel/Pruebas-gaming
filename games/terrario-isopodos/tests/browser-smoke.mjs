@@ -225,9 +225,13 @@ try{
  if(minutesAfterStep!==minutesBeforeStep+1)throw new Error(`El avance manual debe sumar exactamente un minuto: antes=${clockBeforeStep}, después=${clockAfterStep}`);
  await page.getByRole("button",{name:/Volver al terrario/}).click();
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
+ if(!((await page.locator("#tool-food").innerText()).includes("Coste: 4 bellotas"))||!((await page.locator("#tool-shelter").innerText()).includes("Coste: 12 bellotas")))throw new Error("Las herramientas deben identificar los números como precios, no como stock");
+ if(await page.locator("#tool-food [data-placed-count]").textContent()!=="1"||await page.locator("#tool-shelter [data-placed-count]").textContent()!=="1")throw new Error("La barra no refleja los recursos iniciales realmente colocados");
+ if(await page.locator("#shop-grid [data-placed-count=\"fern\"]").textContent()!=="0")throw new Error("El contador visual debe iniciar con cero helechos colocados");
  await page.locator('[data-buy="mushroom"]').click();
  if(await page.locator("#coins").textContent()!=="23")throw new Error("La tienda no descontó el coste de las setas");
  if(!(await page.locator("#shop-note").textContent()).includes("Setas de bosque"))throw new Error("La tienda no confirmó el artículo comprado");
+ if(await page.locator("#shop-grid [data-placed-count=\"mushroom\"]").textContent()!=="1")throw new Error("El contador de setas colocadas no se actualizó tras la compra");
  await page.waitForFunction(()=>{
   const canvas=document.querySelector("#scene canvas");
   return canvas?.dataset.resourceArt==="shared-diorama-kit"&&Number(canvas.dataset.resourceCount)>=3;
@@ -244,6 +248,7 @@ try{
  await cameraCanvas.click({position:{x:Math.floor(toolBounds.width*.67),y:Math.floor(toolBounds.height*.66)}});
  if(await page.locator("#coins").textContent()!=="7")throw new Error("La colocación de refugio no cobra doce bellotas");
  await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.shelterCount==="2");
+  if(await page.locator("#tool-shelter [data-placed-count]").textContent()!=="2")throw new Error("El contador de refugios no se actualizó tras colocarlo");
  await page.locator("#tool-hand").click();
  if(await cameraCanvas.getAttribute("data-active-tool")!=="hand")throw new Error("No se puede recuperar la herramienta Mano");
  // Mano: comprobar arrastre real de recursos e isópodos sobre el canvas 3D.

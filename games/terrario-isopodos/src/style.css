@@ -1626,3 +1626,16 @@ footer{display:none}
 }
 
 @media(max-width:760px){.viewhead .expedition-trigger{min-height:44px;padding:9px 13px;gap:7px;font-size:11px}.viewhead .expedition-trigger svg{width:17px;height:17px}}
+
+/* Los precios y las cantidades colocadas son datos distintos, derivados del estado del mundo. */
+#shop-grid button{grid-template-rows:auto auto auto;min-height:76px}
+#shop-grid button span{grid-row:1/4}
+#shop-grid button small.placed-count{font-size:9px;color:var(--moss-dark)}
+#shop-grid button small.placed-count b{font-size:10px;font-weight:800}
+.action-tools button>span{display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.15}
+.action-tools button small{font-size:8px;font-weight:650;color:#d3dda8}
+.action-tools button small.placed-count{color:#c7d5b6;font-weight:500}
+.action-tools button small.placed-count b{font-weight:800;color:#f0f2e5}
+.action-tools button.active small.placed-count{color:#43543c}
+.action-tools button.active small.placed-count b{color:#233622}
+@media(max-width:760px){.action-tools button>span{line-height:1.12}}
