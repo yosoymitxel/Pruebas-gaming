@@ -853,6 +853,7 @@ export class TerrariumRenderer {
       this.renderer.domElement.dataset.cameraAngle=this.angle.toFixed(4);
       this.renderer.domElement.dataset.fogNear=this.scene.fog.near.toFixed(2);
       this.renderer.domElement.dataset.fogFar=this.scene.fog.far.toFixed(2);
+      this.syncExpeditionTargetScreens();
       return;
     }
     const target=new T.Vector3(0,this.state.habitat.shape==="esferico"?.84:.32,0);

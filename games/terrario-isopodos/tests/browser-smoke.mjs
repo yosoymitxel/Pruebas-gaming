@@ -374,6 +374,11 @@ try{
  await chooseFirstExpeditionAction();
 
  const clickDioramaNode=async nodeId=>{
+  await page.waitForFunction(id=>{
+   const canvas=document.querySelector("#expedition-diorama canvas");
+   try{return Boolean(JSON.parse(canvas?.dataset.expeditionTargetScreens||"{}")[id]);}
+   catch{return false;}
+  },nodeId,{timeout:5000});
   const point=await expeditionCanvas.evaluate((canvas,id)=>{
    const targets=JSON.parse(canvas.dataset.expeditionTargetScreens||"{}");
    const target=targets[id];
