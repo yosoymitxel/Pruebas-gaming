@@ -1,5 +1,6 @@
 const VALID_SHAPES=new Set(["rectangular","cilindrico","esferico"]);
 const VALID_MODES=new Set(["diorama","voxel"]);
+const VALID_WEATHER=new Set(["clear","mist","rain"]);
 
 function normalizeHabitat(habitat){
   const habitatShape=habitat?.shape;
@@ -14,7 +15,8 @@ function normalizeHabitat(habitat){
     shape: habitatShape,
     humidity:Number(habitat.humidity),
     temperatureC:Number(habitat.temperatureC),
-    light:Number(habitat.light)
+    light:Number(habitat.light),
+    weather:VALID_WEATHER.has(habitat.weather)?habitat.weather:"clear"
   };
 }
 
@@ -78,7 +80,7 @@ function validateStateShape(state){
 }
 
 export const SAVE_KEY="terrario-isopodos.save.v1";
-const SCHEMA_VERSION=1;
+const SCHEMA_VERSION=2;
 
 export function serializeTerrarium(state){
   const validated=validateStateShape(state);
@@ -100,10 +102,10 @@ export function parseTerrarium(raw){
   try{data=JSON.parse(raw);}catch{throw new Error("El guardado no es JSON válido");}
   if(data?.schemaVersion>SCHEMA_VERSION)throw new Error("El guardado pertenece a una versión más reciente del juego");
   const s=data?.state;
-  if(data?.schemaVersion!==SCHEMA_VERSION||(data?.gameId&&data.gameId!=="terrario-isopodos")||!s||s.version!==1||
+  if(![1,SCHEMA_VERSION].includes(data?.schemaVersion)||(data?.gameId&&data.gameId!=="terrario-isopodos")||!s||s.version!==1||
      !Number.isFinite(s.clockMinutes)||s.clockMinutes<0||!Number.isFinite(s.speed)||s.speed<1||s.speed>4||
      !s.habitat||!Array.isArray(s.entities)||!Array.isArray(s.resources))
-    throw new Error("El guardado no coincide con el esquema 1");
+    throw new Error("El guardado no coincide con un esquema compatible (1 o 2)");
 
   const sanitized=validateStateShape(s);
   return {
