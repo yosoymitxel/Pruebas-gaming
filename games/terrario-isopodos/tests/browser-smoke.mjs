@@ -224,9 +224,15 @@ try{
   substrateLayers:Number(canvas.dataset.terrainLayerCount),
   leafInstances:Number(canvas.dataset.leafCount),
   fernLeaves:Number(canvas.dataset.fernLeaves),
-  mossPillows:Number(canvas.dataset.mossCount)
+  mossPillows:Number(canvas.dataset.mossCount),
+  staticMeshesMerged:Number(canvas.dataset.staticMeshesMerged),
+  staticDrawMeshes:Number(canvas.dataset.staticDrawMeshes),
+  staticDrawCallsSaved:Number(canvas.dataset.staticDrawCallsSaved)
  }));
  if(!Number.isFinite(renderMetrics.calls)||!Number.isFinite(renderMetrics.triangles))throw new Error("No se recibieron diagnósticos reales del renderer");
+ if(renderMetrics.calls>150)throw new Error(`La escena móvil supera 150 draw calls tras el batching: ${renderMetrics.calls}`);
+ if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
+ if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
  await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
  console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",rendererMetrics:renderMetrics,errors},null,2));
