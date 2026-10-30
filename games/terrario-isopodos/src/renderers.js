@@ -704,6 +704,28 @@ export class TerrariumRenderer {
     this.resize();
   }
 
+  syncExpeditionTargetScreens(){
+    if(!this.expeditionMode)return;
+    const canvas=this.renderer.domElement,rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    this.camera.updateMatrixWorld(true);
+    this.expeditionGroup.updateMatrixWorld(true);
+    const screens={};
+    const point=new T.Vector3();
+    this.expeditionGroup.traverse(object=>{
+      const id=object.userData?.expeditionNodeId??object.userData?.expeditionChoiceId;
+      if(!object.isMesh||!id)return;
+      object.getWorldPosition(point);
+      point.project(this.camera);
+      screens[id]={
+        x:rect.left+(point.x+1)*rect.width/2,
+        y:rect.top+(1-point.y)*rect.height/2,
+        visible:point.z>=-1&&point.z<=1&&Math.abs(point.x)<=1&&Math.abs(point.y)<=1
+      };
+    });
+    canvas.dataset.expeditionTargetScreens=JSON.stringify(screens);
+  }
+
   showTerrarium(){
     if(!this.expeditionMode)return;
     this.clear(this.expeditionGroup);

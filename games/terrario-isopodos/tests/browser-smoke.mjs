@@ -375,19 +375,11 @@ try{
 
  const clickDioramaNode=async nodeId=>{
   const point=await expeditionCanvas.evaluate((canvas,id)=>{
-   const rect=canvas.getBoundingClientRect(),positions=JSON.parse(canvas.dataset.expeditionMapPositions||"{}"),position=positions[id];
-   const distance=Number(canvas.dataset.cameraDistance),angle=Number(canvas.dataset.cameraAngle),elevation=Number(canvas.dataset.cameraElevation);
-   if(!position||![distance,angle,elevation].every(Number.isFinite))return null;
-   const horizontal=Math.cos(elevation)*distance;
-   const camera=[Math.sin(angle)*horizontal,.2+Math.sin(elevation)*distance,Math.cos(angle)*horizontal];
-   const target=[0,.2,0],subtract=(a,b)=>a.map((v,i)=>v-b[i]),dot=(a,b)=>a.reduce((sum,v,i)=>sum+v*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],normalize=v=>{const n=Math.hypot(...v);return v.map(x=>x/n);};
-   const forward=normalize(subtract(target,camera)),right=normalize(cross(forward,[0,1,0])),up=cross(right,forward);
-   const relative=subtract([position[0],.31,position[1]],camera),depth=dot(relative,forward);
-   const tanVertical=Math.tan(33*Math.PI/360),tanHorizontal=tanVertical*(rect.width/rect.height);
-   const ndcX=dot(relative,right)/(depth*tanHorizontal),ndcY=dot(relative,up)/(depth*tanVertical);
-   return{x:rect.left+(ndcX+1)*rect.width/2,y:rect.top+(1-ndcY)*rect.height/2,inside:depth>0&&Math.abs(ndcX)<.96&&Math.abs(ndcY)<.96};
+   const targets=JSON.parse(canvas.dataset.expeditionTargetScreens||"{}");
+   const target=targets[id];
+   return target?{x:target.x,y:target.y,inside:target.visible}:null;
   },nodeId);
-  if(!point?.inside)throw new Error("El nodo 3D "+nodeId+" quedó fuera del encuadre del mapa");
+  if(!point?.inside)throw new Error("El hotspot 3D "+nodeId+" quedó fuera del encuadre del mapa: "+JSON.stringify(point));
   await page.mouse.click(point.x,point.y);
  };
  await clickDioramaNode("mossy-stone");
