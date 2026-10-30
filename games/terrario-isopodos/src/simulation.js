@@ -36,6 +36,9 @@ export function sampleMicroclimate(state,x,z){
   const hour=minuteOfDay/60;
   const daylight=clamp(Math.sin((hour-6)*Math.PI/12),0,1);
   const ambientLight=daylight*(.22+.78*lightSetting);
+  const weather=habitat.weather==="rain"?"rain":habitat.weather==="mist"?"mist":"clear";
+  const weatherHumidity=weather==="rain"?.12:weather==="mist"?.065:0;
+  const weatherShade=weather==="rain"?.22:weather==="mist"?.3:0;
   let moisturePocket=0,shade=0;
 
   for(const resource of Array.isArray(state?.resources)?state.resources:[]){
@@ -50,9 +53,9 @@ export function sampleMicroclimate(state,x,z){
   }
 
   return {
-    humidity:clamp(humidity+moisturePocket,0,.98),
-    light:clamp(ambientLight-shade,0,1),
-    temperatureC:clamp(temperatureC+daylight*lightSetting*.72-shade*.62,5,35),
+    humidity:clamp(humidity+moisturePocket+weatherHumidity,0,.98),
+    light:clamp(ambientLight-shade-weatherShade,0,1),
+    temperatureC:clamp(temperatureC+daylight*lightSetting*.72-shade*.62-(weather==="rain"?.45:weather==="mist"?.18:0),5,35),
     daylight,
     shade:clamp(shade,0,1)
   };
@@ -315,6 +318,41 @@ export function addShelter(state){
   return state;
 }
 
+export function startleIsopod(state,id){
+  const entity=state?.entities?.find(item=>item.id===id&&item.alive!==false);
+  if(!entity)return null;
+  entity.stress=1;
+  entity.behavior="defensive-curl";
+  entity.defensiveTicks=0;
+  entity.defensiveCooldown=0;
+  entity.targetResourceId=null;
+  entity.intent="defend";
+  return entity;
+}
+
+export function moveIsopod(state,id,x,z){
+  if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError("La posición del isópodo no es válida");
+  const entity=state?.entities?.find(item=>item.id===id&&item.alive!==false);
+  if(!entity)return null;
+  const point=constrainToHabitat(x,z,state.habitat?.shape,.2);
+  entity.previousX=point.x;
+  entity.previousZ=point.z;
+  entity.x=point.x;
+  entity.z=point.z;
+  entity.targetResourceId=null;
+  return entity;
+}
+
+export function moveResource(state,id,x,z){
+  if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError("La posición del recurso no es válida");
+  const resource=state?.resources?.find(item=>item.id===id);
+  if(!resource)return null;
+  const point=constrainToHabitat(x,z,state.habitat?.shape,.12);
+  resource.x=point.x;
+  resource.z=point.z;
+  return resource;
+}
+
 export const SHOP_ITEMS=Object.freeze([
   {id:"leaf-litter",label:"Hojarasca fresca",type:"leaf-litter",price:4,description:"Recarga energía y favorece la búsqueda de alimento."},
   {id:"shelter",label:"Refugio de corteza",type:"shelter",price:12,description:"Un escondite que reduce estrés y conserva humedad."},
@@ -325,7 +363,7 @@ export const SHOP_ITEMS=Object.freeze([
   {id:"moss",label:"Isla de musgo",type:"moss",price:6,description:"Un cojín de musgo para conservar humedad y sombra."}
 ]);
 
-export function purchaseItem(state,itemId){
+export function purchaseItem(state,itemId,position=null){
   if(!state||typeof state!=="object"||!Array.isArray(state.resources))throw new TypeError("Se requiere un estado válido del terrario");
   const item=SHOP_ITEMS.find(entry=>entry.id===itemId);
   if(!item)throw new Error("Artículo de tienda desconocido");
@@ -335,11 +373,20 @@ export function purchaseItem(state,itemId){
   const angle=index*2.399963229728653;
   const radius=.35+(index%4)*.22;
   const shape=state.habitat?.shape;
-  const proposedX=shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.cos(angle)*radius;
-  const proposedZ=shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.sin(angle)*radius;
-  const {x,z}=constrainToHabitat(proposedX,proposedZ,shape,.08);
-  const resource={id:`shop-${item.id}-${index}`,type:item.type,amount:item.type==="leaf-litter"?.55:1,x,z};
+  const proposedX=Number.isFinite(position?.x)?position.x:(shape==="cilindrico"?Math.cos(angle)*Math.min(radius,1.05):Math.cos(angle)*radius);
+  const proposedZ=Number.isFinite(position?.z)?position.z:(shape==="cilindrico"?Math.sin(angle)*Math.min(radius,.85):Math.sin(angle)*radius);
+  const point=constrainToHabitat(proposedX,proposedZ,shape,.12);
+  const existing=item.type==="leaf-litter"?state.resources.find(r=>r.type==="leaf-litter"&&Math.hypot(r.x-point.x,r.z-point.z)<.18):null;
+  let resource;
+  if(existing){
+    existing.amount=Math.min(1,Number(existing.amount??0)+.45);
+    resource=existing;
+  }else{
+    let id=`shop-${item.id}-${index}`;
+    while(state.resources.some(r=>r.id===id))id+="-";
+    resource={id,type:item.type,amount:item.type==="leaf-litter"?.55:1,x:point.x,z:point.z};
+    state.resources.push(resource);
+  }
   state.coins=coins-item.price;
-  state.resources.push(resource);
   return {item,resource,coins:state.coins};
 }

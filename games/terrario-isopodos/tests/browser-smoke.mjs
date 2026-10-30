@@ -46,6 +46,61 @@ try{
  const duplicateIds=await page.evaluate(()=>{const ids=[...document.querySelectorAll("[id]")].map(el=>el.id);return [...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];});
  if(duplicateIds.length)throw new Error("Hay IDs duplicados: "+duplicateIds.join(", "));
  await page.screenshot({path:"artifacts/visual/menu-1440x1000.png",fullPage:true});
+
+ // Flujo real por tacto en un teléfono compacto: menú, opciones y creación de partida.
+ const mobileMenuPage=await browser.newPage({viewport:{width:360,height:640},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const mobileMenuErrors=[];
+ mobileMenuPage.on("pageerror",e=>mobileMenuErrors.push(e.message));
+ mobileMenuPage.on("console",m=>{if(m.type()==="error")mobileMenuErrors.push(m.text());});
+ mobileMenuPage.on("requestfailed",r=>mobileMenuErrors.push(`request failed: ${r.url()} ${r.failure()?.errorText??""}`));
+ await mobileMenuPage.goto(url,{waitUntil:"networkidle",timeout:30000});
+ const mobileTap=async selector=>{
+   const target=mobileMenuPage.locator(selector);
+   const bounds=await target.boundingBox();
+   if(!bounds)throw new Error(`El control móvil no está visible: ${selector}`);
+   if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>360||bounds.y+bounds.height>640)
+     throw new Error(`El control móvil queda fuera del viewport 360x640: ${selector} ${JSON.stringify(bounds)}`);
+   await mobileMenuPage.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+ };
+ for(const selector of ["#new-game","#open-settings","#open-help","#menu-fullscreen"]){
+   const bounds=await mobileMenuPage.locator(selector).boundingBox();
+   if(!bounds||bounds.y<0||bounds.y+bounds.height>640)
+     throw new Error(`La opción principal no cabe en 360x640: ${selector} ${JSON.stringify(bounds)}`);
+ }
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-menu-360x640.png",fullPage:true});
+ await mobileTap("#open-settings");
+ if(!await mobileMenuPage.locator("#settings-fullscreen").isVisible())throw new Error("Ajustes no ofrece pantalla completa");
+ if(!await mobileMenuPage.locator("#screen-modal").isVisible()||await mobileMenuPage.locator("#modal-title").textContent()!=="Ajustes")
+   throw new Error("Ajustes del menú principal no responde al tacto móvil");
+ await mobileTap("#close-modal");
+ if(await mobileMenuPage.locator("#screen-modal").isVisible())throw new Error("No se pudo cerrar Ajustes del menú móvil");
+ await mobileTap("#open-help");
+ if(!await mobileMenuPage.locator("#screen-modal").isVisible()||await mobileMenuPage.locator("#modal-title").textContent()!=="Cómo se juega")
+   throw new Error("Ayuda del menú principal no responde al tacto móvil");
+ await mobileTap("#close-modal");
+ await mobileTap("#new-game");
+ if(!await mobileMenuPage.locator("#screen-setup").isVisible())throw new Error("Nuevo terrario no abre configuración en móvil");
+ const setupButtonBounds=await mobileMenuPage.locator("#start-game").boundingBox();
+ if(!setupButtonBounds||setupButtonBounds.y<0||setupButtonBounds.y+setupButtonBounds.height>640)
+   throw new Error(`El botón Entrar al terrario no queda accesible en 360x640: ${JSON.stringify(setupButtonBounds)}`);
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-setup-360x640.png",fullPage:true});
+ await mobileMenuPage.route(url=>url.href.includes("renderers-"),async route=>{await new Promise(resolve=>setTimeout(resolve,420));await route.continue();});
+ await mobileTap("#start-game");
+ await mobileMenuPage.locator("#screen-loading").waitFor({state:"visible",timeout:2500});
+ const loadingTheme=await mobileMenuPage.locator("#screen-loading").getAttribute("data-theme");
+ if(!new Set(["bark","moss","leaves","tunnel","molt","colony","night","fern","shelter","mist","tracks"]).has(loadingTheme))throw new Error("La pantalla de carga no seleccionó uno de los 11 motivos de isópodos: "+loadingTheme);
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-loading-360x640.png",fullPage:true});
+ await mobileMenuPage.locator("#screen-loading").waitFor({state:"hidden",timeout:15000});
+ await mobileMenuPage.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await mobileMenuPage.waitForFunction(()=>{
+   const canvas=document.querySelector("#scene canvas");
+   return !document.querySelector(".shell").hidden&&canvas&&canvas.width>1&&canvas.height>1&&canvas.dataset.renderMode==="diorama";
+ },{timeout:15000});
+ if(await mobileMenuPage.locator("#count").textContent()!=="05")throw new Error("Nueva partida móvil no crea la colonia inicial completa");
+ if(mobileMenuErrors.length)throw new Error("Errores en el flujo táctil móvil: "+mobileMenuErrors.join(" | "));
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-new-game-360x640.png",fullPage:true});
+ await mobileMenuPage.close();
+
  await page.keyboard.press("Tab");
  if(await page.evaluate(()=>document.activeElement?.id)!=="new-game")throw new Error("El foco inicial del teclado no llega a Nuevo terrario");
  await page.getByRole("button",{name:/Nuevo terrario/}).click();
@@ -91,22 +146,39 @@ try{
  await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
  const pinchDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
  if(!(pinchDistance<initialDistance))throw new Error(`El gesto de pellizco no acerca la cámara: inicial=${initialDistance}, final=${pinchDistance}`);
- await page.getByRole("button",{name:"Acercar cámara"}).click();
- await page.getByRole("button",{name:"Alejar cámara"}).click();
+ await page.locator("#camera-toggle").click();
+ if(await page.locator("#camera-toggle").getAttribute("aria-expanded")!=="true"||await page.locator("#camera-tools").isHidden())throw new Error("El rail de cámara no se despliega");
+ await page.locator("#zoom-in").click();
+ await page.locator("#zoom-out").click();
+ await page.locator("#camera-toggle").click();
+ if(await page.locator("#camera-toggle").getAttribute("aria-expanded")!=="false")throw new Error("El rail de cámara no se repliega");
 
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
- await page.locator("#open-settings-game").click();
- if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("Los ajustes de la barra de juego no abren");
- await page.waitForFunction(()=>document.activeElement?.id==="close-modal");
+ await page.getByRole("button",{name:"Lluvia",exact:true}).click();
+ if(await cameraCanvas.getAttribute("data-weather")!=="rain"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==1)throw new Error("La lluvia procedural no aparece en el terrario");
+ await page.getByRole("button",{name:"Bruma",exact:true}).click();
+ if(await cameraCanvas.getAttribute("data-weather")!=="mist"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==7)throw new Error("La bruma no crea sus capas animadas");
+ await page.getByRole("button",{name:"Claro",exact:true}).click();
+ if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
+ await page.locator('.weather-control button[data-weather="rain"]').click();
+ await page.locator("#open-game-menu").click();
+ await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.weatherMotion==="static");
+ await page.screenshot({path:"artifacts/visual/pause-floating-1440x1000.png",fullPage:true});
+ if(!await page.locator("#screen-modal").evaluate(el=>el.classList.contains("is-pause")))throw new Error("La pausa no usa el menú flotante compacto");
+ if(!await page.locator("#pause-fullscreen").isVisible())throw new Error("La pausa no ofrece pantalla completa");
+ const pauseBounds=await page.locator("#screen-modal .modal-card").boundingBox();
+ if(!pauseBounds||pauseBounds.width>320)throw new Error("El menú de pausa ocupa demasiado espacio");
+ await page.locator("#pause-settings").click();
+ if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("Los ajustes desde pausa no abren");
+ await page.locator("#save-settings").click();
+ if(await page.locator("#modal-title").textContent()!=="Pausa")throw new Error("Al guardar ajustes no se regresa al menú de pausa");
+ await page.locator("#pause-help").click();
+ if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("La ayuda desde pausa no abre");
  await page.keyboard.press("Escape");
- if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra ajustes");
- await page.waitForFunction(()=>document.activeElement?.id==="open-settings-game");
- await page.locator("#open-help-game").click();
- if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("La ayuda de la barra de juego no abre");
- await page.waitForFunction(()=>document.activeElement?.id==="close-modal");
+ if(await page.locator("#modal-title").textContent()!=="Pausa")throw new Error("Escape no regresa de Ayuda al menú de pausa");
  await page.keyboard.press("Escape");
- if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra Ayuda");
- await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
+ if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra el menú de pausa");
+ await page.waitForFunction(()=>document.activeElement?.id==="open-game-menu");
  await page.emulateMedia({reducedMotion:"reduce"}); // elimina transiciones del UI para capturas de estado deterministas
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
@@ -131,43 +203,61 @@ try{
  await page.locator("#pause-settings").click();
  if(await page.locator("#modal-title").textContent()!=="Ajustes")throw new Error("No se abre Ajustes desde pausa");
  await page.locator("#save-settings").click();
- if(await page.locator("#modal-title").textContent()!=="Partida en pausa")throw new Error("Al guardar ajustes no se regresa al menú de pausa");
+ if(await page.locator("#modal-title").textContent()!=="Pausa")throw new Error("Al guardar ajustes no se regresa al menú de pausa");
  await page.locator("#pause-help").click();
  if(await page.locator("#modal-title").textContent()!=="Cómo se juega")throw new Error("No se abre Ayuda desde pausa");
  await page.keyboard.press("Escape");
- if(await page.locator("#modal-title").textContent()!=="Partida en pausa")throw new Error("Escape no regresa de Ayuda al menú de pausa");
+ if(await page.locator("#modal-title").textContent()!=="Pausa")throw new Error("Escape no regresa de Ayuda al menú de pausa");
  const clockBeforeStep=await page.locator("#clock").textContent();
  const beforeMatch=clockBeforeStep.match(/(\d{2}):(\d{2})$/);
  if(!beforeMatch)throw new Error(`No se pudo leer el reloj antes del avance: ${clockBeforeStep}`);
  const minutesBeforeStep=Number(beforeMatch[1])*60+Number(beforeMatch[2]);
- await page.getByRole("button",{name:/Avanzar 1 minuto sin reanudar/}).click();
+ await page.getByRole("button",{name:/Avanzar 1 minuto/}).click();
  const clockAfterStep=await page.locator("#clock").textContent();
  const afterMatch=clockAfterStep.match(/(\d{2}):(\d{2})$/);
  const minutesAfterStep=afterMatch?Number(afterMatch[1])*60+Number(afterMatch[2]):-1;
  if(minutesAfterStep!==minutesBeforeStep+1)throw new Error(`El avance manual debe sumar exactamente un minuto: antes=${clockBeforeStep}, después=${clockAfterStep}`);
- await page.getByRole("button",{name:/Continuar observando/}).click();
+ await page.getByRole("button",{name:/Volver al terrario/}).click();
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia inicial no contiene cinco individuos");
  await page.locator('[data-buy="mushroom"]').click();
  if(await page.locator("#coins").textContent()!=="23")throw new Error("La tienda no descontó el coste de las setas");
  if(!(await page.locator("#shop-note").textContent()).includes("Setas de bosque"))throw new Error("La tienda no confirmó el artículo comprado");
+ await page.locator("#tool-food").click();
+ if(await cameraCanvas.getAttribute("data-active-tool")!=="leaf-litter")throw new Error("No se activa la herramienta de hojarasca");
+ const toolBounds=await cameraCanvas.boundingBox();
+ await cameraCanvas.click({position:{x:Math.floor(toolBounds.width*.56),y:Math.floor(toolBounds.height*.68)}});
+ if(await page.locator("#coins").textContent()!=="19")throw new Error("La colocación de hojarasca no cobra cuatro bellotas");
+ if(!(await page.locator("#shop-note").textContent()).includes("Hojarasca"))throw new Error("La colocación de hojarasca no informa el resultado");
+ await page.locator("#tool-shelter").click();
+ if(await cameraCanvas.getAttribute("data-active-tool")!=="shelter")throw new Error("No se activa la herramienta de refugio");
+ await cameraCanvas.click({position:{x:Math.floor(toolBounds.width*.67),y:Math.floor(toolBounds.height*.66)}});
+ if(await page.locator("#coins").textContent()!=="7")throw new Error("La colocación de refugio no cobra doce bellotas");
+ await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.shelterCount==="2");
+ await page.locator("#tool-hand").click();
+ if(await cameraCanvas.getAttribute("data-active-tool")!=="hand")throw new Error("No se puede recuperar la herramienta Mano");
 
- await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
+ for(let step=0;step<19;step++)await page.getByRole("button",{name:"Reducir humedad"}).click();
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
  await page.getByRole("button",{name:/Pausar/}).click();
  let savedClock=await page.locator("#clock").textContent();
  await page.locator("#pause-save").click();
  await page.getByRole("button",{name:/Volver al terrario/}).click();
- await page.getByRole("button",{name:"Menú"}).click();
+ await page.locator("#open-game-menu").click();
  savedClock=await page.locator("#clock").textContent();
- await page.getByRole("button",{name:/Volver al menú principal/}).click();
+ await page.getByRole("button",{name:/Salir al menú/}).click();
  await page.reload({waitUntil:"networkidle"});
+ const menuClockBeforeContinue=await page.locator("#clock").textContent();
  await page.getByRole("button",{name:/Continuar partida/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.waitForFunction(previous=>document.querySelector("#clock")?.textContent!==previous,menuClockBeforeContinue,{timeout:15000});
  const restoredClock=await page.locator("#clock").textContent();const savedMatch=savedClock.match(/(\d{2}):(\d{2})$/),restoredMatch=restoredClock.match(/(\d{2}):(\d{2})$/);const savedMinutes=savedMatch?Number(savedMatch[1])*60+Number(savedMatch[2]):-1,restoredMinutes=restoredMatch?Number(restoredMatch[1])*60+Number(restoredMatch[2]):-1;if(restoredMinutes<savedMinutes||restoredMinutes>savedMinutes+1)throw new Error(`El reloj restaurado está fuera de tolerancia: guardado=${savedClock}, restaurado=${restoredClock}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
- if(await page.locator("#coins").textContent()!=="23")throw new Error("El saldo de la tienda no sobrevivió a guardar/cargar");
- const hasPurchasedItem=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources.some(r=>r.type==="mushroom"));
- if(!hasPurchasedItem)throw new Error("El objeto comprado no sobrevivió a guardar/cargar");
+ if(await page.locator("#coins").textContent()!=="7")throw new Error("El saldo no conservó las compras y las colocaciones al guardar/cargar");
+ const savedResources=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources);
+ if(!savedResources.some(r=>r.type==="mushroom")||!savedResources.some(r=>r.type==="shelter"&&r.id!=="shelter-1")||!savedResources.some(r=>r.type==="leaf-litter"))throw new Error("Los objetos colocados/comprados no sobrevivieron a guardar/cargar");
+ if(await page.locator("#scene canvas").getAttribute("data-weather")!=="rain")throw new Error("El guardado no restauró el clima lluvioso");
+ if(await page.locator('.weather-control button[data-weather="rain"]').getAttribute("aria-pressed")!=="true")throw new Error("El selector no refleja el clima restaurado");
 
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
@@ -196,8 +286,8 @@ try{
  if(await page.locator("#panel-toggle").getAttribute("aria-expanded")!=="false")throw new Error("La bandeja móvil no se pliega");
 
  // Segunda escena: comprobar las cuatro paredes del recipiente rectangular en el render real.
- await page.getByRole("button",{name:"Menú"}).click();
- await page.getByRole("button",{name:/Volver al menú principal/}).click();
+ await page.locator("#open-game-menu").click();
+ await page.getByRole("button",{name:/Salir al menú/}).click();
  await page.getByRole("button",{name:/Nuevo terrario/}).click();
  await page.locator('[data-setup-shape="rectangular"]').click();
  await page.locator('[data-setup-mode="diorama"]').click();
@@ -212,8 +302,8 @@ try{
  const rectangleFogFar=Number(await page.locator("#scene canvas").getAttribute("data-fog-far"));
  if(!(rectangleFogNear>rectangleDistance&&rectangleFogFar>rectangleFit*2))throw new Error("La niebla oculta el recipiente rectangular al alejar la cámara en móvil");
  await page.screenshot({path:"artifacts/visual/rectangular-walls-390x844.png",fullPage:true});
- await page.getByRole("button",{name:"Menú"}).click();
- await page.getByRole("button",{name:/Volver al menú principal/}).click();
+ await page.locator("#open-game-menu").click();
+ await page.getByRole("button",{name:/Salir al menú/}).click();
  await page.getByRole("button",{name:/Nuevo terrario/}).click();
  await page.locator('[data-setup-shape="esferico"]').click();
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
@@ -229,6 +319,72 @@ try{
  if(!Number.isFinite(orbDistance)||!Number.isFinite(orbFit)||orbDistance+.02<orbFit)throw new Error("La cámara no encuadra el globo en móvil");
  await page.screenshot({path:"artifacts/visual/spherical-orb-390x844.png",fullPage:true});
 
+
+ // Expedition smoke: the overlay keeps the terrarium canvas alive and restores an active run.
+ await page.evaluate(()=>{window.__terrariumCanvasBeforeExpedition=document.querySelector("#scene canvas");});
+ await page.locator("#open-expedition").click();
+ await page.locator("#screen-expedition").waitFor({state:"visible"});
+ if(await page.locator("#expedition-start").isDisabled())throw new Error("No hay explorador disponible aunque la colonia tiene energía");
+ await page.locator("#expedition-start").click();
+ if(!await page.locator("#expedition-event-title").isVisible())throw new Error("No se generó el encuentro inicial");
+ await page.locator(".expedition-choice:not(:disabled)").first().click();
+ const route=page.locator(".expedition-node:not(:disabled)").first();
+ if(await route.count()===0)throw new Error("No aparece una ruta conectada desde la entrada");
+ await route.click();
+ if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nuevo nodo no generó su evento");
+ await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
+ const expeditionNodeBoxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
+ for(let i=0;i<expeditionNodeBoxes.length;i++)for(let j=i+1;j<expeditionNodeBoxes.length;j++){
+  const a=expeditionNodeBoxes[i],b=expeditionNodeBoxes[j];
+  const overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x);
+  const overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+  if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en móvil");
+ }
+ if(await page.locator("#expedition-close").isVisible())throw new Error("El botón de cabecera no debe aparecer durante un encuentro activo");
+ const assertExpeditionNodesDoNotOverlap=async()=>{
+  const boxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+   const a=boxes[i],b=boxes[j],overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x),overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+   if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en responsive");
+  }
+ };
+ await assertExpeditionNodesDoNotOverlap();
+ await page.setViewportSize({width:360,height:640});
+ await page.waitForTimeout(150);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 360x640");
+ await assertExpeditionNodesDoNotOverlap();
+ await page.screenshot({path:"artifacts/visual/expedition-map-360x640.png",fullPage:true});
+ await page.setViewportSize({width:1440,height:1000});
+ await page.waitForTimeout(150);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 1440x1000");
+ await assertExpeditionNodesDoNotOverlap();
+ await page.screenshot({path:"artifacts/visual/expedition-map-1440x1000.png",fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.waitForTimeout(150);
+
+ if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
+ await page.locator("#expedition-save").click();
+ const activeRun=await page.evaluate(()=>{
+  const run=JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active;
+  localStorage.setItem("terrario-test.expedition-id",run.id);
+  return run;
+ });
+ if(!activeRun||!["mossy-stone","rotting-log"].includes(activeRun.currentNodeId))throw new Error("El guardado no conserva la posición de la expedición");
+ await page.reload({waitUntil:"networkidle"});
+ await page.getByRole("button",{name:/Continuar partida/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.locator("#screen-expedition").waitFor({state:"visible",timeout:15000});
+ const restored=await page.evaluate(()=>({run:JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active,expected:localStorage.getItem("terrario-test.expedition-id")}));
+ if(!restored.run||restored.run.id!==restored.expected||restored.run.currentNodeId!==activeRun.currentNodeId)throw new Error("La misma expedición y ubicación no se restauraron al recargar");
+ await page.locator("#expedition-return").click();
+ if(!await page.locator("#expedition-home").isVisible())throw new Error("No aparece la liquidación del regreso");
+ if(!(await page.locator("#expedition-day").textContent()).includes("Día 02"))throw new Error("El regreso no avanzó exactamente una jornada");
+ await page.screenshot({path:"artifacts/visual/expedition-settlement-390x844.png",fullPage:true});
+ await page.locator("#expedition-home").click();
+ if(await page.locator("#screen-expedition").isVisible())throw new Error("La pantalla de expedición no se cerró");
+ if(!await page.locator("#scene canvas").isVisible())throw new Error("El renderer desapareció al volver al terrario");
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("La expedición genera overflow horizontal en móvil");
+
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
  unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
@@ -242,6 +398,7 @@ try{
  await unsupportedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
  await unsupportedPage.getByRole("button",{name:/Nuevo terrario/}).click();
  await unsupportedPage.getByRole("button",{name:/Entrar al terrario/}).click();
+ await unsupportedPage.locator("#screen-modal").waitFor({state:"visible",timeout:15000});
  if(!await unsupportedPage.locator("#screen-modal").isVisible())throw new Error("La falta de WebGL no muestra un aviso recuperable");
  if(!(await unsupportedPage.locator("#modal-title").textContent()).includes("No se pudo iniciar"))throw new Error("El aviso WebGL no identifica el fallo");
  if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
@@ -267,7 +424,7 @@ try{
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
- console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",rendererMetrics:renderMetrics,errors},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
+ console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}

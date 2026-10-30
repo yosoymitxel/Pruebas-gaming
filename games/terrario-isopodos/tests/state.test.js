@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
-import {addFood,addShelter,stepSimulation,sampleMicroclimate} from "../src/simulation.js";
+import {addFood,addShelter,stepSimulation,sampleMicroclimate,startleIsopod,moveIsopod,moveResource,purchaseItem} from "../src/simulation.js";
 import {constrainToHabitat,HABITAT_GEOMETRY} from "../src/habitat.js";
 import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,hasValidTerrariumSave,SAVE_KEY} from "../src/persistence.js";
 
@@ -120,16 +120,69 @@ test("formatea día y hora",()=>{
 
 test("el guardado rechaza versiones futuras y entidades duplicadas",()=>{
   const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
-  const future=structuredClone(valid);future.schemaVersion=2;
+  const future=structuredClone(valid);future.schemaVersion=4;
   assert.throws(()=>parseTerrarium(JSON.stringify(future)),/versión más reciente/);
   const duplicate=structuredClone(valid);duplicate.state.entities[1].id=duplicate.state.entities[0].id;
-  assert.throws(()=>parseTerrarium(JSON.stringify(duplicate)),/valores inválidos|IDs duplicados|esquema 1/);
+  assert.throws(()=>parseTerrarium(JSON.stringify(duplicate)),/valores inválidos|IDs duplicados|esquema compatible/);
+});
+
+test("el sobresalto, el arrastre y la colocación actúan sobre el estado de la colonia",()=>{
+  const s=createTerrariumState();
+  const startled=startleIsopod(s,"isopod-002");
+  assert.equal(startled.behavior,"defensive-curl");
+  assert.equal(startled.stress,1);
+  assert.equal(startleIsopod(s,"missing"),null);
+
+  const moved=moveIsopod(s,"isopod-001",99,-99);
+  assert.ok(Math.abs(moved.x)<=1.4+1e-9);
+  assert.ok(Math.abs(moved.z)<=.85+1e-9);
+  assert.equal(moved.previousX,moved.x);
+  assert.throws(()=>moveIsopod(s,"isopod-001",Number.NaN,0),RangeError);
+
+  const refuge=s.resources.find(resource=>resource.type==="shelter");
+  const relocated=moveResource(s,refuge.id,-.25,.3);
+  assert.equal(relocated.x,-.25);
+  assert.equal(relocated.z,.3);
+  assert.equal(moveResource(s,"missing",0,0),null);
+
+  const before=s.coins;
+  const result=purchaseItem(s,"shelter",{x:.1,z:.15});
+  assert.equal(result.resource.x,.1);
+  assert.equal(result.resource.z,.15);
+  assert.equal(s.coins,before-12);
+  assert.equal(s.resources.filter(resource=>resource.type==="shelter").length,2);
+});
+
+test("lluvia y bruma alteran el microclima sin sustituir los controles base",()=>{
+  const clear=createTerrariumState(),mist=createTerrariumState(),rain=createTerrariumState();
+  for(const state of [clear,mist,rain])state.clockMinutes=720;
+  mist.habitat.weather="mist";
+  rain.habitat.weather="rain";
+  const sunny=sampleMicroclimate(clear,1.25,.8);
+  const foggy=sampleMicroclimate(mist,1.25,.8);
+  const wet=sampleMicroclimate(rain,1.25,.8);
+  assert.ok(foggy.humidity>sunny.humidity);
+  assert.ok(foggy.light<sunny.light);
+  assert.ok(wet.humidity>foggy.humidity);
+  assert.ok(wet.temperatureC<sunny.temperatureC);
+});
+
+test("los guardados de esquema 1 migran el clima como despejado",()=>{
+  const old=JSON.parse(serializeTerrarium(createTerrariumState()));
+  old.schemaVersion=1;
+  delete old.state.habitat.weather;
+  const restored=parseTerrarium(JSON.stringify(old));
+  assert.equal(restored.habitat.weather,"clear");
+  const current=JSON.parse(serializeTerrarium(createTerrariumState()));
+  assert.equal(current.schemaVersion,3);
+  current.state.habitat.weather="rain";
+  assert.equal(parseTerrarium(JSON.stringify(current)).habitat.weather,"rain");
 });
 
 test("el guardado valida rangos de velocidad y microclima",()=>{
   const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
   const invalidSpeed=structuredClone(valid);invalidSpeed.state.speed=9;
-  assert.throws(()=>parseTerrarium(JSON.stringify(invalidSpeed)),/esquema 1/);
+  assert.throws(()=>parseTerrarium(JSON.stringify(invalidSpeed)),/esquema compatible/);
   const invalidHumidity=structuredClone(valid);invalidHumidity.state.habitat.humidity=1.5;
   assert.throws(()=>parseTerrarium(JSON.stringify(invalidHumidity)),/humedad fuera de rango|esquema 1/);
 });
@@ -162,7 +215,7 @@ test("solo considera continuable un guardado que se puede restaurar",()=>{
   const valid=serializeTerrarium(createTerrariumState());
   storage.setItem(SAVE_KEY,valid);
   assert.equal(hasValidTerrariumSave(storage),true);
-  const future=JSON.parse(valid);future.schemaVersion=2;
+  const future=JSON.parse(valid);future.schemaVersion=4;
   storage.setItem(SAVE_KEY,JSON.stringify(future));
   assert.equal(hasValidTerrariumSave(storage),false);
 });
@@ -310,4 +363,11 @@ test("el globo esférico tiene base plana coherente con el diámetro del suelo",
   const capHeight=outerRadius+Math.sqrt(outerRadius**2-floorRadius**2);
   assert.ok(Math.abs(capHeight-wallHeight)<.025,"la altura de la cúpula debe coincidir con el corte de su base");
   assert.ok(wallHeight>1.6 && wallHeight<2.0,"el globo no debe recuperar el exceso de cámara vacía");
+});
+
+test("el dominio inicializa y conserva progreso de expedición dentro de la fuente única de verdad",()=>{
+  const a=createTerrariumState({seed:12345}),b=createTerrariumState({seed:12345});
+  assert.deepEqual(a.expeditionProgress,b.expeditionProgress);
+  assert.equal(a.expeditionProgress.worldSeed,12345);
+  assert.deepEqual(JSON.parse(snapshotDomain(a)).expeditionProgress,a.expeditionProgress);
 });

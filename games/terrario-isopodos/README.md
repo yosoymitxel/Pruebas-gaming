@@ -28,6 +28,8 @@ Verificación de producción: `npm run build`. Aún falta generar y versionar el
 
 ## Documentación
 
+- [Expediciones por turnos: diseño, economía, máquina de estados y aceptación](docs/EXPEDICIONES-POR-TURNOS.md)
+
 - [Especificación técnica y criterios de aceptación](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
 - [Decisión de render y referencias Dioramas](docs/DECISION-RENDER.md)
 - [Gates y estado del spike](docs/SPIKE-RENDER.md)
