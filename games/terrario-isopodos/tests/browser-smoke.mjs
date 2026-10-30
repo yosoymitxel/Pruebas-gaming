@@ -499,6 +499,9 @@ try{
  await exhaustedPage.locator("#expedition-readiness").waitFor({state:"visible"});
  const exhaustedMessage=await exhaustedPage.locator("#expedition-readiness").textContent();
  if(!exhaustedMessage.includes("17%")||!exhaustedMessage.includes("faltan 13 puntos"))throw new Error("No se muestra el déficit energético real: "+exhaustedMessage);
+ const exhaustedPanel=await exhaustedPage.locator("#expedition-map-layer").boundingBox();
+ const exhaustedScene=await exhaustedPage.locator("#expedition-diorama").boundingBox();
+ if(!exhaustedPanel||!exhaustedScene||exhaustedScene.y+exhaustedScene.height>exhaustedPanel.y+2)throw new Error("El panel de recuperación tapa el diorama con la colonia agotada");
  if(await exhaustedPage.locator("#expedition-start").isDisabled()||!(await exhaustedPage.locator("#expedition-start").textContent()).includes("recuperar energía"))throw new Error("Una colonia agotada sigue bloqueada sin salida hacia el terrario");
  await exhaustedPage.screenshot({path:"artifacts/visual/expedition-exhausted-390x844.png",fullPage:true});
  await exhaustedPage.locator("#expedition-start").click();

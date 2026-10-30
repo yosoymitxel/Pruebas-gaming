@@ -11,7 +11,7 @@ const PORTRAIT_MAP_POSITIONS = {
   "compost-bin": [0.55, 1.9]
 };
 
-function addPath(T, group, start, end, material, radius = 0.014) {
+function addPath(T, group, start, end, material, radius = 0.017) {
   const a = new T.Vector3(...start), b = new T.Vector3(...end);
   const curve = new T.CatmullRomCurve3([
     a, a.clone().lerp(b, 0.32).add(new T.Vector3(0, 0.014, 0)),
@@ -85,7 +85,7 @@ export function buildExpeditionMapDiorama(T, {
     colors: [0x6c5038, 0x856343, 0xa17c4f, 0x596542, 0xb18a58]
   });
   const links = new Set();
-  const trailMaterial = new T.MeshStandardMaterial({color:0x566b48,roughness:0.99,metalness:0});
+  const trailMaterial = new T.MeshStandardMaterial({color:0x6c7b50,roughness:0.99,metalness:0});
   for (const node of Object.values(nodes ?? {})) {
     for (const target of node.links ?? []) {
       const key = [node.id, target].sort().join("|");

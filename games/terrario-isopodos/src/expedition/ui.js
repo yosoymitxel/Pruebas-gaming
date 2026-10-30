@@ -149,6 +149,7 @@ export function mountExpeditionScreen({
       return '<button type="button" class="expedition-explorer'+(selected?" is-selected":"")+(ready?" is-ready":" is-tired")+'" data-explorer-id="'+entity.id+'" aria-pressed="'+selected+'" aria-label="Isópodo '+String(index+1)+', '+energy+'% de energía, '+(ready?"disponible":"necesita "+remaining+" puntos para salir")+'"'+(ready?"":" disabled")+'><span class="expedition-explorer-number">'+String(index+1).padStart(2,"0")+'</span><span class="expedition-explorer-copy"><strong>Isópodo '+String(index+1).padStart(2,"0")+'</strong><small>'+(ready?"Puede explorar":"Descansar · faltan "+remaining+" puntos")+'</small><span class="expedition-energy-track" aria-hidden="true"><span style="width:'+energy+'%"></span></span></span><span class="expedition-energy">'+energy+'<small>%</small></span></button>';
     }).join(""):'<p class="expedition-roster-empty">No quedan isópodos vivos en la colonia.</p>';
 
+    root.classList.toggle("is-exhausted",!eligible.length&&living.length>0);
     const selected=living.find(entity=>entity.id===selectedExplorerId);
     const selectedReady=Boolean(selected&&Math.round((selected.energy??0)*100)>=MIN_EXPLORER_ENERGY);
     const bestEnergy=living.length?Math.max(...living.map(entity=>Math.round((entity.energy??0)*100))):0;
@@ -233,7 +234,7 @@ export function mountExpeditionScreen({
     const run=activeRun(),event=run?.pendingEvent;
     if(!run||!event){renderMap();return;}
     root.classList.add("has-active-expedition","is-level");
-    root.classList.remove("is-settlement");
+    root.classList.remove("is-settlement","is-exhausted");
     $("#expedition-map-layer").classList.add("is-running");
     const node=EXPEDITION_NODES[event.nodeId];
     renderer().setExpeditionView("level",{nodeId:event.nodeId,event,seed:run.seed});
@@ -269,7 +270,7 @@ export function mountExpeditionScreen({
   }
   function renderSettlement(){
     if(!settlement)return;
-    root.classList.remove("has-active-expedition","is-level");
+    root.classList.remove("has-active-expedition","is-level","is-exhausted");
     root.classList.add("is-settlement");
     renderer().setExpeditionView("map",{nodes:EXPEDITION_NODES,visitedNodes:[START_NODE_ID],currentNodeId:START_NODE_ID,seed:state.expeditionProgress.worldSeed});
     $("#expedition-map-layer").hidden=true;
@@ -447,7 +448,6 @@ export function mountExpeditionScreen({
   $("#expedition-start").addEventListener("click",()=>{
     const action=$("#expedition-start").dataset.action;
     if(action==="start"){start();return;}
-    if(action==="recover"||action==="daily")resumeAfterClose=true;
     finishToTerrarium(resumeAfterClose);
   });
   $("#expedition-map-back").addEventListener("click",()=>{if(activeRun()){mode="map";renderMap();$("#expedition-map").focus({preventScroll:true});}});

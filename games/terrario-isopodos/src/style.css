@@ -1362,9 +1362,10 @@ footer{display:none}
 .expedition-settlement-card>#expedition-home{width:100%;margin-top:15px}
 .expedition-footer{display:none}
 .expedition-screen.is-settlement .expedition-diorama{bottom:0}
+.expedition-screen.is-exhausted .expedition-stage{--expedition-panel-height:320px}
 @media(max-width:760px){
   .expedition-screen,.expedition-shell{height:100dvh;min-height:100svh}
-  .expedition-stage{--expedition-panel-height:258px}
+  .expedition-stage{--expedition-panel-height:282px}
   .expedition-header{grid-template-columns:auto minmax(0,1fr);min-height:calc(62px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 10px 0;gap:9px}
   .expedition-back{min-height:44px;padding:8px 10px;font-size:11px}
   .expedition-heading{text-align:right}
@@ -1423,12 +1424,17 @@ footer{display:none}
   .expedition-settlement-card{max-height:calc(100% - 24px);padding:18px}
 }
 @media(max-width:420px){
-  .expedition-stage{--expedition-panel-height:264px}
+  .expedition-stage{--expedition-panel-height:284px}
   .expedition-screen.has-active-expedition:not(.is-level) .expedition-stage{--expedition-panel-height:100px}
   .expedition-screen.is-level .expedition-stage{--expedition-panel-height:138px}
   .expedition-heading h1{font-size:20px}
   .expedition-explorer{flex-basis:min(168px,54vw)}
   .expedition-node{flex-basis:128px}
+  .expedition-screen.is-exhausted .expedition-stage{--expedition-panel-height:322px}
+}
+@media(max-width:380px){
+  .expedition-stage{--expedition-panel-height:300px}
+  .expedition-screen.is-exhausted .expedition-stage{--expedition-panel-height:336px}
 }
 @media(prefers-reduced-motion:reduce){
   .expedition-trigger,.expedition-primary,.expedition-secondary,.expedition-node,.expedition-choice{transition:none}

@@ -52,7 +52,7 @@ test("los senderos del mapa quedan integrados en el suelo y no parecen tubos",()
   scene.traverse(object=>{if(object.userData?.expeditionTrail)trails.push(object);});
   assert.equal(trails.length,scene.userData.expeditionTrailCount);
   assert.ok(trails.length>=5);
-  assert.ok(trails.every(path=>path.geometry.parameters.radius<=0.015));
+  assert.ok(trails.every(path=>path.geometry.parameters.radius<=0.018));
   assert.ok(trails.every(path=>path.castShadow===false));
 });
 
