@@ -400,6 +400,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.leafCount=String(interior.userData.visualStats.leafInstances);
     this.renderer.domElement.dataset.fernLeaves=String(interior.userData.visualStats.fernLeaves);
     this.renderer.domElement.dataset.mossCount=String(interior.userData.visualStats.mossPillows);
+    this.renderer.domElement.dataset.terrainRelief=String(interior.userData.visualStats.terrainRelief);
 
     const wallMaterial=glass(shape==="cilindrico"?.1:.065);
     const floorTop=.19,wallY=floorTop+spec.wallHeight/2,rimY=floorTop+spec.wallHeight;
