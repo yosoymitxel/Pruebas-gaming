@@ -11,7 +11,7 @@ Crear un terrario interactivo de navegador para observar y gestionar una colonia
 La experiencia debe permitir:
 - observar animales y el entorno en una escena 3D;
 - alternar en el mismo terrario entre representación **Diorama** y **Voxel**;
-- elegir terrario rectangular o cilíndrico;
+- elegir terrario **rectangular, cilíndrico o esférico**;
 - pausar, avanzar normalmente y acelerar la simulación;
 - modificar variables básicas del hábitat y observar sus consecuencias;
 - descubrir comportamientos mediante observación y consultar fichas de especie;
@@ -24,12 +24,12 @@ La biología es deliberadamente simplificada y orientada al juego. No presentar 
 | Área | Decisión |
 |---|---|
 | Plataforma inicial | Navegador de escritorio y móvil; instalación local sin backend obligatorio |
-| Render | Three.js/WebGL con una capa de render independiente del modelo de simulación |
+| Render | Three.js/WebGL como backend 3D actual, desacoplado del dominio; se permite un backend alternativo si gana una comparativa real en navegador |
 | Modos visuales | Diorama y Voxel, conmutables durante una sesión |
 | Animales en Diorama | Modelos 3D con animaciones simples |
 | Animales en Voxel | Sprites voxelizados desde atlas/spritesheets; no sustituirlos por modelos 3D convencionales |
-| Contenedor | Terrario rectangular y cilíndrico |
-| Cámara | Cámara orbital con rotación y zoom; encuadre inicial automático según la forma del terrario |
+| Contenedor | Vivario rectangular, tarro cilíndrico y globo esférico; cada uno con vidrio, base, proporción y encuadre propios |
+| Cámara | Cámara orbital con rotación y zoom; encuadre inicial automático según la forma del recipiente y el viewport |
 | Tiempo | Pausa, velocidad normal y aceleración; el tiempo de simulación no depende de la tasa de render |
 | Progresión | Sandbox libre; descubrimientos informativos, sin bloqueo de funciones esenciales |
 | Persistencia | Guardado local versionado y recuperación segura |
@@ -51,7 +51,7 @@ Los ajustes, ayuda, ficha de especie, descubrimientos, guardar/cargar y confirma
 ### Pantallas/paneles
 
 1. **Inicio:** Nuevo terrario, Continuar si existe guardado válido, Ajustes y Cómo se juega.
-2. **Configuración inicial:** nombre opcional, forma rectangular/cilíndrica, tamaño inicial dentro de límites definidos, colonia inicial y modo visual.
+2. **Configuración inicial:** nombre opcional, forma rectangular/cilíndrica/esférica, tamaño inicial dentro de límites definidos, colonia inicial y modo visual.
 3. **Terrario:** escena 3D, controles de tiempo, cámara, hábitat, colonia, observación y menú.
 4. **Pausa:** congela simulación e input de gameplay, pero permite volver, guardar, ajustar opciones y salir.
 5. **Observación:** ficha de animal, estado visible y comportamientos observados; la selección no altera por sí sola el modelo.
@@ -129,13 +129,18 @@ Los rangos, umbrales y tasas serán constantes documentadas del modelo lúdico, 
 
 No incluir en el MVP: genética detallada, química del sustrato, simulación física de fluidos, red/multijugador, comercio, campaña, monetización ni APIs externas.
 
-## 6. Dos modos visuales sobre el mismo mundo
+## 6. Modos visuales sobre el mismo mundo
+
+La dirección visual prioritaria es un **microhábitat naturalista de escala miniatura**, no un tablero con objetos decorativos repartidos. El recipiente y la ecología interior son el centro de la experiencia. El modo Diorama puede cambiar de estilo o renderer si la prueba visual lo justifica; conservar una presentación distinta a Voxel es válido siempre que ambas respeten el mismo estado de juego y mantengan profundidad 3D. Un resultado 2.5D solo se acepta como alternativa de rendimiento después de compararlo con 3D real.
 
 ### Diorama
-- Escena 3D en miniatura, perspectiva ortográfica o perspectiva débil configurable si la prueba visual lo justifica.
-- Isópodos representados con modelos 3D y animaciones simples de desplazamiento/descanso.
-- Iluminación y sombras controladas para conservar legibilidad en móvil.
-- Sustrato, hojarasca, refugios, alimento y paredes deben tener volumen perceptible y escala consistente.
+- Escena 3D de terrario naturalista en miniatura, con perspectiva y encuadre que permitan leer vidrio, volumen y profundidad.
+- Los recipientes deben parecer objetos construidos: vivario de vidrio rectangular con cantos/base, tarro cilíndrico y globo esférico cerrado; no basta con cambiar un nombre o un límite circular.
+- El suelo es un corte estratificado: drenaje/grava, sustrato y capa orgánica/humus, con relieve propio y borde visible.
+- La superficie debe combinar hojarasca individual, musgo en almohadillas, vegetación con estructura de tallos/frondas, raíces, madera/corteza, piedras y refugios transitables. No usar dispersión uniforme de primitivas como sustituto del ecosistema.
+- El kit visual debe ser modular y ampliable para especies vegetales, setas, decoraciones y hábitats futuros.
+- Los isópodos requieren silueta reconocible, placas segmentadas, patas articuladas visibles, antenas y animación de contacto/locomoción; el renderer no decide el comportamiento.
+- Iluminación/sombras legibles y presupuesto móvil medido; los efectos nunca deben esconder formas sin autoría.
 
 ### Voxel
 - Mantiene el mismo terrario, geometría, cámara lógica y entidades.
@@ -148,9 +153,10 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 - Cámara orbital con rotación, zoom acotado y botón de restablecer vista.
 - En móvil: gestos táctiles sin interferir con botones; zoom con pinza y rotación con gesto documentado.
 - En escritorio: ratón y controles de teclado accesibles.
-- El encuadre automático debe mostrar el recipiente completo en ambas formas y modos.
+- El encuadre automático debe mostrar el recipiente completo en las tres formas y ambos modos.
 - Rectangular: límites de movimiento dentro de un prisma/volumen rectangular.
 - Cilíndrico: límites de movimiento dentro del radio y altura configurados; sin esquinas invisibles ni animales atravesando la pared.
+- Esférico: globo transparente cerrado visualmente, interior con suelo circular y volumen disponible coherente; el animal se restringe al suelo, no debe caminar por la pared esférica.
 - Cambiar forma solo al crear un terrario nuevo en el MVP. Convertir un terrario existente queda fuera de alcance para evitar migraciones ambiguas.
 
 ## 7. Controles y accesibilidad
@@ -197,7 +203,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 | Configuración | INCLUIR | Persistencia separada del terrario |
 | Idioma | INCLUIR | Español inicial y catálogo extensible |
 | Modos visuales | INCLUIR | Diorama/Voxel en la misma sesión |
-| Formas de terrario | INCLUIR | Rectangular/Cilíndrico al crear |
+| Formas de terrario | INCLUIR | Rectangular/Cilíndrico/Esférico al crear |
 | Guardado/carga | INCLUIR | Local, versionado, validado |
 | Exportar/importar | PENDIENTE | Decidir tras validar UX y formato JSON; no sobrescribir datos válidos ante importación inválida |
 | Autoguardado | INCLUIR | Solo en puntos seguros y con feedback |
@@ -237,7 +243,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 - [ ] Ambos modos permiten seleccionar un animal y ver la misma información de dominio.
 
 ### D. Geometría y cámara
-- [ ] Los dos tipos de recipiente se ven completos en escritorio y móvil al entrar.
+- [ ] Los tres tipos de recipiente (rectangular, cilíndrico y esférico) se ven completos en escritorio y móvil al entrar.
 - [ ] Los animales no atraviesan paredes ni salen de los límites lógicos en pruebas de borde.
 - [ ] Rotación, zoom y restablecimiento de cámara funcionan con ratón y tacto.
 - [ ] Redimensionar/orientar el dispositivo no deforma el recipiente ni oculta controles esenciales.
@@ -283,6 +289,7 @@ No incluir en el MVP: genética detallada, química del sustrato, simulación f�
 
 - **Sprites voxelizados en escena 3D:** validar transparencia, orientación, escala, oclusión y rendimiento en móvil durante el spike.
 - **Forma cilíndrica:** validar límites lógicos y colisión visual; no implementar una caja invisible dentro de un cilindro.
+- **Forma esférica:** el globo debe leerse como recipiente de vidrio cerrado; verificar oclusión, encuadre y que el suelo lógico siga siendo transitable.
 - **Biología:** publicar los parámetros como simplificación lúdica y evitar falsa precisión científica.
 - **Licencias:** registrar procedencia y licencia de cada modelo, sprite, textura, fuente y audio antes de distribuir.
 - **Rendimiento:** fijar dispositivos de referencia antes de prometer FPS o un máximo de animales.

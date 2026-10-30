@@ -1,6 +1,6 @@
 export const HABITAT_GEOMETRY=Object.freeze({
-  rectangular:Object.freeze({floorWidth:3.2,floorDepth:2.1,outerWidth:3.35,outerDepth:2.2,wallHeight:1.18,wallThickness:.035}),
-  cilindrico:Object.freeze({floorRadius:1.48,outerRadius:1.52,wallHeight:1.18,wallThickness:.035}),
+  rectangular:Object.freeze({floorWidth:3.2,floorDepth:2.1,outerWidth:3.35,outerDepth:2.2,wallHeight:1.28,wallThickness:.035}),
+  cilindrico:Object.freeze({floorRadius:1.48,outerRadius:1.52,wallHeight:1.48,wallThickness:.035}),
   esferico:Object.freeze({floorRadius:1.18,outerRadius:1.28,wallHeight:2.56,wallThickness:.035})
 });
 /** Los recipientes redondos tienen suelo circular; el globo no es una pared caminable. */

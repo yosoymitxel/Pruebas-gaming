@@ -14,86 +14,225 @@ export const BIOLOGY_RULES=Object.freeze({
   shelterHydrationGainPerMinute:0.008
 });
 
+export function sampleMicroclimate(state,x,z){
+  const habitat=state?.habitat??{};
+  const humidity=clamp(Number(habitat.humidity??.78),0,1);
+  const temperatureC=clamp(Number(habitat.temperatureC??21.4),5,35);
+  const lightSetting=clamp(Number(habitat.light??.35),0,1);
+  const minuteOfDay=((Number(state?.clockMinutes??480)%1440)+1440)%1440;
+  const hour=minuteOfDay/60;
+  // A simple daylight curve: dawn at 06:00, peak at noon, dusk at 18:00.
+  const daylight=clamp(Math.sin((hour-6)*Math.PI/12),0,1);
+  const ambientLight=daylight*(.22+.78*lightSetting);
+  let moisturePocket=0,shade=0;
+
+  for(const resource of Array.isArray(state?.resources)?state.resources:[]){
+    if(!Number.isFinite(resource.x)||!Number.isFinite(resource.z))continue;
+    const distance=Math.hypot(x-resource.x,z-resource.z);
+    const radius=resource.type==="shelter"? .58 :
+      resource.type==="bark"? .52 :
+      resource.type==="moss"? .44 :
+      resource.type==="fern"? .38 :
+      resource.type==="stone"? .26 : .2;
+    if(distance>=radius)continue;
+    const falloff=(1-distance/radius)**2;
+    if(resource.type==="shelter"){moisturePocket+=.28*falloff;shade+=.58*falloff;}
+    else if(resource.type==="bark"){moisturePocket+=.19*falloff;shade+=.47*falloff;}
+    else if(resource.type==="moss"){moisturePocket+=.22*falloff;shade+=.24*falloff;}
+    else if(resource.type==="fern"){moisturePocket+=.045*falloff;shade+=.28*falloff;}
+    else if(resource.type==="stone"){moisturePocket+=.035*falloff;shade+=.16*falloff;}
+  }
+
+  const localHumidity=clamp(humidity+moisturePocket,0,.98);
+  const localLight=clamp(ambientLight-shade,0,1);
+  const localTemperature=clamp(temperatureC+daylight*lightSetting*.72-shade*.62,5,35);
+  return {
+    humidity:localHumidity,
+    light:localLight,
+    temperatureC:localTemperature,
+    daylight,
+    shade:clamp(shade,0,1)
+  };
+}
+
+function closestResource(entity,resources,types){
+  let best=null,bestDistance=Infinity;
+  for(const resource of resources){
+    if(!types.includes(resource.type))continue;
+    if(resource.type==="leaf-litter"&&(Number(resource.amount??0)<=0))continue;
+    const distance=Math.hypot(resource.x-entity.x,resource.z-entity.z);
+    if(distance<bestDistance){best=resource;bestDistance=distance;}
+  }
+  return best?{resource:best,distance:bestDistance}:null;
+}
+
+function steerEntity(entity,target,resources,speed,phase){
+  const dx=target.x-entity.x,dz=target.z-entity.z;
+  const distance=Math.hypot(dx,dz);
+  if(distance<1e-5)return;
+  let vx=dx/distance,vz=dz/distance;
+
+  // Gentle local avoidance keeps animals from walking through placed stones and props.
+  let avoidX=0,avoidZ=0;
+  for(const obstacle of resources){
+    if(obstacle===target)continue;
+    if(!["stone","mushroom","fern"].includes(obstacle.type))continue;
+    const ox=entity.x-obstacle.x,oz=entity.z-obstacle.z,d=Math.hypot(ox,oz);
+    const radius=obstacle.type==="stone"?.2:.15;
+    if(d>1e-4&&d<radius){
+      const strength=(radius-d)/radius;
+      avoidX+=ox/d*strength;
+      avoidZ+=oz/d*strength;
+    }
+  }
+  vx+=avoidX*.85;vz+=avoidZ*.85;
+  const length=Math.hypot(vx,vz)||1;
+  vx/=length;vz/=length;
+
+  const desiredHeading=Math.atan2(vx,vz);
+  const currentHeading=Number(entity.heading??0);
+  const difference=Math.atan2(Math.sin(desiredHeading-currentHeading),Math.cos(desiredHeading-currentHeading));
+  entity.heading=currentHeading+clamp(difference,-.24,.24);
+  const step=Math.min(distance,speed);
+  const wander=Math.sin(phase)*.0015;
+  entity.x+=vx*step+Math.cos(phase)*wander;
+  entity.z+=vz*step+Math.sin(phase)*wander;
+}
+
 export function stepSimulation(state,minutes=1){
   if(!state||typeof state!=="object")throw new TypeError("Se requiere un estado del terrario");
   if(!Number.isInteger(minutes)||minutes<1||minutes>1440)throw new RangeError("minutes debe ser entero entre 1 y 1440");
 
   for(let minute=0;minute<minutes;minute++){
     state.clockMinutes++;
-    const h=state.habitat;
-    h.humidity=clamp(Number(h.humidity ?? .78),0,1);
-    h.temperatureC=clamp(Number(h.temperatureC ?? 21.4),5,35);
-    const temperatureDistance=Math.max(0,
-      BIOLOGY_RULES.temperatureComfortMinC-h.temperatureC,
-      h.temperatureC-BIOLOGY_RULES.temperatureComfortMaxC
-    );
+    const habitat=state.habitat;
+    habitat.humidity=clamp(Number(habitat.humidity??.78),0,1);
+    habitat.temperatureC=clamp(Number(habitat.temperatureC??21.4),5,35);
+    habitat.light=clamp(Number(habitat.light??.35),0,1);
+    const temperatureDistance=(temperatureC)=>{
+      return Math.max(0,BIOLOGY_RULES.temperatureComfortMinC-temperatureC,
+        temperatureC-BIOLOGY_RULES.temperatureComfortMaxC);
+    };
 
-    if(state.clockMinutes%60===0&&state.entities.some(e=>e.alive!==false&&e.hydration>.35&&e.energy>.25&&e.stress<.8))state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;
+    const living=state.entities.filter(entity=>entity.alive!==false);
+    if(state.clockMinutes%60===0&&living.some(e=>e.hydration>.35&&e.energy>.25&&e.stress<.8)){
+      state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;
+    }
 
-    for(const e of state.entities){
-      if(e.alive===false)continue;
-      e.previousX=e.x;
-      e.previousZ=e.z;
-      const seed=identity(e),cycle=(state.clockMinutes+seed)%47,phase=state.clockMinutes*.11+(seed%97)*.17;
-      e.hydration=clamp((e.hydration ?? .8)-(BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.2,1-h.humidity)),0,1);
-      e.energy=clamp((e.energy ?? .8)-BIOLOGY_RULES.energyLossPerMinute,0,1);
-      e.stress=clamp((e.stress ?? .2)+temperatureDistance*BIOLOGY_RULES.temperatureStressPerDegreeMinute-(temperatureDistance===0?BIOLOGY_RULES.comfortableStressRecoveryPerMinute:0),0,1);
+    for(const entity of living){
+      entity.previousX=entity.x;
+      entity.previousZ=entity.z;
+      const seed=identity(entity);
+      const phase=state.clockMinutes*.11+(seed%97)*.17;
+      const micro=sampleMicroclimate(state,entity.x,entity.z);
+      const hotColdStress=temperatureDistance(micro.temperatureC);
+      const wasResting=["resting","burrowing"].includes(entity.behavior);
 
-      const food=state.resources.filter(r=>r.type==="leaf-litter"&&r.amount>0).sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
-      const shelter=state.resources.filter(r=>r.type==="shelter").sort((a,b)=>Math.hypot(a.x-e.x,a.z-e.z)-Math.hypot(b.x-e.x,b.z-e.z))[0];
+      // Needs react to the local pocket, not just the global slider.
+      const dryExposure=Math.max(0,1-micro.humidity);
+      entity.hydration=clamp((entity.hydration??.8)-
+        BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.12,dryExposure),0,1);
+      const activityCost=wasResting?.42:1;
+      entity.energy=clamp((entity.energy??.8)-
+        BIOLOGY_RULES.energyLossPerMinute*activityCost,0,1);
+      const heatStress=hotColdStress*BIOLOGY_RULES.temperatureStressPerDegreeMinute;
+      const lightStress=Math.max(0,micro.light-.62)*.00022;
+      if(heatStress+lightStress>0)entity.stress=clamp((entity.stress??.2)+heatStress+lightStress,0,1);
+      else entity.stress=clamp((entity.stress??.2)-BIOLOGY_RULES.comfortableStressRecoveryPerMinute,0,1);
+
+      const food=closestResource(entity,state.resources,["leaf-litter"]);
+      const refuge=closestResource(entity,state.resources,["shelter","bark","moss","fern","stone"]);
+      const hydrationNeed=Math.max(0,.61-entity.hydration)*1.8+
+        Math.max(0,.54-micro.humidity)*1.35+
+        Math.max(0,micro.light-.55)*1.25+
+        Math.max(0,hotColdStress-.5)*.18;
+      const energyNeed=Math.max(0,.67-entity.energy)*1.55;
       let target=null;
-      if(e.behavior==="defensive-curl"&&e.stress<=.84&&!(cycle>=18&&cycle<21))e.behavior="exploring";
-      if(e.stress>.84||(cycle>=18&&cycle<21&&e.hydration>=.48&&e.energy>=.65&&e.stress<=.7))e.behavior="defensive-curl";
-      else if(e.hydration<.48||e.stress>.7)target=shelter;
-      else if(e.energy<.65)target=food;
+
+      // Armadillidium rolls into a ball when seriously threatened or stressed;
+      // no arbitrary 47-minute schedule forces the response.
+      if(entity.stress>=.88){
+        entity.behavior="defensive-curl";
+        entity.heading=(entity.heading??0)+Math.sin(phase)*.003;
+        continue;
+      }
+      if(entity.behavior==="defensive-curl"&&entity.stress>.62){
+        entity.behavior="defensive-curl";
+        continue;
+      }
+
+      if(hydrationNeed>.12&&refuge){
+        target=refuge.resource;
+      }else if(energyNeed>.08&&food){
+        target=food.resource;
+      }else if(micro.light>.7&&refuge){
+        target=refuge.resource;
+      }
 
       if(target){
-        const dx=target.x-e.x,dz=target.z-e.z,d=Math.hypot(dx,dz);
-        if(d<.14){
-          e.behavior=target.type==="leaf-litter"?(cycle%5===0?"grooming":"feeding"):"resting";
-          if(target.type==="leaf-litter"){target.amount=Math.max(0,target.amount-.009);e.energy=clamp(e.energy+BIOLOGY_RULES.foodEnergyGainPerMinute,0,1);}
-          else{e.hydration=clamp(e.hydration+BIOLOGY_RULES.shelterHydrationGainPerMinute,0,1);e.stress=clamp(e.stress-.006,0,1);}
+        const distance=Math.hypot(target.x-entity.x,target.z-entity.z);
+        if(distance<.15){
+          if(target.type==="leaf-litter"){
+            entity.behavior=entity.energy<.55?"feeding":"grooming";
+            target.amount=Math.max(0,(target.amount??1)-.0065);
+            entity.energy=clamp(entity.energy+BIOLOGY_RULES.foodEnergyGainPerMinute,0,1);
+          }else{
+            entity.behavior=entity.hydration<.55?"resting":"burrowing";
+            entity.hydration=clamp(entity.hydration+BIOLOGY_RULES.shelterHydrationGainPerMinute,0,1);
+            entity.stress=clamp(entity.stress-.0035,0,1);
+          }
         }else{
-          const move=Math.min(.034+(seed%4)*.004,d),wobble=Math.sin(phase)*.11;
-          e.x+=dx/d*move+Math.cos(phase)*wobble*.18;
-          e.z+=dz/d*move+Math.sin(phase)*wobble*.18;
-          e.heading=Math.atan2(dx,dz)+wobble;
-          e.behavior=target.type==="leaf-litter"?"seeking-food":"seeking-shelter";
+          const drynessBoost=1+dryExposure*.72;
+          const lightDampening=1-micro.light*.24;
+          const speed=(.022+(seed%5)*.002)*drynessBoost*lightDampening;
+          steerEntity(entity,target,state.resources,speed,phase);
+          entity.behavior=target.type==="leaf-litter"?"seeking-food":"seeking-shelter";
         }
-      }else if(e.behavior==="defensive-curl"){
-        e.heading=(e.heading ?? 0)+Math.sin(phase)*.006;
-      }else if(cycle>=21&&cycle<27&&h.humidity>=.5){
-        e.behavior="burrowing";e.x+=Math.sin(phase)*.003;e.z+=Math.cos(phase)*.003;
+      }else if(entity.hydration<.42&&micro.humidity<.48){
+        entity.behavior="burrowing";
+        entity.heading=(entity.heading??0)+Math.sin(phase)*.008;
+        entity.x+=Math.sin(entity.heading)*.0025;
+        entity.z+=Math.cos(entity.heading)*.0025;
       }else{
-        const others=state.entities.filter(other=>other!==e&&other.alive!==false);
-        const neighbor=others.map(other=>({other,d:Math.hypot(other.x-e.x,other.z-e.z)})).sort((a,b)=>a.d-b.d)[0];
-        if(neighbor&&neighbor.d<.23&&cycle%4!==0){
-          e.behavior="socializing";
-          const away=Math.atan2(e.x-neighbor.other.x,e.z-neighbor.other.z);
-          e.heading=(e.heading ?? 0)+Math.sin(away-(e.heading ?? 0))*.06;
-          e.x+=Math.sin(e.heading)*.003;
-          e.z+=Math.cos(e.heading)*.003;
-        }else if(cycle<3){e.behavior="resting";}
-        else if(cycle>=3&&cycle<6){e.behavior="grooming";e.heading=(e.heading ?? 0)+Math.sin(phase)*.04;}
-        else if(cycle===6){e.behavior="investigating";e.heading=(e.heading ?? 0)+Math.sin(phase)*.12;}
-        else{
-          e.behavior="exploring";
-          const turn=Math.sin(phase)*.045+Math.cos(phase*.37)*.022;
-          e.heading=(e.heading ?? 0)+turn;
-          const stride=.012+(seed%5)*.003;
-          e.x+=Math.sin(e.heading)*stride;
-          e.z+=Math.cos(e.heading)*stride;
+        const neighbors=living.filter(other=>other!==entity);
+        const neighbor=neighbors.map(other=>({other,d:Math.hypot(other.x-entity.x,other.z-entity.z)}))
+          .filter(item=>item.d<.26).sort((a,b)=>a.d-b.d)[0];
+        if(neighbor&&micro.temperatureC>=20&&micro.temperatureC<=30&&micro.humidity>.48){
+          entity.behavior="socializing";
+          const attraction=neighbor.d>.105?.002:-.001;
+          const dx=neighbor.other.x-entity.x,dz=neighbor.other.z-entity.z,d=neighbor.d||1;
+          entity.x+=dx/d*attraction;
+          entity.z+=dz/d*attraction;
+          entity.heading=Math.atan2(dx,dz);
+        }else if(micro.light>.68&&refuge){
+          entity.behavior="seeking-shelter";
+          const targetShade=refuge.resource;
+          steerEntity(entity,targetShade,state.resources,.018,phase);
+        }else if(entity.energy>.82&&entity.stress<.3&&Math.sin(phase*.17+seed%11)>.92){
+          entity.behavior="grooming";
+          entity.heading=(entity.heading??0)+Math.sin(phase)*.025;
+        }else if(entity.energy<.35){
+          entity.behavior="resting";
+          entity.heading=(entity.heading??0)+Math.sin(phase)*.003;
+        }else{
+          entity.behavior="exploring";
+          const drynessBoost=1+dryExposure*.72;
+          const lightDampening=1-micro.light*.28;
+          const turn=Math.sin(phase)*.035+Math.cos(phase*.37)*.018;
+          entity.heading=(entity.heading??0)+turn;
+          const stride=(.009+(seed%5)*.002)*drynessBoost*lightDampening;
+          entity.x+=Math.sin(entity.heading)*stride;
+          entity.z+=Math.cos(entity.heading)*stride;
         }
       }
 
-      const constrained=constrainToHabitat(e.x,e.z,h.shape,.2);
-      if(constrained.x!==e.x||constrained.z!==e.z){
-        e.x=constrained.x;
-        e.z=constrained.z;
-        e.heading= h.shape==="cilindrico" ? Math.atan2(-e.x,-e.z) : -(e.heading??0);
+      const constrained=constrainToHabitat(entity.x,entity.z,habitat.shape,.2);
+      if(constrained.x!==entity.x||constrained.z!==entity.z){
+        entity.x=constrained.x;entity.z=constrained.z;
+        entity.heading=habitat.shape==="cilindrico"?Math.atan2(-entity.x,-entity.z):-(entity.heading??0);
       }
-      if(e.hydration<=0||e.energy<=0)e.stress=clamp(e.stress+.002,0,1);
-      if(e.hydration<.15&&e.energy<.1)e.alive=false;
+      if(entity.hydration<=0||entity.energy<=0)entity.stress=clamp(entity.stress+.002,0,1);
+      if(entity.hydration<.15&&entity.energy<.1)entity.alive=false;
     }
   }
   return state;

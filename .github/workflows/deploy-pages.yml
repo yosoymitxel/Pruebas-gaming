@@ -34,6 +34,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Audit dependency tree
+        run: npm audit --audit-level=high
       - name: Unit tests
         run: npm test
       - name: Production build
@@ -49,7 +51,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terrario-pages-evidence-${{ github.sha }}
-          path: games/terrario-isopodos/artifacts/visual/
+          path: |
+            games/terrario-isopodos/artifacts/visual/
+            games/terrario-isopodos/package-lock.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -70,6 +74,7 @@ jobs:
         working-directory: games/terrario-isopodos
         run: |
           npm install
+          npm audit --audit-level=high
           npm run build
       - name: Assemble complete Pages site
         run: |
