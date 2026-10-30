@@ -232,7 +232,7 @@ function addSubstrate(group, shape, spec, materials) {
 function addFerns(group, random, shape, radius, materials, leafGeo) {
   const seeds = shape === "esferico"
     ? [[-0.78, -0.67, 0.58], [0.76, -0.69, 0.54], [-1.02, 0.05, 0.4], [1.02, 0.06, 0.4]]
-    : [[-1.24, -0.66, 0.55], [1.22, -0.69, 0.52], [-1.28, 0.04, 0.42], [1.28, 0.05, 0.42]];
+    : [[-1.15, -0.7, 0.55], [1.15, -0.7, 0.52], [-1.22, 0.18, 0.42], [1.22, 0.18, 0.42]];
   const leaves = new T.InstancedMesh(leafGeo, materials.fern, 820);
   const stems = new T.InstancedMesh(new T.CylinderGeometry(.005,.011,1,6), materials.fernStem, 820);
   const dummy = new T.Object3D();
