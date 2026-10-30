@@ -708,18 +708,22 @@ function addMushrooms(group, x, z, shape, radius, random, materials, options = {
   group.add(stems,gills,caps);
 }
 function palette() {
+  const canRenderCanvas = typeof document !== "undefined";
+  const soilMap = canRenderCanvas ? texture("soil", 31) : null;
+  const topsoilMap = canRenderCanvas ? texture("soil", 57) : null;
+  const barkMap = canRenderCanvas ? texture("bark", 19) : null;
   return {
     gravel: new T.MeshStandardMaterial({ color: 0x747b70, roughness: 1, flatShading: true }),
-    soil: new T.MeshStandardMaterial({ color: 0xffffff, map: texture("soil", 31), roughness: 0.99 }),
+    soil: new T.MeshStandardMaterial({ color: 0xffffff, map: soilMap, roughness: 0.99 }),
     humus: new T.MeshStandardMaterial({ color: 0x55402f, roughness: 1 }),
-    topsoil: new T.MeshStandardMaterial({ color: 0xffffff, map: texture("soil", 57), roughness: 1, vertexColors: true }),
+    topsoil: new T.MeshStandardMaterial({ color: 0xffffff, map: topsoilMap, roughness: 1, vertexColors: true }),
     moss: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }),
     mossSprig: new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.98, side: T.DoubleSide }),
     leaf: new T.MeshStandardMaterial({ color: 0xa28b61, roughness: 0.96, side: T.DoubleSide }),
     groundcover: new T.MeshStandardMaterial({ color: 0x91a96b, roughness: 0.98, side: T.DoubleSide }),
     fern: new T.MeshStandardMaterial({ color: 0x9bb477, roughness: 0.95, side: T.DoubleSide }),
     fernStem: new T.MeshStandardMaterial({ color: 0x3f6238, roughness: 0.96 }),
-    bark: new T.MeshStandardMaterial({ color: 0xc6b08d, map: texture("bark", 19), roughness: 0.98 }),
+    bark: new T.MeshStandardMaterial({ color: 0xc6b08d, map: barkMap, roughness: 0.98 }),
     darkBark: new T.MeshStandardMaterial({ color: 0x30251d, roughness: 1, side: T.DoubleSide }),
     barkEdge: new T.MeshStandardMaterial({ color: 0x907451, roughness: 0.98 }),
     rock: new T.MeshStandardMaterial({ color: 0x92998d, roughness: 1, flatShading: true }),
