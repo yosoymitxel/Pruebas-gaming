@@ -75,9 +75,10 @@ export function mountExpeditionScreen({
           '</div>',
         '</section>',
         '<section id="expedition-level-layer" class="expedition-level-layer" hidden>',
-          '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
-          '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
-          '<button type="button" id="expedition-map-back" class="expedition-map-back">← Volver al mapa</button>',
+          '<div id="expedition-decision-panel" class="expedition-decision-panel">',
+            '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
+            '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
+          '</div>',
         '</section>',
         '<section id="expedition-settlement" class="expedition-settlement" hidden>',
           '<div class="expedition-settlement-card"><span class="expedition-kicker">REGISTRO DE REGRESO</span><h2>De vuelta bajo la corteza.</h2><p id="expedition-settlement-copy"></p>',
@@ -97,6 +98,7 @@ export function mountExpeditionScreen({
   document.body.append(root);
 
   const $=selector=>root.querySelector(selector);
+  $(".expedition-header").append($("#expedition-map-back"),$("#expedition-vitals"));
   const viewHead=document.querySelector(".viewhead");
   const trigger=document.createElement("button");
   trigger.type="button";
@@ -213,7 +215,7 @@ export function mountExpeditionScreen({
     $("#expedition-event").hidden=true;
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden= !run;
-    $("#expedition-map-layer").append($("#expedition-run-actions"));
+    $("#expedition-map-layer").append($("#expedition-run-actions"),$("#expedition-session-message"));
     $("#expedition-run-actions").hidden=!run;
     $("#expedition-map-back").hidden=true;
     $("#expedition-resume-event").hidden=!hasPending;
@@ -262,6 +264,7 @@ export function mountExpeditionScreen({
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden=false;
     $("#expedition-event").append($("#expedition-run-actions"));
+    $("#expedition-decision-panel").append($("#expedition-session-message"));
     $("#expedition-run-actions").hidden=false;
     $("#expedition-map-back").hidden=false;
     $("#expedition-resume-event").hidden=true;
@@ -273,7 +276,7 @@ export function mountExpeditionScreen({
     $("#expedition-kicker").textContent="OBSERVACIÓN DE CAMPO";
     $("#expedition-location-title").textContent=node.label;
     $("#expedition-location-copy").textContent="Encuentro activo · elige una interacción en el diorama.";
-    $("#expedition-event-location").textContent="ENCUENTRO · "+node.label.toUpperCase();
+    $("#expedition-event-location").textContent="ENCUENTRO";
     $("#expedition-event-title").textContent=event.title;
     $("#expedition-event-description").textContent=event.description;
     $("#expedition-run-label").textContent="ELIGE UNA INTERACCIÓN EN EL DIORAMA";
@@ -393,7 +396,7 @@ export function mountExpeditionScreen({
   function start(){
     try{
       const run=commitMutation(()=>startExpedition(state,selectedExplorerId,{wasRunning:resumeAfterClose}),()=>{
-        feedback="La colonia ha encontrado el primer rastro.";
+        feedback="";
       });
       if(!run)return;
       selectedMapNodeId=START_NODE_ID;
