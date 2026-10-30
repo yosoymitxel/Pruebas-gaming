@@ -189,7 +189,7 @@ function addSubstrate(group, shape, spec, materials) {
   const layers = [
     [gravel, materials.gravel, 0.035],
     [soil, materials.soil, 0.135],
-    [humus, materials.humus, 0.2175]
+    [humus, materials.humus, 0.1975]
   ];
   for (const [geometry, material, y] of layers) {
     const mesh = new T.Mesh(geometry, material);
