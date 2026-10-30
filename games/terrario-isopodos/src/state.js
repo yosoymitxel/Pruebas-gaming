@@ -6,7 +6,7 @@ export function createTerrariumState(){
     running:false,
     speed:1,
     coins:30,
-    habitat:{shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35},
+    habitat:{shape:"rectangular",humidity:.78,temperatureC:21.4,light:.35,weather:"clear"},
     entities:[
       {id:"isopod-001",kind:"armadillidium-vulgare",x:-.88,z:-.42,heading:.4,energy:.84,hydration:.82,stress:.18,alive:true,behavior:"exploring"},
       {id:"isopod-002",kind:"armadillidium-vulgare",x:-.38,z:.48,heading:1.1,energy:.76,hydration:.79,stress:.16,alive:true,behavior:"exploring"},
