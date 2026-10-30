@@ -1230,7 +1230,8 @@ export class TerrariumRenderer {
     const kit=createDioramaKit({
       shape,
       radius,
-      seed:(0x49534f+this.state.resources.length*97)>>>0
+      seed:(0x49534f+this.state.resources.length*97)>>>0,
+      surfaceOffset:.19
     });
     const profiles={
       "leaf-litter":{asset:"leaf-litter",options:{count:24,kind:"local-litter",scale:1.18}},
