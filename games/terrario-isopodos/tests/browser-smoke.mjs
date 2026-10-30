@@ -222,6 +222,8 @@ try{
  await page.locator('[data-buy="mushroom"]').click();
  if(await page.locator("#coins").textContent()!=="23")throw new Error("La tienda no descontó el coste de las setas");
  if(!(await page.locator("#shop-note").textContent()).includes("Setas de bosque"))throw new Error("La tienda no confirmó el artículo comprado");
+ await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.resourceArt==="shared-diorama-kit");
+ if(Number(await cameraCanvas.getAttribute("data-resource-count"))<3)throw new Error("La tienda no montó los objetos en el motor compartido");
  await page.locator("#tool-food").click();
  if(await cameraCanvas.getAttribute("data-active-tool")!=="leaf-litter")throw new Error("No se activa la herramienta de hojarasca");
  const toolBounds=await cameraCanvas.boundingBox();
@@ -354,6 +356,9 @@ try{
  if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#expedition-diorama canvas")))throw new Error("La expedición creó otro canvas en vez de reutilizar el del terrario");
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="map")throw new Error("Explorar no abrió el diorama del mapa");
  if(Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==5)throw new Error("El mapa 3D no tiene cinco lugares seleccionables");
+ if(await expeditionCanvas.getAttribute("data-expedition-surface")!=="organic-soil-cutaway")throw new Error("El mapa no usa la superficie orgánica del kit");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-trail-count"))<5)throw new Error("El mapa no montó sus senderos físicos");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-fov"))!==54)throw new Error("La cámara del mapa no usa su encuadre específico");
  await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
  if(!await page.locator("#expedition-readiness").isVisible())throw new Error("Falta la explicación de disponibilidad antes de iniciar");
  if(await page.locator("#expedition-start").isDisabled())throw new Error("El CTA de recuperación debe permanecer disponible");
@@ -381,6 +386,8 @@ try{
  if(startedRun?.currentNodeId!=="garden-entry")throw new Error("La expedición comenzó en la zona de vista previa y no en Jardín húmedo");
  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("No se generó el encuentro inicial");
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="level"||Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==2)throw new Error("El encuentro no abrió su diorama con dos interacciones");
+ if(await expeditionCanvas.getAttribute("data-expedition-surface")!=="organic-soil-cutaway")throw new Error("El encuentro no usa el motor de suelo compartido");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-actor-scale"))<.9)throw new Error("El isópodo explorador no tiene escala legible en el encuentro");
  if(!await page.locator("#expedition-run-actions").isVisible())throw new Error("Guardar/retirarse no está disponible dentro del nivel");
  const firstChoiceBox=await page.locator(".expedition-choice:not(:disabled)").first().boundingBox();
  const firstChoiceHit=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest("[data-choice-id]")?.dataset.choiceId??null,{x:firstChoiceBox.x+firstChoiceBox.width/2,y:firstChoiceBox.y+firstChoiceBox.height/2});
@@ -480,6 +487,8 @@ try{
  if(!await page.locator("#scene canvas").isVisible())throw new Error("El renderer no regresó al terrario");
  if(!await page.evaluate(()=>window.__restoredExpeditionCanvas===document.querySelector("#scene canvas")))throw new Error("El retorno reconstruyó el canvas del terrario");
  if(await page.locator("#scene canvas").getAttribute("data-expedition-view")!=="terrarium")throw new Error("El renderer siguió mostrando la escena de expedición tras regresar");
+ if(Number(await page.locator("#scene canvas").getAttribute("data-camera-fov"))!==33)throw new Error("La cámara del terrario no restauró su FOV al volver");
+ if(await page.locator("#scene canvas").getAttribute("data-resource-art")!=="shared-diorama-kit")throw new Error("El terrario no conservó los recursos renderizados por el kit al regresar");
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("La expedición genera overflow horizontal en móvil");
  // Colonia exhausta: explicar el requisito y ofrecer el regreso al terrario.
  // Reutilizar el canvas/página principal: Chromium/SwiftShader puede limitar los contextos WebGL simultáneos.
