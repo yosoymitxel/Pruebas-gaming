@@ -9,6 +9,6 @@ export function resolveIsopodRefugePose(entity, refuge) {
   const underCover=Boolean(inReach&&resource.type==="bark"&&["burrowing","resting"].includes(entity?.behavior));
   const perched=inReach&&!underCover;
   const refugeTop=perched?(resource.type==="shelter"?.43:.28):0;
-  const burrowOffset=entity?.behavior==="burrowing"&&!underCover?-.045:0;
+  const burrowOffset=entity?.behavior==="burrowing"&&!underCover&&!perched?-.045:0;
   return {underCover,perched,heightOffset:refugeTop+burrowOffset};
 }
