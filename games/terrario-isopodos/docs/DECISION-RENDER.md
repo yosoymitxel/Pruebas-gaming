@@ -1,6 +1,6 @@
 # Decisión de render: microhábitat naturalista 3D + modo Voxel
 
-**Revisión:** 2026-10-30. **Estado:** implementación visual y simulación en revisión; CODE y build tienen checks automatizados, pero el DESIGN_GATE y el MVP siguen **NO APROBADOS** hasta revisar capturas nuevas del SHA final en los tres recipientes y ambos viewports.
+**Revisión:** 2026-10-30. **Estado:** PR #19 integrada en `main`; renderer de terrario y expediciones 3D validado por CI/Playwright y publicado en Pages. El DESIGN_GATE del arte general sigue PARCIAL por pulido de composición/densidad; el MVP completo continúa **NO APROBADO**.
 
 ## Fuente de verdad y decisión de backend
 
@@ -35,7 +35,7 @@
 - agrupaciones pequeñas de setas;
 - texturas generadas localmente, sin servicios externos.
 
-La versión de arte en desarrollo es `woodland-diorama-v11`. La pasada v11 compacta el globo con una base truncada que coincide con el radio del suelo, reforma el Voxel como un caparazón por secciones, acorta las patas laterales del Diorama, aclara la cutícula y elimina el patrón de ondas repetitivas del suelo. La revisión v9 agrupa la hojarasca, diversifica las frondas, añade rosetas de sotobosque, corrige el albedo del sustrato y elimina la mitad frontal del aro del tarro cilíndrico para que no cruce la colonia. Sus estadísticas (frondas, hojas, musgo, relieve y draw calls) se exponen al navegador para QA. No equivalen por sí solas a aprobación visual.
+La versión de arte registrada en la evidencia de PR #19 es `woodland-diorama-v12`. La pasada v11 compacta el globo con una base truncada que coincide con el radio del suelo, reforma el Voxel como un caparazón por secciones, acorta las patas laterales del Diorama, aclara la cutícula y elimina el patrón de ondas repetitivas del suelo. La revisión v9 agrupa la hojarasca, diversifica las frondas, añade rosetas de sotobosque, corrige el albedo del sustrato y elimina la mitad frontal del aro del tarro cilíndrico para que no cruce la colonia. Sus estadísticas (frondas, hojas, musgo, relieve y draw calls) se exponen al navegador para QA. No equivalen por sí solas a aprobación visual.
 
 El tarro cilíndrico se está llevando a una proporción baja y ancha para evitar un volumen vacío de vidrio que domine al ecosistema. El vivario rectangular conserva más altura y el globo debe leerse como recipiente esférico cerrado.
 
@@ -59,6 +59,14 @@ El tarro cilíndrico se está llevando a una proporción baja y ancha para evita
 5. **PERFORMANCE:** comprobar draw calls, triángulos, memoria y tiempos en viewport móvil con colonia y recursos reales.
 
 No se declara aprobado ningún gate hasta que la evidencia esté ligada al SHA final y haya revisión visual humana del resultado.
+
+## Estado de expediciones y evidencia integrada — 30-10-2026
+
+PR #19 se fusionó mediante squash en `main` con `2f5dbe1c63f644f820d7897e022aabda0b7533c3`. La revisión probada antes del squash fue `99e860ad05bb06553bd29c5360dea17ab1638edd`; sus workflows de Terrario MVP, Terrario game y Framework terminaron PASS.
+
+El [artefacto 12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214) contiene capturas actuales de mapa/encuentros en 1440×1000, 390×844 y 360×640. Se comprobó selección 3D de nodos, nivel de encuentro, restauración de run y liquidación diaria. La inspección visual confirma el funcionamiento, pero muestra un mapa con zonas amplias de sustrato verde sin suficiente vegetación y props de escala reducida. DESIGN_GATE parcial hasta corregir esa composición.
+
+El deployment de Pages para el merge SHA terminó correctamente en [run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831).
 
 ## Historial
 

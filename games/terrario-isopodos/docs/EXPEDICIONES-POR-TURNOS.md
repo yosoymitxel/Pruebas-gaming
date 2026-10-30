@@ -1,6 +1,6 @@
 # Expediciones por turnos
 
-**Estado:** dominio v0.1 implementado; presentación de exploración convertida a dioramas 3D navegables. La aprobación final depende de CODE/GAMEPLAY/DESIGN/INTEGRATION en el SHA que se integre.
+**Estado — 30-10-2026:** dominio v0.1 e interfaz de dioramas 3D integrados en `main` mediante PR #19 (merge `2f5dbe1c63f644f820d7897e022aabda0b7533c3`). CODE/GAMEPLAY/INTEGRATION pasan para el alcance automatizado probado; DESIGN queda PARCIAL por baja densidad del terreno, props pequeños y pulido de HUD pendiente. Esto no aprueba el MVP general.
 **Modo:** opcional. El terrario libre sigue siendo el modo principal y no necesita completar expediciones.
 **Versión de alcance:** 0.1, cinco nodos, cinco familias de eventos, cuatro materiales y tres mejoras permanentes.
 
@@ -256,8 +256,16 @@ No se añaden dependencias runtime. Se reutilizan `stepSimulation`, `constrainTo
 - EXP-I03: no hay errores de consola, requests fallidos o regresiones en flujos anteriores.
 - EXP-I04: evidencia Playwright actual vinculada al SHA y revisada visualmente.
 
-### Estado de implementación
-Todos los criterios EXP-C/G/D/I se encuentran **PENDIENTES** antes de la fase de implementación. El diseño de esta especificación no equivale a aprobación del MVP.
+### Estado de implementación — 30-10-2026
+
+| Puerta | Estado | Evidencia / límite |
+|---|---|---|
+| CODE_GATE | PASS | Tests unitarios y build en los workflows 41089329251 y 41089338122; framework 41089338312. |
+| GAMEPLAY_GATE | PASS para el alcance cubierto | Tests de dominio y smoke de mapa, picking físico, elección, guardado/reanudación, regreso y avance de jornada. |
+| DESIGN_GATE | PARCIAL | Mapas y encuentros 3D reales, responsive en 1440×1000, 390×844 y 360×640, sin overflow ni errores de consola. Queda pulido de densidad, escala de props y reparto HUD/escena. |
+| INTEGRATION_GATE | PASS para PR #19 | Mismo canvas/renderer, run activa restaurada, liquidación diaria y deployment Pages del merge SHA. |
+
+Evidencia visual: [artefacto Playwright 12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214). El módulo de expediciones está integrado y es funcional en el alcance probado; la dirección visual no se considera cerrada y esto no equivale a aprobar el MVP completo.
 
 
 ## 12. Presentación diegética por dioramas
