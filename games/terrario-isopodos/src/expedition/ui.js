@@ -270,7 +270,9 @@ export function mountExpeditionScreen({
   function finishToTerrarium(resume) {
     root.hidden = true;
     onExit({ resume: Boolean(resume), result: settlement });
-    lastFocus?.focus?.({ preventScroll: true });
+    const focusTarget = lastFocus?.isConnected && !lastFocus.closest("[hidden]") ? lastFocus : trigger;
+    focusTarget?.focus?.({ preventScroll: true });
+    if (document.activeElement !== focusTarget) trigger.focus({ preventScroll: true });
     lastFocus = null;
   }
 

@@ -154,3 +154,22 @@ Se incorpora una ampliación opcional, sin sustituir el sandbox libre. La especi
 | INTEGRATION_GATE | PENDIENTE | Mismo renderer y dominio, guardados antiguos compatibles y smoke completo |
 
 La implementación se hará en la rama activa `feat/isopod-render-spike`, sin ramas paralelas. No se modifica la lógica interna de `stepSimulation`; el retorno llama a la función existente una sola vez con 1440 minutos. Las acciones del mapa no avanzan el reloj ecológico. El mapa v0.1 es autorado y conectado; los eventos y recompensas son deterministas por semilla. Combate, nuevas especies y minijuegos quedan fuera del primer corte.
+
+
+## Expediciones — estado de implementación (30-10-2026)
+
+La especificación de diseño está implementada en el dominio y conectada a una primera pantalla funcional dentro del mismo proceso de renderizado. Commit de referencia: `1ccbedfd08c249581aeb015249309f271b8411ea`; el ajuste de selectores, foco y evidencia se registra en el historial Git posterior.
+
+| Área | Estado observado | Pendiente para PASS |
+|---|---|---|
+| PRNG, mapa y reglas de encuentros | Implementado; tests unitarios pasan en CI | Revisión completa de casos límite en Gameplay Gate |
+| Economía y tres mejoras | Implementadas; descuentos atómicos y recursos físicos | Prueba visual y de efecto en los tres recursos |
+| Persistencia v3 y migración v1/v2 | Implementada; tests unitarios pasan | Reanudar una run con browser smoke y guardado real |
+| Pantalla preparación/mapa/evento/regreso | Conectada en `src/expedition/ui.js` | Playwright completo, foco y responsive |
+| Identidad del renderer | Overlay no destruye canvas por diseño | Confirmación browser-side antes/después y al recargar |
+| CODE_GATE | Tests y build PASS en SHA 1ccbedf | Smoke de navegador todavía FAIL |
+| GAMEPLAY_GATE | PENDIENTE | Recorrido Playwright completo y casos límite |
+| DESIGN_GATE | PENDIENTE | Capturas reales desktop/móvil, overflow y foco |
+| INTEGRATION_GATE | PENDIENTE | Save/load, render modes y flujos previos sin regresión |
+
+No integrar a `main` hasta que las cuatro puertas aplicables estén verificadas en el mismo SHA.

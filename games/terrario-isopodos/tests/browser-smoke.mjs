@@ -154,11 +154,11 @@ try{
  if(await page.locator("#camera-toggle").getAttribute("aria-expanded")!=="false")throw new Error("El rail de cámara no se repliega");
 
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
- await page.locator('.weather-control button[data-weather="rain"]').click();
+ await page.getByRole("button",{name:"Lluvia",exact:true}).click();
  if(await cameraCanvas.getAttribute("data-weather")!=="rain"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==1)throw new Error("La lluvia procedural no aparece en el terrario");
- await page.locator('.weather-control button[data-weather="mist"]').click();
+ await page.getByRole("button",{name:"Bruma",exact:true}).click();
  if(await cameraCanvas.getAttribute("data-weather")!=="mist"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==7)throw new Error("La bruma no crea sus capas animadas");
- await page.locator('.weather-control button[data-weather="clear"]').click();
+ await page.getByRole("button",{name:"Claro",exact:true}).click();
  if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
  await page.locator('.weather-control button[data-weather="rain"]').click();
  await page.locator("#open-game-menu").click();
@@ -332,6 +332,7 @@ try{
  if(await route.count()===0)throw new Error("No aparece una ruta conectada desde la entrada");
  await route.click();
  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nuevo nodo no generó su evento");
+ await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
  if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
  await page.locator("#expedition-save").click();
  const activeRun=await page.evaluate(()=>{
