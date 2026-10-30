@@ -482,39 +482,38 @@ try{
  if(await page.locator("#scene canvas").getAttribute("data-expedition-view")!=="terrarium")throw new Error("El renderer siguió mostrando la escena de expedición tras regresar");
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("La expedición genera overflow horizontal en móvil");
  // Colonia exhausta: explicar el requisito y ofrecer el regreso al terrario.
- const exhaustedPage=await browser.newPage({viewport:{width:390,height:844}});
- const exhaustedErrors=[];
- exhaustedPage.on("pageerror",error=>exhaustedErrors.push(error.message));
- await exhaustedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
- await exhaustedPage.getByRole("button",{name:/Nuevo terrario/}).click();
- await exhaustedPage.getByRole("button",{name:/Entrar al terrario/}).click();
- await exhaustedPage.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
- await exhaustedPage.locator("#open-game-menu").click();
- await exhaustedPage.locator("#pause-save").click();
- await exhaustedPage.locator("#resume-game").click();
- await exhaustedPage.evaluate(()=>{
+ // Reutilizar el canvas/página principal: Chromium/SwiftShader puede limitar los contextos WebGL simultáneos.
+ await page.locator("#open-game-menu").click();
+ await page.getByRole("button",{name:/Salir al menú/}).click();
+ await page.getByRole("button",{name:/Nuevo terrario/}).click();
+ await page.getByRole("button",{name:/Entrar al terrario/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.locator("#open-game-menu").click();
+ await page.locator("#pause-save").click();
+ await page.locator("#resume-game").click();
+ await page.evaluate(()=>{
   const key="terrario-isopodos.save.v1",save=JSON.parse(localStorage.getItem(key));
   for(const entity of save.state.entities)if(entity.alive!==false)entity.energy=.17;
   localStorage.setItem(key,JSON.stringify(save));
  });
- await exhaustedPage.reload({waitUntil:"networkidle"});
- await exhaustedPage.getByRole("button",{name:/Continuar partida/}).click();
- await exhaustedPage.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
- await exhaustedPage.locator("#open-expedition").click();
- await exhaustedPage.locator("#expedition-readiness").waitFor({state:"visible"});
- const exhaustedMessage=await exhaustedPage.locator("#expedition-readiness").textContent();
+ await page.reload({waitUntil:"networkidle"});
+ await page.getByRole("button",{name:/Continuar partida/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.locator("#open-expedition").click();
+ await page.locator("#expedition-readiness").waitFor({state:"visible"});
+ const exhaustedMessage=await page.locator("#expedition-readiness").textContent();
  if(!exhaustedMessage.includes("17%")||!exhaustedMessage.includes("faltan 13 puntos"))throw new Error("No se muestra el déficit energético real: "+exhaustedMessage);
- const exhaustedPanel=await exhaustedPage.locator("#expedition-map-layer").boundingBox();
- const exhaustedScene=await exhaustedPage.locator("#expedition-diorama").boundingBox();
+ const exhaustedPanel=await page.locator("#expedition-map-layer").boundingBox();
+ const exhaustedScene=await page.locator("#expedition-diorama").boundingBox();
  if(!exhaustedPanel||!exhaustedScene||exhaustedScene.y+exhaustedScene.height>exhaustedPanel.y+2)throw new Error("El panel de recuperación tapa el diorama con la colonia agotada");
- if(await exhaustedPage.locator("#expedition-start").isDisabled()||!(await exhaustedPage.locator("#expedition-start").textContent()).includes("recuperar energía"))throw new Error("Una colonia agotada sigue bloqueada sin salida hacia el terrario");
- await exhaustedPage.screenshot({path:"artifacts/visual/expedition-exhausted-390x844.png",fullPage:true});
- await exhaustedPage.locator("#expedition-start").click();
- await exhaustedPage.locator("#screen-expedition").waitFor({state:"hidden"});
- if(!await exhaustedPage.locator("#scene canvas").isVisible())throw new Error("El CTA de recuperación no devolvió al terrario");
- if(await exhaustedPage.locator("#pause").getAttribute("aria-pressed")!=="true")throw new Error("La recuperación no reanudó la simulación ecológica");
- if(exhaustedErrors.length)throw new Error("La ruta de recuperación produjo errores: "+exhaustedErrors.join(" | "));
- await exhaustedPage.close();
+ if(await page.locator("#expedition-start").isDisabled()||!(await page.locator("#expedition-start").textContent()).includes("recuperar energía"))throw new Error("Una colonia agotada sigue bloqueada sin salida hacia el terrario");
+ await page.screenshot({path:"artifacts/visual/expedition-exhausted-390x844.png",fullPage:true});
+ await page.locator("#expedition-start").click();
+ await page.locator("#screen-expedition").waitFor({state:"hidden"});
+ if(!await page.locator("#scene canvas").isVisible())throw new Error("El CTA de recuperación no devolvió al terrario");
+ if(await page.locator("#pause").getAttribute("aria-pressed")!=="true")throw new Error("La recuperación no reanudó la simulación ecológica");
+ if(errors.length)throw new Error("La ruta de recuperación produjo errores: "+errors.join(" | "));
+ await page.close();
  
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
