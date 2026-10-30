@@ -127,3 +127,32 @@ test("guardar una ruta que vuelve atrás y descubre una rama conectada conserva 
   const restored=parseTerrarium(serializeTerrarium(state));
   assert.deepEqual(restored.expeditionProgress.active,state.expeditionProgress.active);
 });
+
+test("el cupo diario se bloquea aunque no haya una expedición activa",()=>{
+  const state=fresh();
+  state.expeditionProgress.lastExpeditionDay=1;
+  assert.throws(()=>startExpedition(state,"isopod-001"),/ya realizó una expedición hoy/);
+  assert.equal(state.expeditionProgress.active,null);
+  assert.equal(state.expeditionProgress.expeditionCount,0);
+});
+test("el coste exacto permite gastar la última acción y toda la energía sin valores negativos",()=>{
+  const state=startAtEventType("web"),run=state.expeditionProgress.active;
+  run.actionPoints=1;run.energy=25;
+  const result=resolveExpeditionEvent(state,"break");
+  assert.equal(result.actionPoints,0);
+  assert.equal(result.energy,0);
+  assert.equal(run.actionPoints,0);
+  assert.equal(run.energy,0);
+});
+test("las acciones de mapa no avanzan la ecología; solo el regreso procesa 1440 minutos",()=>{
+  const state=fresh(),clock=state.clockMinutes,entities=structuredClone(state.entities);
+  startExpedition(state,"isopod-001");
+  resolveFirst(state);
+  travelToNode(state,"mossy-stone");
+  resolveFirst(state);
+  assert.equal(state.clockMinutes,clock);
+  assert.deepEqual(state.entities,entities);
+  const result=returnFromExpedition(state);
+  assert.equal(result.dayAfter,result.dayBefore+1);
+  assert.equal(state.clockMinutes,clock+1440);
+});
