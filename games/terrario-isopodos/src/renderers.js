@@ -678,13 +678,13 @@ export class TerrariumRenderer {
     }
     this.clear(this.expeditionGroup);
     const makeIsopod=()=>isopod(this.state.presentation.mode==="voxel");
+    const portrait=this.isExpeditionPortrait();
     const scene=kind==="map"
-      ?buildExpeditionMapDiorama(T,{...data,aspect:this.camera.aspect,makeIsopod})
-      :buildExpeditionLevelDiorama(T,{...data,aspect:this.camera.aspect,makeIsopod});
+      ?buildExpeditionMapDiorama(T,{...data,aspect:portrait?0.65:this.camera.aspect,makeIsopod})
+      :buildExpeditionLevelDiorama(T,{...data,aspect:portrait?0.65:this.camera.aspect,makeIsopod});
     this.expeditionGroup.add(scene);
     this.expeditionViewKind=kind;
     this.expeditionActor=scene.getObjectByName("expedition-isopod");
-    const portrait=this.camera.aspect<.78;
     this.angle=portrait?0:(kind==="map"?.58:.68);
     this.elevation=portrait?(kind==="map"?1.05:1.0):(kind==="map"?.78:.72);
     this.distance=kind==="map"?7.7:5.7;
@@ -697,7 +697,7 @@ export class TerrariumRenderer {
     const canvas=this.renderer.domElement;
     canvas.dataset.expeditionMapPositions=JSON.stringify(scene.userData.mapPositions??{});
     canvas.dataset.expeditionView=kind;
-    canvas.dataset.expeditionPortrait=String(this.camera.aspect<.78);
+    canvas.dataset.expeditionPortrait=String(this.isExpeditionPortrait());
     canvas.dataset.expeditionNodeCount=String(Object.keys(data.nodes??{}).length);
     canvas.dataset.expeditionInteractionTargets=String(scene.userData.expeditionScene==="level"?scene.children.filter(child=>child.userData?.expeditionChoiceId).length:scene.children.filter(child=>child.userData?.expeditionNodeId).length);
     this.cameraUpdate();
@@ -819,7 +819,7 @@ export class TerrariumRenderer {
 
   fitDistance(){
     if(this.expeditionMode){
-      const portrait=this.camera.aspect<.78;
+      const portrait=this.isExpeditionPortrait();
       const halfWidth=this.expeditionViewKind==="map"?(portrait?1.62:2.95):(portrait?1.52:2.15);
       const halfHeight=this.expeditionViewKind==="map"?(portrait?2.75:2.05):(portrait?2.35:1.55);
       const verticalFov=T.MathUtils.degToRad(this.camera.fov);
@@ -883,8 +883,9 @@ export class TerrariumRenderer {
 
   resetCamera(){
     if(this.expeditionMode){
-      this.angle=this.expeditionViewKind==="map"?.58:.68;
-      this.elevation=this.expeditionViewKind==="map"?.78:.72;
+      const portrait=this.isExpeditionPortrait();
+      this.angle=portrait?0:(this.expeditionViewKind==="map"?.58:.68);
+      this.elevation=portrait?1.05:(this.expeditionViewKind==="map"?.78:.72);
       this.userAdjustedCamera=false;
       this.distance=Math.max(this.expeditionViewKind==="map"?7.7:5.7,this.fitDistance());
       this.cameraUpdate();
@@ -1309,10 +1310,15 @@ export class TerrariumRenderer {
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
   }
 
+  isExpeditionPortrait(){
+    const mobilePortrait=typeof window!=="undefined"&&Boolean(window.matchMedia?.("(max-width:760px) and (orientation:portrait)").matches);
+    return this.camera.aspect<.78||mobilePortrait;
+  }
+
   syncExpeditionComposition(){
     const scene=this.expeditionGroup.children[0];
     if(!scene)return;
-    const portrait=this.camera.aspect<.78;
+    const portrait=this.isExpeditionPortrait();
     if(Boolean(scene.userData.expeditionPortrait)===portrait)return;
     scene.userData.expeditionPortrait=portrait;
     if(scene.userData.expeditionScene==="map"){
@@ -1358,10 +1364,10 @@ export class TerrariumRenderer {
     }
     if(this.expeditionMode){
       if(this.expeditionActor){
-        const phase=now*.0007;
-        this.expeditionActor.position.x=this.expeditionActor.userData.baseX+Math.sin(phase)*.07;
-        this.expeditionActor.position.z=this.expeditionActor.userData.baseZ+Math.cos(phase*.73)*.035;
         const moving=!this.motionQuery?.matches;
+        const phase=moving?now*.0007:0;
+        this.expeditionActor.position.x=this.expeditionActor.userData.baseX+(moving?Math.sin(phase)*.07:0);
+        this.expeditionActor.position.z=this.expeditionActor.userData.baseZ+(moving?Math.cos(phase*.73)*.035:0);
         const curled=false;
         if(this.expeditionActor.userData.isVoxel)updateVoxelIsopod(this.expeditionActor,phase,moving,curled);
         else updateIsopodRig(this.expeditionActor,phase,moving,curled);

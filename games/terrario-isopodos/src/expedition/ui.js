@@ -1,3 +1,4 @@
+import { snapshotDomain } from "../state.js";
 import {
   startExpedition,
   travelToNode,
@@ -58,9 +59,10 @@ export function mountExpeditionScreen({
         '<section id="expedition-map-layer" class="expedition-map-layer">',
           '<nav class="expedition-map" id="expedition-map" tabindex="-1" aria-label="Lugares del jardín"><div id="expedition-map-nodes" class="expedition-map-nodes"></div></nav><button type="button" id="expedition-resume-event" class="expedition-resume-event" hidden>Retomar el encuentro actual ↗</button>',
           '<div id="expedition-explorer-dock" class="expedition-explorer-dock">',
-            '<div class="expedition-explorer-heading"><span>ELIGE A TU EXPLORADOR</span><small>Un individuo con 30 de energía o más</small></div>',
+            '<div class="expedition-explorer-heading"><span>EXPLORADORES DE LA COLONIA</span><small>Necesitan 30% de energía para salir</small></div>',
+            '<p id="expedition-readiness" class="expedition-readiness" role="status" aria-live="polite"></p>',
             '<div id="expedition-roster-list" class="expedition-roster-list"></div>',
-            '<button id="expedition-start" type="button" class="expedition-primary">Entrar al jardín <span aria-hidden="true">↗</span></button>',
+            '<button id="expedition-start" type="button" class="expedition-primary">Comenzar en Jardín húmedo</button>',
           '</div>',
         '</section>',
         '<section id="expedition-level-layer" class="expedition-level-layer" hidden>',
@@ -126,32 +128,70 @@ export function mountExpeditionScreen({
     return instance;
   }
   function ensureSelectedExplorer(){
+    const living=state.entities.filter(entity=>entity.alive!==false);
     const eligible=eligibleExplorers();
-    if(!eligible.some(entity=>entity.id===selectedExplorerId))selectedExplorerId=eligible[0]?.id??null;
+    if(eligible.length&&!eligible.some(entity=>entity.id===selectedExplorerId)){
+      selectedExplorerId=eligible[0].id;
+    }else if(!eligible.length&&!living.some(entity=>entity.id===selectedExplorerId)){
+      selectedExplorerId=living[0]?.id??null;
+    }
   }
   function renderExplorerDock(){
     ensureSelectedExplorer();
-    $("#expedition-roster-list").innerHTML=state.entities.filter(entity=>entity.alive!==false).map((entity,index)=>{
-      const energy=Math.round((entity.energy??0)*100),ready=energy>=MIN_EXPLORER_ENERGY,selected=entity.id===selectedExplorerId;
-      return '<button type="button" class="expedition-explorer'+(selected?" is-selected":"")+'" data-explorer-id="'+entity.id+'" aria-pressed="'+selected+'"'+(ready?"":" disabled")+'><span class="expedition-explorer-number">'+String(index+1).padStart(2,"0")+'</span><span class="expedition-explorer-copy"><strong>Isópodo '+String(index+1).padStart(2,"0")+'</strong><small>'+ (ready?"Listo para salir":"Necesita descansar")+'</small></span><span class="expedition-energy">'+energy+'<small>% energía</small></span></button>';
-    }).join("");
+    const living=state.entities.filter(entity=>entity.alive!==false);
+    const eligible=eligibleExplorers();
     const unavailable=state.expeditionProgress.lastExpeditionDay>=dayOf(state);
-    $("#expedition-start").disabled=!selectedExplorerId||unavailable;
-    $("#expedition-start").textContent=unavailable?"La colonia ya salió hoy":"Entrar al jardín";
-    if(unavailable)$("#expedition-location-copy").textContent="La siguiente salida se habilitará cuando el terrario avance al próximo día.";
-    else if(!selectedExplorerId)$("#expedition-location-copy").textContent="No hay un isópodo con energía suficiente para explorar.";
+    $("#expedition-roster-list").innerHTML=living.length?living.map((entity,index)=>{
+      const energy=Math.round((entity.energy??0)*100);
+      const ready=energy>=MIN_EXPLORER_ENERGY;
+      const selected=entity.id===selectedExplorerId;
+      const remaining=Math.max(0,MIN_EXPLORER_ENERGY-energy);
+      return '<button type="button" class="expedition-explorer'+(selected?" is-selected":"")+(ready?" is-ready":" is-tired")+'" data-explorer-id="'+entity.id+'" aria-pressed="'+selected+'" aria-label="Isópodo '+String(index+1)+', '+energy+'% de energía, '+(ready?"disponible":"necesita "+remaining+" puntos para salir")+'"'+(ready?"":" disabled")+'><span class="expedition-explorer-number">'+String(index+1).padStart(2,"0")+'</span><span class="expedition-explorer-copy"><strong>Isópodo '+String(index+1).padStart(2,"0")+'</strong><small>'+(ready?"Puede explorar":"Descansar · faltan "+remaining+" puntos")+'</small><span class="expedition-energy-track" aria-hidden="true"><span style="width:'+energy+'%"></span></span></span><span class="expedition-energy">'+energy+'<small>%</small></span></button>';
+    }).join(""):'<p class="expedition-roster-empty">No quedan isópodos vivos en la colonia.</p>';
+
+    const selected=living.find(entity=>entity.id===selectedExplorerId);
+    const selectedReady=Boolean(selected&&Math.round((selected.energy??0)*100)>=MIN_EXPLORER_ENERGY);
+    const bestEnergy=living.length?Math.max(...living.map(entity=>Math.round((entity.energy??0)*100))):0;
+    const readiness=$("#expedition-readiness");
+    const action=$("#expedition-start");
+    let actionMode="start";
+    if(unavailable){
+      actionMode="daily";
+      readiness.textContent="La colonia ya realizó su salida de hoy. Avanzá el día en el terrario para habilitar otra expedición.";
+      action.textContent="Volver al terrario";
+    }else if(eligible.length){
+      actionMode="start";
+      readiness.textContent=eligible.length+" de "+living.length+" isópodos pueden salir. La ruta comienza en Jardín húmedo.";
+      action.textContent="Comenzar en Jardín húmedo";
+    }else if(living.length){
+      actionMode="recover";
+      readiness.textContent="Ningún isópodo alcanza el 30%. El mejor está al "+bestEnergy+"%: faltan "+Math.max(0,MIN_EXPLORER_ENERGY-bestEnergy)+" puntos. Volvé al terrario, revisá humedad, alimento y refugios y dejá avanzar la simulación.";
+      action.textContent="Volver al terrario para recuperar energía";
+    }else{
+      actionMode="empty";
+      readiness.textContent="No hay individuos vivos que puedan explorar. Revisá el estado de la colonia en el terrario.";
+      action.textContent="Volver al terrario";
+    }
+    if(actionMode==="start"&&!selectedReady)action.textContent="Elegí un explorador disponible";
+    action.dataset.action=actionMode;
+    action.disabled=false;
+    action.setAttribute("aria-label",action.textContent);
     $("#expedition-explorer-dock").hidden=Boolean(activeRun());
   }
   function renderMap(){
     const run=activeRun(),nodeId=run?.currentNodeId??selectedMapNodeId;
-    const visited=run?.visitedNodes??[START_NODE_ID];
-    const current=EXPEDITION_NODES[nodeId];
+    const visited=run?.visitedNodes??[];
+    const current=run?EXPEDITION_NODES[nodeId]:null;
     const neighbors=new Set(current?.links??[]);
     const hasPending=Boolean(run?.pendingEvent);
+    root.classList.toggle("has-active-expedition",Boolean(run));
+    root.classList.remove("is-level","is-settlement");
+    $("#expedition-map-layer").classList.toggle("is-running",Boolean(run));
     renderer().setExpeditionView("map",{
       nodes:EXPEDITION_NODES,
       visitedNodes:visited,
-      currentNodeId:nodeId,
+      currentNodeId:run?.currentNodeId??null,
+      previewNodeId:run?null:selectedMapNodeId,
       seed:run?.seed??state.expeditionProgress.worldSeed
     });
     $("#expedition-map-layer").hidden=false;
@@ -169,19 +209,22 @@ export function mountExpeditionScreen({
     $("#expedition-title").textContent="El jardín olvidado";
     $("#expedition-day").textContent="DÍA "+String(dayOf(state)).padStart(2,"0")+" · MAPA DE EXPLORACIÓN";
     $("#expedition-kicker").textContent=run?"RUTAS DEL JARDÍN":"MAPA DEL JARDÍN";
-    $("#expedition-location-title").textContent=run?current.label:(selectedMapNodeId===START_NODE_ID?"Un pequeño mundo por descubrir":EXPEDITION_NODES[selectedMapNodeId]?.label??"Un pequeño mundo por descubrir");
+    const preview=EXPEDITION_NODES[selectedMapNodeId]??EXPEDITION_NODES[START_NODE_ID];
+    $("#expedition-location-title").textContent=run?current.label:preview.label;
     $("#expedition-location-copy").textContent=run
       ?(hasPending?"Hay un encuentro pendiente. Resuélvelo para abrir nuevas rutas.":NODE_NOTES[nodeId]+". Toca un lugar conectado para continuar.")
-      :selectedMapNodeId===START_NODE_ID?"Toca los lugares del diorama. La salida comienza en el jardín húmedo; cada zona guarda un encuentro distinto.":(NODE_NOTES[selectedMapNodeId]??"Un lugar del jardín.")+". La salida comienza en el jardín húmedo.";
+      :"Vista previa: "+(NODE_NOTES[selectedMapNodeId]??preview.label)+". La expedición siempre comienza en Jardín húmedo; elegí un explorador para salir.";
     $("#expedition-run-label").textContent=run?"EXPEDICIÓN "+run.id.toUpperCase()+" · SEMILLA "+run.seed:"UNA EXPEDICIÓN POR DÍA";
     $("#expedition-actions").textContent=String(run?.actionPoints??6).padStart(2,"0");
     $("#expedition-energy-value").textContent=String(run?.energy??0).padStart(2,"0");
     $("#expedition-map-nodes").innerHTML=Object.values(EXPEDITION_NODES).map(node=>{
-      const active=node.id===nodeId,seen=visited.includes(node.id),connected=neighbors.has(node.id);
+      const active=Boolean(run)&&node.id===nodeId;
+      const previewSelected=!run&&node.id===selectedMapNodeId;
+      const seen=visited.includes(node.id),connected=neighbors.has(node.id);
       const selectable=run?(!hasPending&&!active&&connected&&run.actionPoints>=node.travelCost):true;
-      const status=active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir";
+      const status=run?(active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir"):(previewSelected?"Vista previa":"Consultar zona");
       const cost=node.travelCost===0?"Inicio":node.travelCost+(node.travelCost===1?" acción":" acciones");
-      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(seen&&!active?" is-visited":"")+(connected&&!active?" is-connected":"")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+'</small></button>';
+      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+'</small></button>';
     }).join("");
     renderExplorerDock();
     $("#expedition-session-message").textContent=feedback;
@@ -189,6 +232,9 @@ export function mountExpeditionScreen({
   function renderLevel(){
     const run=activeRun(),event=run?.pendingEvent;
     if(!run||!event){renderMap();return;}
+    root.classList.add("has-active-expedition","is-level");
+    root.classList.remove("is-settlement");
+    $("#expedition-map-layer").classList.add("is-running");
     const node=EXPEDITION_NODES[event.nodeId];
     renderer().setExpeditionView("level",{nodeId:event.nodeId,event,seed:run.seed});
     $("#expedition-map-layer").hidden=true;
@@ -223,6 +269,8 @@ export function mountExpeditionScreen({
   }
   function renderSettlement(){
     if(!settlement)return;
+    root.classList.remove("has-active-expedition","is-level");
+    root.classList.add("is-settlement");
     renderer().setExpeditionView("map",{nodes:EXPEDITION_NODES,visitedNodes:[START_NODE_ID],currentNodeId:START_NODE_ID,seed:state.expeditionProgress.worldSeed});
     $("#expedition-map-layer").hidden=true;
     $("#expedition-level-layer").hidden=true;
@@ -262,6 +310,29 @@ export function mountExpeditionScreen({
       return false;
     }
   }
+  function commitMutation(action,onSuccess=()=>{}){
+    const previous=JSON.parse(snapshotDomain(state));
+    let result;
+    try{
+      result=action();
+      onSuccess(result);
+    }catch(error){
+      Object.assign(state,previous);
+      onChange();
+      render();
+      throw error;
+    }
+    if(!persist()){
+      const failure=feedback;
+      Object.assign(state,previous);
+      onChange();
+      feedback=failure+" La acción se deshizo; no se consumieron energía ni acciones.";
+      render();
+      return null;
+    }
+    onChange();
+    return result;
+  }
   function finishToTerrarium(resume){
     root.hidden=true;
     const currentRenderer=getRenderer();
@@ -284,6 +355,7 @@ export function mountExpeditionScreen({
     selectedMapNodeId=activeRun()?.currentNodeId??START_NODE_ID;
     lastFocus=document.activeElement;
     root.hidden=false;
+    root.classList.remove("is-settlement","is-level");
     const currentRenderer=renderer();
     currentRenderer.setHost($("#expedition-diorama"));
     currentRenderer.setExpeditionInteractionHandler(target=>{
@@ -302,28 +374,31 @@ export function mountExpeditionScreen({
   }
   function start(){
     try{
-      startExpedition(state,selectedExplorerId,{wasRunning:resumeAfterClose});
-      feedback="La colonia ha encontrado el primer rastro.";
-      persist();
+      const run=commitMutation(()=>startExpedition(state,selectedExplorerId,{wasRunning:resumeAfterClose}),()=>{
+        feedback="La colonia ha encontrado el primer rastro.";
+      });
+      if(!run)return;
+      selectedMapNodeId=START_NODE_ID;
       renderLevel();
       $("#expedition-choice-dock button:not(:disabled)")?.focus({preventScroll:true});
     }catch(error){
-      $("#expedition-location-copy").textContent=error.message;
+      feedback=error.message;
+      $("#expedition-session-message").textContent=feedback;
     }
   }
   function selectNode(nodeId){
     const run=activeRun();
     if(!run){
       selectedMapNodeId=nodeId;
-      selectedMapNodeId=nodeId;
       renderMap();
       return;
     }
     if(run.pendingEvent&&nodeId===run.currentNodeId){renderLevel();return;}
     try{
-      const result=travelToNode(state,nodeId);
-      feedback=result.event?"Nuevo encuentro descubierto.":"Ya conoces este lugar; no quedan hallazgos nuevos aquí.";
-      persist();
+      const result=commitMutation(()=>travelToNode(state,nodeId),value=>{
+        feedback=value.event?"Nuevo encuentro descubierto.":"Ya conoces este lugar; no quedan hallazgos nuevos aquí.";
+      });
+      if(!result)return;
       if(result.event){mode="level";renderLevel();}
       else renderMap();
       (result.event?$("#expedition-choice-dock button:not(:disabled)"):$("#expedition-map")).focus({preventScroll:true});
@@ -334,11 +409,12 @@ export function mountExpeditionScreen({
   }
   function choose(choiceId){
     try{
-      const result=resolveExpeditionEvent(state,choiceId);
-      const rewards=Object.entries(result.rewards).map(([key,amount])=>"+"+amount+" "+materialName(key).toLowerCase()).join(" · ");
-      feedback=rewards|| (result.discoveries.length?"Nuevo descubrimiento registrado.":"Decisión registrada.");
-      if(result.discoveries.length)feedback+=" · "+result.discoveries.length+" descubrimiento(s)";
-      persist();
+      const result=commitMutation(()=>resolveExpeditionEvent(state,choiceId),value=>{
+        const rewards=Object.entries(value.rewards).map(([key,amount])=>"+"+amount+" "+materialName(key).toLowerCase()).join(" · ");
+        feedback=rewards||(value.discoveries.length?"Nuevo descubrimiento registrado.":"Decisión registrada.");
+        if(value.discoveries.length)feedback+=" · "+value.discoveries.length+" descubrimiento(s)";
+      });
+      if(!result)return;
       mode="map";
       renderMap();
       $("#expedition-session-message").textContent=feedback;
@@ -350,22 +426,30 @@ export function mountExpeditionScreen({
   }
   function settle(){
     try{
-      settlement=returnFromExpedition(state);
+      const result=commitMutation(()=>{
+        const outcome=returnFromExpedition(state);
+        state.running=false;
+        return outcome;
+      },()=>{feedback="";});
+      if(!result)return;
+      settlement=result;
       resumeAfterClose=Boolean(settlement.wasRunning);
-      state.running=false;
-      feedback="";
-      onChange();
-      persist();
       renderSettlement();
       $("#expedition-home").focus({preventScroll:true});
     }catch(error){
-      $("#expedition-session-message").textContent=error.message;
+      feedback=error.message;
+      $("#expedition-session-message").textContent=feedback;
     }
   }
 
   trigger.addEventListener("click",()=>show());
   $("#expedition-close").addEventListener("click",closePreparation);
-  $("#expedition-start").addEventListener("click",start);
+  $("#expedition-start").addEventListener("click",()=>{
+    const action=$("#expedition-start").dataset.action;
+    if(action==="start"){start();return;}
+    if(action==="recover"||action==="daily")resumeAfterClose=true;
+    finishToTerrarium(resumeAfterClose);
+  });
   $("#expedition-map-back").addEventListener("click",()=>{if(activeRun()){mode="map";renderMap();$("#expedition-map").focus({preventScroll:true});}});
   $("#expedition-resume-event").addEventListener("click",()=>{if(activeRun()?.pendingEvent){mode="level";renderLevel();$("#expedition-choice-dock button:not(:disabled)")?.focus({preventScroll:true});}});
   $("#expedition-save").addEventListener("click",()=>{
@@ -390,9 +474,11 @@ export function mountExpeditionScreen({
     const upgrade=event.target.closest("[data-expedition-upgrade]");
     if(upgrade){
       try{
-        const result=buyExpeditionUpgrade(state,upgrade.dataset.expeditionUpgrade);
-        feedback=result.label+" instalado en el hábitat.";
-        onChange();persist();renderSettlement();
+        const result=commitMutation(()=>buyExpeditionUpgrade(state,upgrade.dataset.expeditionUpgrade),value=>{
+          feedback=value.label+" instalado en el hábitat.";
+        });
+        if(!result)return;
+        renderSettlement();
         $("#expedition-session-message").textContent=feedback;
       }catch(error){$("#expedition-settlement-copy").textContent=error.message;}
     }

@@ -38,6 +38,24 @@ test("el mapa de expedición contiene cinco nodos seleccionables y biomas del ki
   assert.ok(meshes>45,"la escena debe contener vegetación y nodos 3D");
 });
 
+test("la selección previa del mapa no se confunde con la posición actual",()=>{
+  const scene=buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,currentNodeId:null,previewNodeId:"rotten-fruit",seed:7821});
+  const markers=[];
+  scene.traverse(object=>{if(object.userData?.expeditionNodeId)markers.push(object);});
+  assert.ok(markers.some(marker=>marker.userData.isPreview&&marker.userData.expeditionNodeId==="rotten-fruit"));
+  assert.equal(markers.filter(marker=>marker.userData.isCurrent).length,0);
+});
+
+test("los senderos del mapa quedan integrados en el suelo y no parecen tubos",()=>{
+  const scene=buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,seed:7821});
+  const trails=[];
+  scene.traverse(object=>{if(object.userData?.expeditionTrail)trails.push(object);});
+  assert.equal(trails.length,scene.userData.expeditionTrailCount);
+  assert.ok(trails.length>=5);
+  assert.ok(trails.every(path=>path.geometry.parameters.radius<=0.015));
+  assert.ok(trails.every(path=>path.castShadow===false));
+});
+
 test("la distribución del mapa es determinista por semilla y cambia con otra",()=>{
   const build=seed=>buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,seed});
   const a=build(1234),b=build(1234),c=build(9876);
