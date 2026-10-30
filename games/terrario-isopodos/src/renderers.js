@@ -458,6 +458,7 @@ export class TerrariumRenderer {
     this.tool="hand";
     this.onInteractionStart=null;
     this.onInteractionMove=null;
+    this.onInteractionEnd=null;
     this.onWorldAction=null;
     this.angle=.68;
     this.elevation=state.habitat.shape==="cilindrico"?.68:state.habitat.shape==="esferico"?.78:.72;
@@ -535,7 +536,7 @@ export class TerrariumRenderer {
         const point=projectGround(e);
         const resourceId=entityId?null:resourceAt(point);
         if(entityId||resourceId){
-          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId};
+          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId,startX:point?.x,startZ:point?.z,moved:false};
           c.setPointerCapture?.(e.pointerId);
           if(entityId)this.onInteractionStart?.(interaction);
           e.preventDefault();
@@ -555,7 +556,10 @@ export class TerrariumRenderer {
     c.addEventListener("pointermove",e=>{
       if(interaction?.pointerId===e.pointerId){
         const point=projectGround(e);
-        if(point)this.onInteractionMove?.(interaction,point.x,point.z);
+        if(point){
+          if(Number.isFinite(interaction.startX)&&Math.hypot(point.x-interaction.startX,point.z-interaction.startZ)>.025)interaction.moved=true;
+          this.onInteractionMove?.(interaction,point.x,point.z);
+        }
         e.preventDefault();
         return;
       }
@@ -587,13 +591,14 @@ export class TerrariumRenderer {
     });
 
     c.addEventListener("pointerup",e=>{
-      if(interaction?.pointerId===e.pointerId){interaction=null;return;}
+      if(interaction?.pointerId===e.pointerId){const completed=interaction;interaction=null;this.onInteractionEnd?.(completed);return;}
       pointers.delete(e.pointerId);
       if(pointers.size<2) pinchDistance=null;
       if(pointers.size===0) drag=null;
     });
 
     c.addEventListener("pointercancel",()=>{
+      if(interaction)this.onInteractionEnd?.(interaction);
       interaction=null;
       pointers.clear();
       drag=null;
