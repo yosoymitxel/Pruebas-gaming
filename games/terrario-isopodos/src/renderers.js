@@ -1,5 +1,6 @@
 import * as T from "three";
 import { HABITAT_GEOMETRY } from "./habitat.js";
+import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
 
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
 
@@ -271,17 +272,26 @@ export class TerrariumRenderer {
   }
 
   clear(group){
-    while(group.children.length){
-      const o=group.children[group.children.length-1];
-      group.remove(o);
-      o.traverse(c=>{
-        c.geometry?.dispose();
-        if(c.material){
-          const materials=Array.isArray(c.material)?c.material:[c.material];
-          for(const m of materials){m.dispose();}
+    const geometries=new Set(),materials=new Set(),textures=new Set();
+    for(const child of [...group.children]){
+      group.remove(child);
+      child.traverse(object=>{
+        if(object.geometry)geometries.add(object.geometry);
+        if(object.material){
+          const list=Array.isArray(object.material)?object.material:[object.material];
+          for(const material of list){
+            if(material===voxelMaterial)continue;
+            materials.add(material);
+            for(const value of Object.values(material)){
+              if(value?.isTexture)textures.add(value);
+            }
+          }
         }
       });
     }
+    for(const texture of textures)texture.dispose();
+    for(const material of materials)material.dispose();
+    for(const geometry of geometries)geometry.dispose();
   }
 
   terrain(shape){
@@ -350,102 +360,98 @@ export class TerrariumRenderer {
     this.clear(this.habitat);
     this.resourceSignature="";
     const spec=HABITAT_GEOMETRY[shape];
-    const soil=mat(0x40372a), humus=mat(0x5d4b34);
-    // Use transparent standard shading instead of physical transmission.
-    // Transmission adds another render pass per pane and can stall software WebGL.
-    const glass=(opacity=.13)=>new T.MeshStandardMaterial({
-      color:0xc5d8bf,transparent:true,opacity,roughness:.28,
+    if(!spec)throw new Error("Forma de terrario desconocida: "+shape);
+    const glass=(opacity=.1)=>new T.MeshStandardMaterial({
+      color:0xcbdccb,transparent:true,opacity,roughness:.22,
       metalness:.015,side:T.DoubleSide,depthWrite:false
     });
-    const frame=mat(0x9eafa0,.24,{metalness:.08});
-    const base=this.terrain(shape);
-    this.habitat.add(mesh(base, soil, [0,0,0]));
-    if(shape !== "rectangular"){
-      this.habitat.add(mesh(new T.CylinderGeometry(spec.floorRadius,spec.floorRadius,.12,56), humus, [0,.04,0]));
-      // El vidrio inferior debe quedar bajo el sustrato, no como una lámina sobre él.
-      this.habitat.add(mesh(new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,.06,56), glass(), [0,-.055,0]));
-    } else {
-      this.habitat.add(mesh(new T.BoxGeometry(spec.floorWidth,.12,spec.floorDepth), humus, [0,.04,0]));
-      // Colocar la base de vidrio debajo del suelo evita velar la escena desde arriba.
-      this.habitat.add(mesh(new T.BoxGeometry(spec.outerWidth,.06,spec.outerDepth), glass(), [0,-.055,0]));
+    const frame=mat(0x8b9a7a,.32,{metalness:.05});
+    const timber=mat(0x493323,.88);
+    const timberEdge=mat(0x9c754a,.7);
+    const round=shape!=="rectangular";
+    const baseGlass=round
+      ? mesh(new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,.06,64),glass(.11),[0,-.055,0])
+      : mesh(new T.BoxGeometry(spec.outerWidth,.06,spec.outerDepth),glass(.11),[0,-.055,0]);
+    this.habitat.add(baseGlass);
+    const plinth=round
+      ? mesh(new T.CylinderGeometry(spec.outerRadius*1.08,spec.outerRadius*1.1,.14,64),timber,[0,-.15,0])
+      : mesh(new T.BoxGeometry(spec.outerWidth*1.08,.14,spec.outerDepth*1.08),timber,[0,-.15,0]);
+    this.habitat.add(plinth);
+    if(round){
+      const foot=mesh(new T.TorusGeometry(spec.outerRadius*1.08,.018,8,64),timberEdge,[0,-.215,0]);
+      foot.rotation.x=Math.PI/2;
+      const upper=mesh(new T.TorusGeometry(spec.outerRadius*1.04,.012,7,64),frame,[0,-.08,0]);
+      upper.rotation.x=Math.PI/2;
+      this.habitat.add(foot,upper);
+    }else{
+      this.habitat.add(
+        mesh(new T.BoxGeometry(spec.outerWidth*1.08,.018,.024),timberEdge,[0,-.215,spec.outerDepth*.54]),
+        mesh(new T.BoxGeometry(spec.outerWidth*1.08,.018,.024),timberEdge,[0,-.215,-spec.outerDepth*.54]),
+        mesh(new T.BoxGeometry(.024,.018,spec.outerDepth*1.08),timberEdge,[spec.outerWidth*.54,-.215,0]),
+        mesh(new T.BoxGeometry(.024,.018,spec.outerDepth*1.08),timberEdge,[-spec.outerWidth*.54,-.215,0])
+      );
     }
 
-    // Paredes de vidrio verticales: el recipiente deja de parecer una bandeja abierta.
-    // El borde superior ayuda a percibir su altura en ambas formas sin tapar los animales.
-    const wallMaterial=glass(shape==="cilindrico"?.13:.055);
-    const floorTop=.16, wallY=floorTop+spec.wallHeight/2, rimY=floorTop+spec.wallHeight;
+    const interior=buildWoodlandInterior(shape,spec);
+    this.habitat.add(interior);
+    this.renderer.domElement.dataset.artVersion=interior.userData.visualStats.version;
+    this.renderer.domElement.dataset.sceneSeed=String(interior.userData.visualStats.seed);
+    this.renderer.domElement.dataset.terrainLayerCount=String(interior.userData.visualStats.substrateLayers);
+    this.renderer.domElement.dataset.leafCount=String(interior.userData.visualStats.leafInstances);
+    this.renderer.domElement.dataset.fernLeaves=String(interior.userData.visualStats.fernLeaves);
+    this.renderer.domElement.dataset.mossCount=String(interior.userData.visualStats.mossPillows);
+
+    const wallMaterial=glass(shape==="cilindrico"?.1:.065);
+    const floorTop=.19,wallY=floorTop+spec.wallHeight/2,rimY=floorTop+spec.wallHeight;
+    const highlight=new T.MeshBasicMaterial({color:0xe8f3df,transparent:true,opacity:.34,depthWrite:false});
     if(shape==="esferico"){
-      const globe=mesh(new T.SphereGeometry(spec.outerRadius,64,48),glass(.055),[0,.1+spec.outerRadius,0]);
-      globe.renderOrder=5;this.habitat.add(globe);
+      const centerY=.1+spec.outerRadius;
+      const globe=mesh(new T.SphereGeometry(spec.outerRadius,64,48),glass(.045),[0,centerY,0]);
+      globe.renderOrder=5;
+      this.habitat.add(globe);
+      const points=[];
+      for(let i=0;i<=28;i++){
+        const t=-1.32+i/28*2.64,x=-spec.outerRadius*.34;
+        const y=centerY+Math.sin(t)*spec.outerRadius*.88;
+        const z=Math.sqrt(Math.max(.01,spec.outerRadius**2-x*x-(y-centerY)**2))*1.002;
+        points.push([x,y,z]);
+      }
+      const shine=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),36,.008,5,false),highlight);
+      this.habitat.add(shine);
       const foot=mesh(new T.TorusGeometry(spec.outerRadius*.48,.025,10,64),frame,[0,.13,0]);
-      foot.rotation.x=Math.PI/2;this.habitat.add(foot);
+      foot.rotation.x=Math.PI/2;
+      this.habitat.add(foot);
       this.renderer.domElement.dataset.containerWallCount="1";
       this.renderer.domElement.dataset.containerKind="spherical-globe";
     }else if(shape==="cilindrico"){
-      const wall=mesh(
+      this.habitat.add(mesh(
         new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,spec.wallHeight,64,1,true),
         wallMaterial,[0,wallY,0]
-      );
-      this.habitat.add(wall);
+      ));
       const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.023,8,64),frame,[0,rimY,0]);
       rim.rotation.x=Math.PI/2;
-      this.habitat.add(rim);
+      const points=[];
+      for(let i=0;i<=24;i++){const a=-.9+i/24*1.8;points.push([Math.sin(a)*(spec.outerRadius+.002),floorTop+spec.wallHeight*.53,Math.cos(a)*(spec.outerRadius+.002)]);}
+      const arc=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),32,.008,5,false),highlight);
+      this.habitat.add(rim,arc);
       this.renderer.domElement.dataset.containerWallCount="1";
-    } else {
-      const halfW=spec.outerWidth/2-spec.wallThickness/2;
-      const halfD=spec.outerDepth/2-spec.wallThickness/2;
-      const walls=[
+      this.renderer.domElement.dataset.containerKind="cylindrical-jar";
+    }else{
+      const halfW=spec.outerWidth/2-spec.wallThickness/2,halfD=spec.outerDepth/2-spec.wallThickness/2;
+      this.habitat.add(
         mesh(new T.BoxGeometry(spec.outerWidth,spec.wallHeight,spec.wallThickness),wallMaterial,[0,wallY,halfD]),
         mesh(new T.BoxGeometry(spec.outerWidth,spec.wallHeight,spec.wallThickness),wallMaterial,[0,wallY,-halfD]),
         mesh(new T.BoxGeometry(spec.wallThickness,spec.wallHeight,spec.outerDepth),wallMaterial,[halfW,wallY,0]),
-        mesh(new T.BoxGeometry(spec.wallThickness,spec.wallHeight,spec.outerDepth),wallMaterial,[-halfW,wallY,0])
-      ];
-      this.habitat.add(...walls);
-      this.habitat.add(
+        mesh(new T.BoxGeometry(spec.wallThickness,spec.wallHeight,spec.outerDepth),wallMaterial,[-halfW,wallY,0]),
         mesh(new T.BoxGeometry(spec.outerWidth,.045,.045),frame,[0,rimY,halfD]),
         mesh(new T.BoxGeometry(spec.outerWidth,.045,.045),frame,[0,rimY,-halfD]),
         mesh(new T.BoxGeometry(.045,.045,spec.outerDepth),frame,[halfW,rimY,0]),
         mesh(new T.BoxGeometry(.045,.045,spec.outerDepth),frame,[-halfW,rimY,0])
       );
       this.renderer.domElement.dataset.containerWallCount="4";
+      this.renderer.domElement.dataset.containerKind="rectangular-vivarium";
     }
     this.renderer.domElement.dataset.containerShape=shape;
-
-    const random=rng(shape === "cilindrico" ? 991 : 551);
-    const inside=(x,z)=>shape!=="rectangular" ? x*x+z*z<(spec.floorRadius-.06)**2 : Math.abs(x)<1.88&&Math.abs(z)<1.22;
-
-    for(let i=0;i<48;i++){
-      const x=(random()-.5)*(shape!=="rectangular"?2.25:3.7);
-      const z=(random()-.5)*(shape!=="rectangular"?2.25:2.35);
-      if(!inside(x,z)) continue;
-      const s=.09 + random()*.23;
-      const o=mesh(new T.SphereGeometry(1,7,5), mat([0x736b5d,0x514f3c,0x8a8068][i%3], .96), [x,.22+s*.012,z]);
-      o.scale.set(s,.014 + s*.008,s*.56);
-      this.habitat.add(o);
-    }
-
-    for(let i=0;i<42;i++){
-      const x=(random()-.5)*(shape!=="rectangular"?2.25:3.7);
-      const z=(random()-.5)*(shape!=="rectangular"?2.25:2.35);
-      if(!inside(x,z)) continue;
-      this.addLeaf(x,z,.12 + random()*.29, random()*Math.PI, [0x87765d,0x6d7a48,0x87904c][i%3]);
-    }
-
-    for(let i=0;i<9;i++){
-      const x=(random()-.5) * 3.3;
-      const z=(random()-.5) * 2.05;
-      if(inside(x,z)) this.addFern(x,z,.45 + random()*.35,100+i);
-    }
-
-    this.addMushrooms(-.72, -.48, .85);
-    this.addMushrooms(shape==="esferico"?.72:1.18,shape==="esferico"?.3:.48,.65);
-
-    for(let i=0;i<12;i++){
-      const x=(random()-.5)*3.2;
-      const z=(random()-.5)*2.1;
-      if(!inside(x,z)) continue;
-      this.addMossPatch(x,z,.18 + random()*.22, 70+i);
-    }
   }
 
   setMode(mode){
@@ -471,7 +477,9 @@ export class TerrariumRenderer {
       const x=T.MathUtils.lerp(px,e.x,alpha),z=T.MathUtils.lerp(pz,e.z,alpha);
       const phase=simTime*.72+Number((e.id||"0").slice(-2))*.37;
       const moving=["exploring","seeking-food","seeking-shelter"].includes(e.behavior);
-      o.position.set(x,e.behavior==="burrowing"?.065:.12,z);o.rotation.y=e.heading??0;
+      const shape=this.state.habitat.shape;
+      const floorY=terrainHeightAt(x,z,shape,HABITAT_GEOMETRY[shape].floorRadius);
+      o.position.set(x,floorY-.047-(e.behavior==="burrowing"?.085:0),z);o.rotation.y=e.heading??0;
       const base=o.userData.baseScale??1;o.scale.setScalar(base*(e.behavior==="defensive-curl"?1.12:1));
       for(const leg of o.userData.legs??[]){
         const gait=moving?Math.sin(phase-leg.index*.72+leg.side*Math.PI):Math.sin(phase*.28+leg.index)*.025;
@@ -493,29 +501,33 @@ export class TerrariumRenderer {
     this.resourceSignature=sig;
     this.clear(this.resourcesGroup);
 
+    const shape=this.state.habitat.shape;
+    const radius=HABITAT_GEOMETRY[shape].floorRadius;
     for(const r of this.state.resources){
-      let meshObj = null;
-      if(r.type === "leaf-litter"){
-        const p=mesh(new T.SphereGeometry(.18,8,6), mat(0x7f6d4a,.98), [r.x,.15,r.z]);
-        p.scale.set(1.4,.45,1.1);
-        meshObj = p;
-      } else if(r.type === "shelter"){
-        const p=mesh(new T.CylinderGeometry(.14,.2,.12,8), mat(0x6d4c35,.9), [r.x,.12,r.z]);
-        p.scale.set(1.9,1.4,1.9);
-        meshObj = p;
-      } else if(r.type === "fern"){
-        meshObj=mesh(new T.ConeGeometry(.13,.18,6), mat(0x5b7d45,.95), [r.x,.14,r.z]);
-      } else if(r.type === "mushroom"){
-        meshObj=mesh(new T.CylinderGeometry(.08,.12,.16,7), mat(0xd7d0b4,.9), [r.x,.12,r.z]);
-      } else if(r.type === "stone"){
-        meshObj=mesh(new T.DodecahedronGeometry(.12), mat(0x7e7d77,.9), [r.x,.13,r.z]);
-      } else if(r.type === "bark"){
-        meshObj=mesh(new T.CylinderGeometry(.14,.18,.34,7), mat(0x8a5d3a,.85), [r.x,.18,r.z]);
-      } else if(r.type === "moss"){
-        meshObj=mesh(new T.SphereGeometry(.16,8,6), mat(0x4f7d44,.98), [r.x,.13,r.z]);
-        meshObj.scale.set(1.5,.6,1.7);
+      const floor=terrainHeightAt(r.x,r.z,shape,radius);
+      let object=null;
+      if(r.type==="leaf-litter"){
+        object=mesh(new T.SphereGeometry(.16,10,7),mat(0x8a6844,.97),[r.x,floor+.02,r.z]);
+        object.scale.set(1.35,.035,.62);
+      }else if(r.type==="shelter"||r.type==="bark"){
+        const length=r.type==="bark"?.42:.34,thickness=r.type==="bark"?.12:.16;
+        object=mesh(new T.CylinderGeometry(thickness*.9,thickness,length,12,1,true),mat(0x795034,.94,{side:T.DoubleSide}),[r.x,floor+thickness*.58,r.z]);
+        object.rotation.z=Math.PI/2;
+      }else if(r.type==="fern"){
+        object=mesh(new T.ConeGeometry(.13,.24,7),mat(0x5b7d45,.95),[r.x,floor+.12,r.z]);
+      }else if(r.type==="mushroom"){
+        const stem=mesh(new T.CylinderGeometry(.035,.05,.12,9),mat(0xe0d4b8,.98),[r.x,floor+.06,r.z]);
+        const cap=mesh(new T.SphereGeometry(1,12,8),mat(0x986348,.96),[r.x,floor+.15,r.z]);
+        cap.scale.set(.095,.045,.095);
+        this.resourcesGroup.add(stem,cap);
+      }else if(r.type==="stone"){
+        object=mesh(new T.DodecahedronGeometry(.12,1),mat(0x817966,.98,{flatShading:true}),[r.x,floor+.045,r.z]);
+        object.scale.set(1.2,.65,1);
+      }else if(r.type==="moss"){
+        object=mesh(new T.SphereGeometry(.13,10,7),mat(0x5e8242,.99),[r.x,floor+.02,r.z]);
+        object.scale.set(1.5,.28,1.3);
       }
-      if(meshObj){ this.resourcesGroup.add(meshObj); }
+      if(object)this.resourcesGroup.add(object);
     }
   }
 
@@ -546,6 +558,11 @@ export class TerrariumRenderer {
     this.syncEntities();
     this.syncResources();
     this.renderer.render(this.scene,this.camera);
+    const diagnostics=this.renderer.info,canvas=this.renderer.domElement;
+    canvas.dataset.renderCalls=String(diagnostics.render.calls);
+    canvas.dataset.renderTriangles=String(diagnostics.render.triangles);
+    canvas.dataset.renderGeometries=String(diagnostics.memory.geometries);
+    canvas.dataset.renderTextures=String(diagnostics.memory.textures);
     this.frame=requestAnimationFrame(()=>this.draw());
   }
 
@@ -554,6 +571,7 @@ export class TerrariumRenderer {
     this.resizeObserver?.disconnect();
     this.clear(this.world);
     this.renderer.dispose();
+    if(voxelMaterial){voxelMaterial.map?.dispose();voxelMaterial.dispose();voxelMaterial=null;}
     this.renderer.domElement.remove();
   }
 }
