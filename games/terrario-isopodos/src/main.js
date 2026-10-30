@@ -11,7 +11,7 @@ const menu=$("#screen-menu"),setup=$("#screen-setup"),modal=$("#screen-modal"),s
 function loadSettings(){try{const raw=JSON.parse(localStorage.getItem("terrario-isopodos.settings.v1")||"{}");return{autoRotate:typeof raw.autoRotate==="boolean"?raw.autoRotate:true,quality:raw.quality==="economy"?"economy":"normal",mode:raw.mode==="voxel"?"voxel":"diorama"}}catch{return{autoRotate:true,quality:"normal",mode:"diorama"}}}
 function saveSettings(){try{localStorage.setItem("terrario-isopodos.settings.v1",JSON.stringify(settings));return true}catch(error){saveMessage="No se pudieron guardar los ajustes: "+error.message;return false}}
 function refreshMenu(){ $("#continue-game").disabled=!hasValidTerrariumSave(); }
-function enterGame(){if(!ensureRenderer())return false;renderer.setShape(state.habitat.shape);renderer.setMode(state.presentation.mode);renderer.setQuality(settings.quality);menu.hidden=true;setup.hidden=true;modal.hidden=true;modalHistory.length=0;lastModalFocus=null;shell.hidden=false;renderer.resize();state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();return true;}
+function enterGame(){const wasInitialized=Boolean(renderer);if(!ensureRenderer())return false;if(wasInitialized){renderer.setShape(state.habitat.shape);renderer.setMode(state.presentation.mode);renderer.setQuality(settings.quality);}menu.hidden=true;setup.hidden=true;modal.hidden=true;modalHistory.length=0;lastModalFocus=null;shell.hidden=false;renderer.resize();state.running=true;last=performance.now();acc=0;update();renderer.resetCamera();return true;}
 function openModal(title,body,{push=true}={}){
  if(!modal.hidden&&push)modalHistory.push({title:$("#modal-title").textContent,body:$("#modal-body").innerHTML,focusId:document.activeElement?.id??""});
  else if(modal.hidden){lastModalFocus=document.activeElement;modalHistory.length=0;}
@@ -26,6 +26,7 @@ function ensureRenderer(){
   return renderer;
  }catch(error){
   renderer=null;
+  state.running=false;
   $("#scene").replaceChildren();
   console.error("[Terrario] No se pudo inicializar WebGL:",error);
   openModal("No se pudo iniciar el terrario",`<p>El navegador no pudo crear la escena 3D necesaria para este terrario.</p><p>Comprueba que WebGL y la aceleración por hardware estén disponibles, actualiza el navegador y vuelve a intentar.</p><button class="menu-primary" id="reload-app">Reintentar</button>`);
