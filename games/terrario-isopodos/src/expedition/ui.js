@@ -4,7 +4,8 @@ import {
   travelToNode,
   resolveExpeditionEvent,
   returnFromExpedition,
-  buyExpeditionUpgrade
+  buyExpeditionUpgrade,
+  isExpeditionNodeUnlocked
 } from "./system.js";
 import { EXPEDITION_NODES, EXPEDITION_UPGRADES, INVENTORY_KEYS, MIN_EXPLORER_ENERGY, START_NODE_ID } from "./content.js";
 
@@ -19,7 +20,15 @@ const NODE_NOTES=Object.freeze({
   "mossy-stone":"Una piedra fría cubierta de musgo",
   "rotting-log":"Corteza húmeda y túneles diminutos",
   "rotten-fruit":"Pulpa fermentada y esporas",
-  "compost-bin":"Restos vegetales en descomposición"
+  "compost-bin":"Restos vegetales en descomposición",
+  "abandoned-pot":"Raíces finas bajo una maceta caída",
+  "mite-nest":"Un refugio activo entre fibras y corteza",
+  "web-zone":"Hilos tensos entre hojas y ramas"
+});
+const UNLOCK_HINTS=Object.freeze({
+  "compost-access":"Seguí las raíces bajo la Maceta abandonada.",
+  "mite-colony":"Observá una colonia de ácaros para localizar el nido.",
+  "web-passage":"Rompé la telaraña del Tronco podrido para abrir el paso."
 });
 const text=value=>String(value??"");
 const dayOf=state=>Math.floor(state.clockMinutes/1440)+1;
@@ -189,11 +198,13 @@ export function mountExpeditionScreen({
     root.classList.toggle("has-pending-event",hasPending);
     root.classList.remove("is-level","is-settlement");
     $("#expedition-map-layer").classList.toggle("is-running",Boolean(run));
+    const unlockedNodeIds=Object.keys(EXPEDITION_NODES).filter(id=>isExpeditionNodeUnlocked(state,id));
     renderer().setExpeditionView("map",{
       nodes:EXPEDITION_NODES,
       visitedNodes:visited,
       currentNodeId:run?.currentNodeId??null,
       previewNodeId:run?null:selectedMapNodeId,
+      unlockedNodeIds,
       seed:run?.seed??state.expeditionProgress.worldSeed
     });
     $("#expedition-map-layer").hidden=false;
@@ -212,10 +223,12 @@ export function mountExpeditionScreen({
     $("#expedition-day").textContent="DÍA "+String(dayOf(state)).padStart(2,"0")+" · MAPA DE EXPLORACIÓN";
     $("#expedition-kicker").textContent=run?"RUTAS DEL JARDÍN":"MAPA DEL JARDÍN";
     const preview=EXPEDITION_NODES[selectedMapNodeId]??EXPEDITION_NODES[START_NODE_ID];
+    const previewUnlocked=isExpeditionNodeUnlocked(state,preview.id);
+    const previewHint=preview.unlockDiscovery?UNLOCK_HINTS[preview.unlockDiscovery]??preview.unlockHint:"";
     $("#expedition-location-title").textContent=run?current.label:preview.label;
     $("#expedition-location-copy").textContent=run
       ?(hasPending?"Hay un encuentro pendiente. Resuélvelo para abrir nuevas rutas.":NODE_NOTES[nodeId]+". Toca un lugar conectado para continuar.")
-      :"Vista previa: "+(NODE_NOTES[selectedMapNodeId]??preview.label)+". La expedición siempre comienza en Jardín húmedo; elegí un explorador para salir.";
+      :(!previewUnlocked?"Zona bloqueada. "+previewHint:"Vista previa: "+(NODE_NOTES[selectedMapNodeId]??preview.label)+". La expedición siempre comienza en Jardín húmedo; elegí un explorador para salir.");
     $("#expedition-run-label").textContent=run?"EXPEDICIÓN "+run.id.toUpperCase()+" · SEMILLA "+run.seed:"UNA EXPEDICIÓN POR DÍA";
     $("#expedition-actions").textContent=String(run?.actionPoints??6).padStart(2,"0");
     $("#expedition-energy-value").textContent=String(run?.energy??0).padStart(2,"0");
@@ -223,10 +236,13 @@ export function mountExpeditionScreen({
       const active=Boolean(run)&&node.id===nodeId;
       const previewSelected=!run&&node.id===selectedMapNodeId;
       const seen=visited.includes(node.id),connected=neighbors.has(node.id);
-      const selectable=run?(!hasPending&&!active&&connected&&run.actionPoints>=node.travelCost):true;
-      const status=run?(active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir"):(previewSelected?"Vista previa":"Consultar zona");
+      const unlocked=isExpeditionNodeUnlocked(state,node.id);
+      const selectable=run?(!hasPending&&!active&&connected&&unlocked&&run.actionPoints>=node.travelCost):true;
+      const status=!unlocked?"Bloqueado":run?(active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir"):(previewSelected?"Vista previa":"Consultar zona");
       const cost=node.travelCost===0?"Inicio":node.travelCost+(node.travelCost===1?" acción":" acciones");
-      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+'</small></button>';
+      const risk=node.risk==="high"?"Riesgo alto":node.risk==="medium"?"Riesgo medio":"Riesgo bajo";
+      const hint=node.unlockDiscovery?UNLOCK_HINTS[node.unlockDiscovery]??node.unlockHint:"";
+      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+(unlocked?"":" is-locked")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+". "+risk+(hint?" · "+hint:"")+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+' · '+risk+'</small></button>';
     }).join("");
     renderExplorerDock();
     $("#expedition-session-message").textContent=feedback;
