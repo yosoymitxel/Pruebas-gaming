@@ -160,7 +160,10 @@ try{
  if(await cameraCanvas.getAttribute("data-weather")!=="mist"||Number(await cameraCanvas.getAttribute("data-weather-objects"))!==7)throw new Error("La bruma no crea sus capas animadas");
  await page.locator('[data-weather="clear"]').click();
  if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
+ await page.locator('[data-weather="rain"]').click();
  await page.locator("#open-game-menu").click();
+ await page.waitForFunction(()=>document.querySelector("#scene canvas")?.dataset.weatherMotion==="static");
+ await page.screenshot({path:"artifacts/visual/pause-floating-1440x1000.png",fullPage:true});
  if(!await page.locator("#screen-modal").evaluate(el=>el.classList.contains("is-pause")))throw new Error("La pausa no usa el menú flotante compacto");
  if(!await page.locator("#pause-fullscreen").isVisible())throw new Error("La pausa no ofrece pantalla completa");
  const pauseBounds=await page.locator("#screen-modal .modal-card").boundingBox();
