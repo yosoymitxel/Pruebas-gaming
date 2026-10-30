@@ -231,8 +231,8 @@ function addSubstrate(group, shape, spec, materials) {
 
 function addFerns(group, random, shape, radius, materials, leafGeo) {
   const seeds = shape === "esferico"
-    ? [[-0.58, -0.42, 0.68], [0.55, -0.4, 0.58], [-0.35, 0.57, 0.5], [0.44, 0.52, 0.52]]
-    : [[-1.08, -0.56, 0.7], [1.08, -0.52, 0.62], [-1.1, 0.46, 0.55], [0.98, 0.48, 0.68], [-0.12, 0.78, 0.42]];
+    ? [[-0.78, -0.67, 0.58], [0.76, -0.69, 0.54], [-1.02, 0.05, 0.4], [1.02, 0.06, 0.4]]
+    : [[-1.24, -0.66, 0.55], [1.22, -0.69, 0.52], [-1.28, 0.04, 0.42], [1.28, 0.05, 0.42]];
   const leaves = new T.InstancedMesh(leafGeo, materials.fern, 820);
   const stems = new T.InstancedMesh(new T.CylinderGeometry(.005,.011,1,6), materials.fernStem, 820);
   const dummy = new T.Object3D();
@@ -598,10 +598,10 @@ export function buildWoodlandInterior(shape, spec) {
   const fernLeaves = addFerns(group, random, shape, radius, materials, leaves);
   addMoss(group, random, shape, radius, materials, leaves);
   addRocks(group, random, shape, radius, materials.rock);
-  addLogAndRoots(group, shape === "esferico" ? -0.1 : -0.18, shape === "esferico" ? -0.25 : -0.38, shape, radius, materials, random);
-  addRootArch(group, shape === "esferico" ? 0.45 : 0.88, -0.36, shape, radius, materials);
-  addMushrooms(group, -0.68, 0.44, shape, radius, random, materials);
-  addMushrooms(shape === "esferico" ? 0.62 : 1.18, shape === "esferico" ? 0.4 : 0.48, shape, radius, random, materials);
+  addLogAndRoots(group, shape === "esferico" ? -0.08 : -0.16, shape === "esferico" ? -0.62 : -0.64, shape, radius, materials, random);
+  addRootArch(group, shape === "esferico" ? 0.86 : 0.94, -0.72, shape, radius, materials);
+  addMushrooms(group, -0.58, -0.55, shape, radius, random, materials);
+  addMushrooms(shape === "esferico" ? 0.48 : 0.72, shape === "esferico" ? -0.58 : -0.58, shape, radius, random, materials);
 
   group.traverse(object => {
     if (object.isMesh) {
@@ -622,7 +622,7 @@ export function buildWoodlandInterior(shape, spec) {
     }
   }
   group.userData.visualStats = {
-    version: "woodland-diorama-v4",
+    version: "woodland-diorama-v5",
     seed,
     leafInstances: leafLitter.count + cover.count,
     fernLeaves,
