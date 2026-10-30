@@ -801,10 +801,15 @@ export class TerrariumRenderer {
     outline.name="selection-outline-"+kind+"-"+id;
     outline.position.set(0,0,0);
     outline.rotation.set(0,0,0);
-    // Expand the actual 3D silhouette enough to remain visible at default camera distance.
+    // Expand the actual shell silhouette; flat entrance discs are excluded.
     outline.scale.setScalar(1.14);
     outline.userData.selectionOutline=true;
+    let excludedMeshes=0;
     outline.traverse(node=>{
+      if(node.name?.includes("entrance")){
+        node.visible=false;
+        excludedMeshes++;
+      }
       if(node.isMesh){
         const makeMaterial=()=>new T.MeshBasicMaterial({
           color:0xffd76c,side:T.BackSide,transparent:false,opacity:1,
@@ -824,6 +829,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.selectionOutline="3d-inverted-hull";
     this.renderer.domElement.dataset.selectionOutlineScale="1.14";
     this.renderer.domElement.dataset.selectionOutlineDepthTest="false";
+    this.renderer.domElement.dataset.selectionOutlineExcludedMeshes=String(excludedMeshes);
     this.onSelectionChange?.({kind,id});
   }
 
