@@ -256,7 +256,8 @@ try{
  if(await page.locator("#coins").textContent()!=="7")throw new Error("El saldo no conservó las compras y las colocaciones al guardar/cargar");
  const savedResources=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources);
  if(!savedResources.some(r=>r.type==="mushroom")||!savedResources.some(r=>r.type==="shelter"&&r.id!=="shelter-1")||!savedResources.some(r=>r.type==="leaf-litter"))throw new Error("Los objetos colocados/comprados no sobrevivieron a guardar/cargar");
- if(await page.locator("#scene canvas").getAttribute("data-weather")!=="clear")throw new Error("El clima no conserva el valor final al restaurar");
+ if(await page.locator("#scene canvas").getAttribute("data-weather")!=="rain")throw new Error("El guardado no restauró el clima lluvioso");
+ if(await page.locator('[data-weather="rain"]').getAttribute("aria-pressed")!=="true")throw new Error("El selector no refleja el clima restaurado");
 
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
