@@ -1,4 +1,4 @@
-const VALID_SHAPES=new Set(["rectangular","cilindrico"]);
+const VALID_SHAPES=new Set(["rectangular","cilindrico","esferico"]);
 const VALID_MODES=new Set(["diorama","voxel"]);
 
 function normalizeHabitat(habitat){
