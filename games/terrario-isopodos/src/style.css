@@ -545,22 +545,12 @@ a{color:inherit}
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:11px 14px;
-  border:1px solid rgba(222,237,202,.23);
-  border-radius:8px;
+  padding:0;
+  border:0;
+  border-radius:0;
   color:#ebefdf;
-  background:rgba(12,25,16,.48);
+  background:transparent;
 }
-.view-title{display:flex;align-items:center;gap:9px;margin:0;font-size:12px;font-weight:600;line-height:1.25;letter-spacing:.07em;text-transform:uppercase}
-.view-title i{
-  display:inline-block;
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:#adc67a;
-  box-shadow:0 0 0 3px rgba(173,198,122,.15);
-}
-.view-title b{font-variant-numeric:tabular-nums;color:#f2f2e5}
 .clockbox{
   position:absolute;
   left:18px;
@@ -864,7 +854,6 @@ footer{display:none}
   }
   .view{position:absolute;inset:0}
   .viewhead{top:9px;left:9px;right:9px;padding:10px 11px}
-  .view-title{font-size:11px}
   .clockbox{
     left:10px;
     bottom:calc(145px + env(safe-area-inset-bottom,0px));
@@ -1058,7 +1047,6 @@ footer{display:none}
   background:transparent;
   text-shadow:0 1px 8px rgba(0,0,0,.5);
 }
-.view-title{font-size:11px}
 .clockbox{
   left:16px;bottom:78px;
   min-width:0;

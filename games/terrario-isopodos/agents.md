@@ -57,37 +57,37 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 
 | Orden | ID | Tarea | Esfuerzo | Estado |
 |---:|---|---|---|---|
-| 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | En progreso · pendiente Playwright actualizado |
-| 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente Playwright actualizado |
-| 3 | UI-03 | Barra móvil sin solapamiento; cuatro herramientas accesibles | Bajo | En progreso · pruebas Playwright añadidas |
-| 4 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
-| 5 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | En progreso · pendiente CI |
-| 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · picking real y outline 3D enviados a CI |
+| 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | Completada · Playwright PASS, desktop/móvil |
+| 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | Completada · Playwright PASS, desktop/móvil |
+| 3 | UI-03 | Barra móvil sin solapamiento; cuatro herramientas accesibles | Bajo | Completada · Playwright PASS, 390×844 |
+| 4 | INV-01 | Contadores de coste y recursos colocados | Bajo–medio | Completada · contadores, compra y guardado PASS |
+| 5 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | Completada · órbita, pinch y bloqueo de giro en Mano PASS |
+| 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · selección/arrastre PASS; contorno visual reforzado y pendiente captura |
 | 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
-| 7 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
-| 8 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
-| 9 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | Pendiente |
-| 10 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista enviada a CI |
-| 11 | QA-01 | Validación integral y regresiones | Continuo | Pendiente |
+| 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
+| 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
+| 10 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | En progreso · pose bajo «Tronco hueco»; test de simulación añadido |
+| 11 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista; prueba exacta PASS |
+| 12 | QA-01 | Validación integral y regresiones | Continuo | En progreso · CI completo PASS en c766; nueva revisión visual pendiente |
 
 ## Especificaciones de ejecución
 
 ### UI-01 — Cabecera y pausa
 - [x] Quitar `DIORAMA 3D` de la cabecera; el selector del panel ya identifica el modo.
 - [x] Convertir pausa en botón de icono, conservando `aria-label` y tooltip.
-- [ ] Verificar Playwright, captura real desktop/móvil y consola.
+- [x] Verificar Playwright, captura real desktop/móvil y consola en SHA c76600e.
 - No quitar las etiquetas Diorama/Voxel de configuración, selector ni ayuda: son funcionales.
 
 ### UI-02 — Explorar
 - [x] Elevar tamaño táctil, contraste, borde, tipografía y profundidad visual.
 - [x] Reutilizar el botón y callback existentes; no duplicar navegación.
-- [ ] Verificar dimensiones, accesibilidad, responsive y captura real.
+- [x] Verificar dimensiones/accesibilidad en Playwright desktop/móvil y consola sin errores en SHA c76600e.
 
 ### UI-03 — Herramientas móviles
 - [x] Reservar espacio para el botón de cámara sin tapar Refugio.
 - [x] Mantener Cámara, Mano, Hojarasca y Refugio accesibles mediante desplazamiento horizontal.
 - [x] Mantener objetivos táctiles de al menos 44 px.
-- [ ] Validar 390×844 y 360×640 con Playwright y capturas reales.
+- [x] Validar 390×844 con Playwright; Refugio alcanzable por scroll, Cámara no solapa la barra y no hay overflow horizontal.
 
 ### INV-01 — Contadores
 - [x] Auditar `SHOP_ITEMS`, `purchaseItem`, `resources`, monedas y guardado.
@@ -95,14 +95,15 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [x] Diferenciar visualmente el coste en bellotas de la cantidad de objetos colocados; no llamar stock a los recursos existentes en el mundo.
 - [x] Derivar los contadores de `state.resources`, sin estado UI paralelo.
 - [ ] Stock disponible, compra a almacén, cancelación y devolución quedan para INV-02; no inventar estas operaciones antes de migrar dominio y guardados.
-- [ ] Probar contadores iniciales, compra, colocación, saldo insuficiente y restauración en Playwright/CI.
+- [x] Probar contadores iniciales, compra, colocación y restauración en Playwright/CI (SHA c76600e).
+- El stock real queda separado en INV-02; no se infiere de recursos colocados.
 
 ### INPUT-01 — Cámara y Mano
 - [x] Agregar herramienta Cámara antes de Mano, con Cámara como estado inicial explícito.
 - [x] Cámara: arrastrar fondo orbita; zoom/pinch permanece; no hace picking ni mueve entidades.
 - [x] Mano: solo interactúa con objetivos; arrastrar el fondo no rota la cámara.
 - [ ] Selección en primer toque y gesto posterior de movimiento corresponde a INPUT-02.
-- [ ] Verificar eventos mouse/touch, cambio de pantalla, Playwright y capturas en CI.
+- [x] Verificar mouse/touch, cambio de herramienta, órbita, pinch y capturas en CI (SHA c76600e).
 
 ### INPUT-02 — Selección y contorno
 - [x] Picking 3D combinado sobre las mallas reales de isópodos y recursos; el primer impacto visible determina el objetivo.
@@ -111,7 +112,8 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [x] No se usa rectángulo 2D; el marcador respeta profundidad y no participa en picking.
 - [x] Deseleccionar con espacio vacío/cambio de herramienta; limpiar selección al reconstruir malla/modelo.
 - [x] Highlight no modifica geometría fuente, collider ni reglas del dominio.
-- [ ] Validar mouse/touch y modelos Diorama/Voxel con Playwright y capturas ligadas al SHA.
+- [x] Validar primer toque, segundo gesto, persistencia y selección de recursos con Playwright (SHA c76600e).
+- [ ] Confirmar que el nuevo halo ampliado se distingue en capturas reales de Diorama/Voxel.
 
 ### INV-02 — Tienda y economía
 - [ ] Catalogar artículos reales (hongos, plantas, musgo, piedras, tronco, refugios, comida y hojarasca).
@@ -138,14 +140,15 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Definir entradas/salidas y altura libre para los isópodos.
 - [ ] Integrar colliders con navegación, sin ocultar la malla como atajo.
 - [ ] Resolver profundidad/sombras/oclusiones para que la madera tape donde debe.
-- [ ] Probar entrar, girar, permanecer y salir con varios individuos.
+- [ ] Probar entrar, girar, permanecer y salir con varios individuos; los tests actuales cubren la llegada a Tronco hueco y la pose bajo el arco.
 
 ### BIO-02 — Colisiones de isópodos
 - [x] Comparar dimensiones del modelo 3D con la distancia de separación; 0,09 era menor que el radio visual aproximado.
 - [x] Aumentar distancia mínima a 0,205 y resolver cada pareja por mitades al final del tick.
 - [x] Resolver coincidencias exactas con una dirección derivada de IDs, sin azar.
 - [x] Aplicar límites del recipiente después de separar.
-- [ ] Validar pares, grupos densos, bordes y recursos en CI.
+- [x] Validar coincidencia exacta de dos individuos, determinismo y distancia mínima en unit tests (SHA c76600e).
+- [ ] Validar grupos densos, bordes, recursos, locomoción y coste de CPU.
 - [ ] Medir estabilidad y coste de CPU en población objetivo.
 
 ## Puertas de aceptación

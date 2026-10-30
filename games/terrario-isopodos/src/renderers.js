@@ -2,6 +2,7 @@ import * as T from "three";
 import { HABITAT_GEOMETRY } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
 import { createDioramaKit } from "./diorama-kit.js";
+import { resolveIsopodRefugePose } from "./isopod-placement.js";
 import { buildExpeditionMapDiorama, buildExpeditionLevelDiorama } from "./expedition/diorama.js";
 
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
@@ -800,12 +801,13 @@ export class TerrariumRenderer {
     outline.name="selection-outline-"+kind+"-"+id;
     outline.position.set(0,0,0);
     outline.rotation.set(0,0,0);
-    outline.scale.setScalar(1.045);
+    // Expand the actual 3D silhouette enough to remain visible at default camera distance.
+    outline.scale.setScalar(1.14);
     outline.userData.selectionOutline=true;
     outline.traverse(node=>{
       if(node.isMesh){
         const makeMaterial=()=>new T.MeshBasicMaterial({
-          color:0xdcebb8,side:T.BackSide,transparent:true,opacity:.92,
+          color:0xe6f1b4,side:T.BackSide,transparent:true,opacity:1,
           depthTest:true,depthWrite:false,toneMapped:false
         });
         node.material=Array.isArray(node.material)?node.material.map(makeMaterial):makeMaterial();
@@ -820,6 +822,7 @@ export class TerrariumRenderer {
     this.selectionOutline=outline;
     this.renderer.domElement.dataset.selectedTarget=kind+":"+id;
     this.renderer.domElement.dataset.selectionOutline="3d-inverted-hull";
+    this.renderer.domElement.dataset.selectionOutlineScale="1.14";
     this.onSelectionChange?.({kind,id});
   }
 
@@ -1249,6 +1252,7 @@ export class TerrariumRenderer {
     const byId=new Map(this.state.entities.map(e=>[e.id,e]));
     const simTime=this.state.clockMinutes+(this.interpolationAlpha??1);
     const alpha=T.MathUtils.clamp(this.interpolationAlpha??1,0,1);
+    let underCoverCount=0,perchedCount=0;
     for(const object of this.life.children){
       const entity=byId.get(object.userData.entityId);
       if(!entity){object.visible=false;continue;}
@@ -1267,9 +1271,10 @@ export class TerrariumRenderer {
         .filter(resource=>resource.type==="shelter"||resource.type==="bark")
         .map(resource=>({resource,distance:Math.hypot(resource.x-x,resource.z-z)}))
         .sort((a,b)=>a.distance-b.distance)[0];
-      const perched=refuge&&refuge.distance<.43;
-      const refugeTop=perched?(refuge.resource.type==="shelter"?.43:.28):0;
-      object.position.set(x,floorY+refugeTop+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"&&!perched?.045:0)+gaitBob,z);
+      const refugePose=resolveIsopodRefugePose(entity,refuge);
+      if(refugePose.underCover)underCoverCount++;
+      if(refugePose.perched)perchedCount++;
+      object.position.set(x,floorY+(object.userData.isVoxel?.035:.006)+refugePose.heightOffset+gaitBob,z);
       // Both animal models are authored nose-forward along local +X;
       // simulation headings use +Z at zero (x=sin(h), z=cos(h)).
       object.rotation.y=(entity.heading??0)-Math.PI/2;
@@ -1280,6 +1285,8 @@ export class TerrariumRenderer {
         updateIsopodRig(object,phase,moving,curled);
       }
     }
+    this.renderer.domElement.dataset.isopodsUnderCover=String(underCoverCount);
+    this.renderer.domElement.dataset.isopodsPerched=String(perchedCount);
   }
 
   syncResources(){
