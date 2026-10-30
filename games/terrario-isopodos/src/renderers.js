@@ -1,5 +1,5 @@
 import * as T from "three";
-import { HABITAT_GEOMETRY } from "./habitat.js";
+import { HABITAT_GEOMETRY, HOLLOW_BARK_ROTATION, getBarkFootprint, REFUGE_MODEL_PROFILES } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
 import { createDioramaKit } from "./diorama-kit.js";
 import { resolveIsopodRefugePose } from "./isopod-placement.js";
@@ -801,10 +801,15 @@ export class TerrariumRenderer {
     outline.name="selection-outline-"+kind+"-"+id;
     outline.position.set(0,0,0);
     outline.rotation.set(0,0,0);
-    // Expand the actual 3D silhouette enough to remain visible at default camera distance.
+    // Expand the actual shell silhouette; flat entrance discs are excluded.
     outline.scale.setScalar(1.14);
     outline.userData.selectionOutline=true;
+    let excludedMeshes=0;
     outline.traverse(node=>{
+      if(node.name?.includes("entrance")){
+        node.visible=false;
+        excludedMeshes++;
+      }
       if(node.isMesh){
         const makeMaterial=()=>new T.MeshBasicMaterial({
           color:0xffd76c,side:T.BackSide,transparent:false,opacity:1,
@@ -824,6 +829,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.selectionOutline="3d-inverted-hull";
     this.renderer.domElement.dataset.selectionOutlineScale="1.14";
     this.renderer.domElement.dataset.selectionOutlineDepthTest="false";
+    this.renderer.domElement.dataset.selectionOutlineExcludedMeshes=String(excludedMeshes);
     this.onSelectionChange?.({kind,id});
   }
 
@@ -1308,13 +1314,22 @@ export class TerrariumRenderer {
     });
     const profiles={
       "leaf-litter":{asset:"leaf-litter",options:{count:24,kind:"local-litter",scale:1.18}},
-      shelter:{asset:"bark-shelter",options:{length:1.04,thickness:.275,scale:1.04}},
-      bark:{asset:"bark-shelter",options:{length:.78,thickness:.18,scale:1.02}},
+      shelter:{asset:"bark-shelter",options:{
+        length:REFUGE_MODEL_PROFILES.shelter.length,
+        thickness:REFUGE_MODEL_PROFILES.shelter.thickness,
+        scale:REFUGE_MODEL_PROFILES.shelter.scale
+      }},
+      bark:{asset:"bark-shelter",options:{
+        length:REFUGE_MODEL_PROFILES.bark.length,
+        thickness:REFUGE_MODEL_PROFILES.bark.thickness,
+        scale:REFUGE_MODEL_PROFILES.bark.scale
+      }},
       fern:{asset:"fern-bed",options:{local:true,size:.4,fronds:5,density:.95,scale:1.08}},
       mushroom:{asset:"mushroom-cluster",options:{density:1.05,scale:1.08}},
       stone:{asset:"rock-scatter",options:{local:true,density:1.02,scale:1.02}},
       moss:{asset:"moss-bed",options:{local:true,size:.46,density:1.08,scale:1.12}}
     };
+    const canvas=this.renderer.domElement;
     for(const resource of this.state.resources){
       const profile=profiles[resource.type];
       if(!profile)continue;
@@ -1328,16 +1343,34 @@ export class TerrariumRenderer {
         density:Number(profile.options.density??1)*amount
       });
       object.name="resource-diorama-"+resource.type+"-"+resource.id;
+      if(resource.type==="bark"){
+        object.rotation.y=HOLLOW_BARK_ROTATION;
+        object.userData.barkFootprint=getBarkFootprint(REFUGE_MODEL_PROFILES.bark.scale*amount);
+      }
       object.userData.resourceId=resource.id;
       object.userData.resourceType=resource.type;
+      if(resource.type==="shelter"||resource.type==="bark"){
+        object.updateMatrixWorld(true);
+        const size=new T.Box3().setFromObject(object).getSize(new T.Vector3());
+        const key=resource.type==="shelter"?"shelterModel":"barkModel";
+        canvas.dataset[key+"Length"]=size.x.toFixed(3);
+        canvas.dataset[key+"Height"]=size.y.toFixed(3);
+        canvas.dataset[key+"Depth"]=size.z.toFixed(3);
+      }
     }
     this.resourceKit=kit;
     this.resourcesGroup.userData.dioramaKitDispose=kit.dispose;
-    const canvas=this.renderer.domElement;
     canvas.dataset.resourceCount=String(this.state.resources.length);
     canvas.dataset.shelterCount=String(this.state.resources.filter(r=>r.type==="shelter").length);
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
     canvas.dataset.resourceArt="shared-diorama-kit";
+    const barkResources=this.state.resources.filter(resource=>resource.type==="bark");
+    canvas.dataset.barkDiagonalCount=String(barkResources.length);
+    canvas.dataset.barkRotation=String(HOLLOW_BARK_ROTATION);
+    canvas.dataset.barkFootprints=JSON.stringify(barkResources.map(resource=>({
+      id:resource.id,x:resource.x,z:resource.z,
+      ...getBarkFootprint(REFUGE_MODEL_PROFILES.bark.scale*Math.max(.4,Math.min(1.2,Number(resource.amount??1))))
+    })));
   }
 
   isExpeditionPortrait(){

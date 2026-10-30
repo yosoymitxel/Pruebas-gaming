@@ -112,6 +112,19 @@ try{
  if(await page.locator('[data-setup-shape="cilindrico"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-setup-mode="voxel"]').getAttribute("aria-pressed")!=="true")throw new Error("Las opciones de configuración no actualizan aria-pressed");
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
+ await page.waitForFunction(()=>Number(document.querySelector("#scene canvas")?.dataset.shelterModelLength)>1,{timeout:15000});
+ const refugeBounds=await page.locator("#scene canvas").evaluate(canvas=>({
+  length:Number(canvas.dataset.shelterModelLength),
+  height:Number(canvas.dataset.shelterModelHeight),
+  depth:Number(canvas.dataset.shelterModelDepth)
+ }));
+ if(!(refugeBounds.length>1.3&&refugeBounds.height>.45&&refugeBounds.depth>.3))
+  throw new Error("El refugio real no tiene las dimensiones 3D ampliadas esperadas: "+JSON.stringify(refugeBounds));
+ if(await page.locator('#shop-grid [data-buy="leaf-litter"], #shop-grid [data-buy="shelter"]').count()!==0)
+  throw new Error("Hojarasca y Refugio aparecen duplicados entre la barra rápida y la tienda");
+ if(await page.locator("#tool-food").count()!==1||await page.locator("#tool-shelter").count()!==1)
+  throw new Error("Las herramientas rápidas de Hojarasca y Refugio no están disponibles");
+
   if(await page.locator(".view-title").count()!==0)throw new Error("La cabecera todavía muestra el rótulo redundante Terrario vivo 001");
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  const cameraCanvas=page.locator("#scene canvas");
@@ -297,6 +310,21 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  if(!draggedResourceNote)throw new Error("La herramienta Mano no pudo arrastrar hojarasca/refugio en el renderer real");
  const savedAfterResourceDrag=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state);
  if(!savedAfterResourceDrag.resources.some(resource=>Number.isFinite(resource.x)&&Number.isFinite(resource.z)))throw new Error("El arrastre del recurso no se persistió");
+ let shelterContourCaptured=false;
+ for(let y=.22;y<=.78&&!shelterContourCaptured;y+=.055){
+  for(let x=.22;x<=.78&&!shelterContourCaptured;x+=.055){
+   const px=interactionCanvas.x+interactionCanvas.width*x,py=interactionCanvas.y+interactionCanvas.height*y;
+   await page.mouse.click(px,py);
+   if(await cameraCanvas.getAttribute("data-selected-target")!=="resource:shelter-1")continue;
+   if(Number(await cameraCanvas.getAttribute("data-selection-outline-excluded-meshes"))<1)
+    throw new Error("El contorno del refugio incluye su disco de entrada y produce una banda plana");
+   if(await cameraCanvas.getAttribute("data-selection-outline")!=="3d-inverted-hull")
+    throw new Error("El refugio no recibió contorno 3D");
+   await page.screenshot({path:"artifacts/visual/selection-shelter-1440x1000.png",fullPage:true});
+   shelterContourCaptured=true;
+  }
+ }
+ if(!shelterContourCaptured)throw new Error("No se pudo capturar el contorno 3D del refugio sin su disco de entrada");
 
 
  for(let step=0;step<19;step++)await page.getByRole("button",{name:"Reducir humedad"}).click();
@@ -629,7 +657,7 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await page.close();
+
 
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
@@ -650,8 +678,33 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
  await unsupportedPage.close();
  
-
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,sha:process.env.SOURCE_HEAD_SHA||process.env.GITHUB_SHA||"local-unavailable",testedSha:process.env.GITHUB_SHA||"local-unavailable",capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","selection-entity-1440x1000.png","selection-resource-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{headerLabelRemoved:"PASS",selectThenDrag:"PASS",threeDOutline:"PASS",selectionOutlineScale:"1.14",selectionOutlineThroughVegetation:"PASS",firstTouchDoesNotMutateState:"PASS",mobileToolbarNoOverlap:"PASS",mobileToolbarScroll:"PASS",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
+ // Add a legacy edge-positioned bark resource and verify save migration + rendered bounds.
+ await page.setViewportSize({width:1440,height:1000});
+ await page.waitForTimeout(150);
+ await page.evaluate(()=>{
+  const key="terrario-isopodos.save.v1";
+  const raw=localStorage.getItem(key);
+  if(!raw)throw new Error("No existe guardado para validar el tronco diagonal");
+  const save=JSON.parse(raw);
+  save.state.resources.push({id:"ci-diagonal-bark",type:"bark",amount:1,x:1.48,z:.93});
+  localStorage.setItem(key,JSON.stringify(save));
+ });
+ await page.reload({waitUntil:"networkidle"});
+ await page.locator("#continue-game").waitFor({state:"visible",timeout:10000});
+ await page.locator("#continue-game").click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.waitForFunction(()=>Number(document.querySelector("#scene canvas")?.dataset.barkDiagonalCount)>=1);
+ const barkAudit=await page.locator("#scene canvas").evaluate(canvas=>({
+  rotation:Number(canvas.dataset.barkRotation),
+  items:JSON.parse(canvas.dataset.barkFootprints||"[]")
+ }));
+ if(Math.abs(barkAudit.rotation)<.1)throw new Error("El tronco hueco no está orientado en diagonal");
+ const barkItem=barkAudit.items.find(item=>item.id==="ci-diagonal-bark");
+ if(!barkItem)throw new Error("No se generó la huella del tronco diagonal");
+ if(Math.abs(barkItem.x)+barkItem.extentX>1.6+1e-6||Math.abs(barkItem.z)+barkItem.extentZ>1.05+1e-6)
+  throw new Error("El tronco diagonal invade el vidrio: "+JSON.stringify(barkItem));
+ await page.screenshot({path:"artifacts/visual/bark-diagonal-1440x1000.png",fullPage:true});
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sourceHeadSha:process.env.SOURCE_HEAD_SHA||process.env.GITHUB_SHA||"local-unavailable",testedSha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","selection-entity-1440x1000.png","selection-resource-1440x1000.png","selection-shelter-1440x1000.png","bark-diagonal-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{diagonalBark:"PASS",barkFootprintInsideGlass:"PASS",legacyBarkSaveMigration:"PASS",refugeRealBounds:"PASS",quickToolsNotDuplicated:"PASS",headerLabelRemoved:"PASS",selectThenDrag:"PASS",threeDOutline:"PASS",selectionOutlineScale:"1.14",selectionOutlineThroughVegetation:"PASS",firstTouchDoesNotMutateState:"PASS",mobileToolbarNoOverlap:"PASS",mobileToolbarScroll:"PASS",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
  console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}

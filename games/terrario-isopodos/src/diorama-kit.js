@@ -1,4 +1,5 @@
 import * as T from "three";
+import { REFUGE_MODEL_PROFILES } from "./habitat.js";
 import {
   createSeededRandom,createLeafGeometry,buildLeafInstances,
   buildFernBed,buildForestRosettes,buildMossBed,buildRockScatter,
@@ -181,7 +182,7 @@ export function createDioramaKit({
         arch.name="bark-shelter-shell";
         arch.position.set(x,localBase,z);
         arch.rotation.z=Math.PI/2;
-        arch.scale.x=1.45;
+        arch.scale.x=REFUGE_MODEL_PROFILES.shelter.verticalScale;
         arch.rotation.x=.045;
         arch.castShadow=true;arch.receiveShadow=true;
         const entrance=new T.Mesh(new T.CircleGeometry(thickness*.8,20),materials.barkInterior);
