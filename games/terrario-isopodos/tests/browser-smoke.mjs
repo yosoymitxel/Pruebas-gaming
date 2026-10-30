@@ -513,7 +513,6 @@ try{
  if(!await page.locator("#scene canvas").isVisible())throw new Error("El CTA de recuperación no devolvió al terrario");
  if(await page.locator("#pause").getAttribute("aria-pressed")!=="true")throw new Error("La recuperación no reanudó la simulación ecológica");
  if(errors.length)throw new Error("La ruta de recuperación produjo errores: "+errors.join(" | "));
- await page.close();
  
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
