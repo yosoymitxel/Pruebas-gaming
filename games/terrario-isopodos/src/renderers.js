@@ -422,6 +422,7 @@ export class TerrariumRenderer {
     const ambientLight=new T.HemisphereLight(0xdfe6d7,0x343a31,1.35);
     this.scene.add(ambientLight);
     const keyLight=new T.DirectionalLight(0xffe2bd,2.75);
+    this.keyLight=keyLight;
     keyLight.position.set(-3.5,7,4.5);
     keyLight.castShadow=true;
     keyLight.shadow.mapSize.set(1024,1024);
@@ -447,11 +448,16 @@ export class TerrariumRenderer {
     this.habitat=new T.Group();
     this.life=new T.Group();
     this.resourcesGroup=new T.Group();
+    this.weatherGroup=new T.Group();
     this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x3e483c, roughness:.99}));
     this.ground.rotation.x=-Math.PI/2;
     this.ground.position.y=-.2;
-    this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
+    this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life,this.weatherGroup);
     this.scene.add(this.world);
+    this.tool="hand";
+    this.onInteractionStart=null;
+    this.onInteractionMove=null;
+    this.onWorldAction=null;
     this.angle=.68;
     this.elevation=state.habitat.shape==="cilindrico"?.68:state.habitat.shape==="esferico"?.78:.72;
     this.distance=6.8;
@@ -463,6 +469,7 @@ export class TerrariumRenderer {
     this.cameraUpdate();
     this.setShape(state.habitat.shape);
     this.setMode(state.presentation.mode);
+    this.setWeather(state.habitat.weather??"clear");
     this.resize();
     this.draw();
   }
@@ -470,8 +477,41 @@ export class TerrariumRenderer {
   bind(){
     const c=this.renderer.domElement;
     const pointers=new Map();
+    const raycaster=new T.Raycaster();
+    const pointer=new T.Vector2();
+    const groundPlane=new T.Plane(new T.Vector3(0,1,0),-.19);
+    let interaction=null;
     let drag=null;
     let pinchDistance=null;
+
+    const projectGround=e=>{
+      const rect=c.getBoundingClientRect();
+      pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+      raycaster.setFromCamera(pointer,this.camera);
+      const point=new T.Vector3();
+      return raycaster.ray.intersectPlane(groundPlane,point)?point:null;
+    };
+    const entityAt=e=>{
+      const rect=c.getBoundingClientRect();
+      pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+      raycaster.setFromCamera(pointer,this.camera);
+      for(const hit of raycaster.intersectObjects(this.life.children,true)){
+        let node=hit.object;
+        while(node&&!node.userData?.entityId)node=node.parent;
+        if(node?.userData?.entityId)return node.userData.entityId;
+      }
+      return null;
+    };
+    const resourceAt=point=>{
+      if(!point)return null;
+      let closest=null,distance=Infinity;
+      for(const resource of this.state.resources){
+        const next=Math.hypot(resource.x-point.x,resource.z-point.z);
+        const radius=resource.type==="shelter"||resource.type==="bark"?.48:.19;
+        if(next<radius&&next<distance){closest=resource;distance=next;}
+      }
+      return closest?.id??null;
+    };
 
     const zoomBy=delta=>{
       this.distance=T.MathUtils.clamp(this.distance+delta,3.1,24);
@@ -483,6 +523,24 @@ export class TerrariumRenderer {
 
     c.addEventListener("pointerdown",e=>{
       if(e.pointerType==="mouse" && e.button!==0) return;
+      if(this.tool==="leaf-litter"||this.tool==="shelter"){
+        const point=projectGround(e);
+        if(point)this.onWorldAction?.(this.tool,point.x,point.z);
+        e.preventDefault();
+        return;
+      }
+      if(this.tool==="hand"&&!e.shiftKey){
+        const entityId=entityAt(e);
+        const point=projectGround(e);
+        const resourceId=entityId?null:resourceAt(point);
+        if(entityId||resourceId){
+          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId};
+          c.setPointerCapture?.(e.pointerId);
+          if(entityId)this.onInteractionStart?.(interaction);
+          e.preventDefault();
+          return;
+        }
+      }
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
       if(pointers.size===1){
         drag={x:e.clientX,y:e.clientY,id:e.pointerId};
@@ -494,6 +552,12 @@ export class TerrariumRenderer {
     });
 
     c.addEventListener("pointermove",e=>{
+      if(interaction?.pointerId===e.pointerId){
+        const point=projectGround(e);
+        if(point)this.onInteractionMove?.(interaction,point.x,point.z);
+        e.preventDefault();
+        return;
+      }
       if(!pointers.has(e.pointerId))return;
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
@@ -522,12 +586,14 @@ export class TerrariumRenderer {
     });
 
     c.addEventListener("pointerup",e=>{
+      if(interaction?.pointerId===e.pointerId){interaction=null;return;}
       pointers.delete(e.pointerId);
       if(pointers.size<2) pinchDistance=null;
       if(pointers.size===0) drag=null;
     });
 
     c.addEventListener("pointercancel",()=>{
+      interaction=null;
       pointers.clear();
       drag=null;
       pinchDistance=null;
@@ -537,6 +603,73 @@ export class TerrariumRenderer {
       e.preventDefault();
       zoomBy(-e.deltaY*0.006);
     },{passive:false});
+  }
+
+  setTool(tool){
+    if(!new Set(["hand","leaf-litter","shelter"]).has(tool))throw new Error("Herramienta desconocida: "+tool);
+    this.tool=tool;
+    this.renderer.domElement.dataset.activeTool=tool;
+  }
+
+  setWeather(weather){
+    const kind=new Set(["clear","mist","rain"]).has(weather)?weather:"clear";
+    this.weather=kind;
+    this.clear(this.weatherGroup);
+    this.weatherState=null;
+    const tones={clear:0x354238,mist:0x465346,rain:0x293a3a};
+    this.scene.background.setHex(tones[kind]);
+    this.scene.fog.color.setHex(tones[kind]);
+    this.keyLight.intensity=kind==="rain"?2.05:kind==="mist"?2.35:2.75;
+    if(kind==="mist"){
+      for(let i=0;i<7;i++){
+        const cloud=new T.Mesh(
+          new T.SphereGeometry(1,14,9),
+          new T.MeshBasicMaterial({color:0xd5ddc9,transparent:true,opacity:.075+(i%3)*.018,depthWrite:false})
+        );
+        cloud.scale.set(.62+(i%2)*.2,.075,.28+(i%3)*.05);
+        cloud.position.set(Math.sin(i*2.13)*.72,.42+(i%3)*.075,Math.cos(i*1.71)*.48);
+        cloud.userData.baseX=cloud.position.x;
+        cloud.userData.baseZ=cloud.position.z;
+        cloud.userData.phase=i*.8;
+        this.weatherGroup.add(cloud);
+      }
+    }else if(kind==="rain"){
+      const count=54,positions=new Float32Array(count*6),seeds=[];
+      const random=rng(0x4a17+count);
+      for(let i=0;i<count;i++){
+        const x=(random()-.5)*3.25,z=(random()-.5)*2.3,y=.28+random()*.95;
+        seeds.push({x,z,y,phase:random()});
+        const offset=i*6;
+        positions[offset]=x;positions[offset+1]=y;positions[offset+2]=z;
+        positions[offset+3]=x-.022;positions[offset+4]=y-.105;positions[offset+5]=z;
+      }
+      const geometry=new T.BufferGeometry();
+      geometry.setAttribute("position",new T.BufferAttribute(positions,3));
+      const drops=new T.LineSegments(geometry,new T.LineBasicMaterial({color:0xb8d1d2,transparent:true,opacity:.34}));
+      drops.frustumCulled=false;
+      this.weatherGroup.add(drops);
+      this.weatherState={kind:"rain",geometry,positions,seeds};
+    }
+    this.renderer.domElement.dataset.weather=kind;
+    this.renderer.domElement.dataset.weatherObjects=String(this.weatherGroup.children.length);
+  }
+
+  updateWeather(time){
+    if(this.weather==="mist"){
+      for(const cloud of this.weatherGroup.children){
+        cloud.position.x=cloud.userData.baseX+Math.sin(time*.18+cloud.userData.phase)*.12;
+        cloud.position.z=cloud.userData.baseZ+Math.cos(time*.14+cloud.userData.phase)*.08;
+      }
+    }else if(this.weatherState?.kind==="rain"){
+      const {positions,seeds,geometry}=this.weatherState;
+      for(let i=0;i<seeds.length;i++){
+        const seed=seeds[i],offset=i*6;
+        const y=.28+((seed.y-.28-(time*.48+seed.phase)%1.05+1.05)%1.05);
+        positions[offset]=seed.x;positions[offset+1]=y;positions[offset+2]=seed.z;
+        positions[offset+3]=seed.x-.022;positions[offset+4]=y-.105;positions[offset+5]=seed.z;
+      }
+      geometry.attributes.position.needsUpdate=true;
+    }
   }
 
   fitDistance(){
@@ -872,7 +1005,13 @@ export class TerrariumRenderer {
       const shape=this.state.habitat.shape;
       const floorY=terrainHeightAt(x,z,shape,HABITAT_GEOMETRY[shape].floorRadius);
       const gaitBob=moving?Math.abs(Math.sin(phase*2.1))*.0025:0;
-      object.position.set(x,floorY+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"?.045:0)+gaitBob,z);
+      const refuge=this.state.resources
+        .filter(resource=>resource.type==="shelter"||resource.type==="bark")
+        .map(resource=>({resource,distance:Math.hypot(resource.x-x,resource.z-z)}))
+        .sort((a,b)=>a.distance-b.distance)[0];
+      const perched=refuge&&refuge.distance<.43;
+      const refugeTop=perched?(refuge.resource.type==="shelter"?.33:.25):0;
+      object.position.set(x,floorY+refugeTop+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"&&!perched?.045:0)+gaitBob,z);
       // Both animal models are authored nose-forward along local +X;
       // simulation headings use +Z at zero (x=sin(h), z=cos(h)).
       object.rotation.y=(entity.heading??0)-Math.PI/2;
@@ -912,8 +1051,8 @@ export class TerrariumRenderer {
           this.resourcesGroup.add(leaf);
         }
       }else if(resource.type==="shelter"||resource.type==="bark"){
-        const length=resource.type==="shelter"?.34:.42;
-        const thickness=resource.type==="shelter"?.115:.078;
+        const length=resource.type==="shelter"?.88:.62;
+        const thickness=resource.type==="shelter"?.23:.15;
         const barkMaterial=mat(0x634832,.98,{side:T.DoubleSide,flatShading:true});
         const archGeometry=new T.CylinderGeometry(thickness,thickness*.92,length,20,5,true,0,Math.PI);
         const position=archGeometry.attributes.position;
@@ -924,11 +1063,13 @@ export class TerrariumRenderer {
         }
         archGeometry.computeVertexNormals();
         const arch=mesh(archGeometry,barkMaterial,[resource.x,floor+thickness*.72,resource.z]);
+        arch.userData.resourceId=resource.id;
         arch.rotation.z=Math.PI/2;
         arch.rotation.x=.06;
         this.resourcesGroup.add(arch);
         const entrance=mesh(new T.CircleGeometry(thickness*.82,18),mat(0x241f18,1),
           [resource.x+length*.47,floor+thickness*.12,resource.z]);
+        entrance.userData.resourceId=resource.id;
         entrance.rotation.y=Math.PI/2;
         entrance.rotation.z=.08;
         this.resourcesGroup.add(entrance);
@@ -987,6 +1128,10 @@ export class TerrariumRenderer {
         this.resourcesGroup.add(patch);
       }
     }
+    const canvas=this.renderer.domElement;
+    canvas.dataset.resourceCount=String(this.state.resources.length);
+    canvas.dataset.shelterCount=String(this.state.resources.filter(r=>r.type==="shelter").length);
+    canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
   }
 
   setQuality(quality){
@@ -1008,20 +1153,21 @@ export class TerrariumRenderer {
     this.cameraUpdate();
   }
 
-  draw(){
+  draw(now=performance.now()){
     if(this.state.presentation.autoRotate){
       this.angle += .0009;
       this.cameraUpdate();
     }
     this.syncEntities();
     this.syncResources();
+    this.updateWeather(now*.001);
     this.renderer.render(this.scene,this.camera);
     const diagnostics=this.renderer.info,canvas=this.renderer.domElement;
     canvas.dataset.renderCalls=String(diagnostics.render.calls);
     canvas.dataset.renderTriangles=String(diagnostics.render.triangles);
     canvas.dataset.renderGeometries=String(diagnostics.memory.geometries);
     canvas.dataset.renderTextures=String(diagnostics.memory.textures);
-    this.frame=requestAnimationFrame(()=>this.draw());
+    this.frame=requestAnimationFrame(time=>this.draw(time));
   }
 
   dispose(){
