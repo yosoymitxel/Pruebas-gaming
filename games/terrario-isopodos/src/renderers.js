@@ -704,6 +704,8 @@ export class TerrariumRenderer {
     canvas.dataset.expeditionSurface=scene.userData.surfaceType??"unknown";
     canvas.dataset.expeditionTrailCount=String(scene.userData.expeditionTrailCount??0);
     canvas.dataset.expeditionLandmarkCount=String(scene.userData.landmarkCount??0);
+    canvas.dataset.expeditionLockedNodeCount=String(scene.userData.lockedNodeCount??0);
+    canvas.dataset.expeditionUnlockedNodeCount=String((scene.userData.landmarkCount??0)-(scene.userData.lockedNodeCount??0));
     canvas.dataset.expeditionActorScale=String(this.expeditionActor?.scale.x??0);
     canvas.dataset.expeditionFov=this.camera.fov.toFixed(2);
     canvas.dataset.expeditionNodeCount=String(Object.keys(data.nodes??{}).length);
