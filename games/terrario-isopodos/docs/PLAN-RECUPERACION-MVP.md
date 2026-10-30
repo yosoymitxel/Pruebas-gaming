@@ -7,6 +7,43 @@
 **Validación de PR #14:** Framework checks [40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450) y Terrario checks [40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742) terminaron correctamente. Playwright registró el merge ref `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75`; su evidencia está en el [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). No se ha verificado todavía el deployment de Pages del SHA integrado.  
 **Estado general:** vertical jugable; **MVP completo NO APROBADO**. No confundir código presente con criterio de aceptación demostrado.
 
+## Auditoría vigente de errores y tareas — 30-10-2026
+
+**Snapshot comprobado:** main = 714504c0562bda5734cd6238fff8cd5611e9e91c; rama activa feat/isopod-render-spike = f751e327c156fef9997aac76441858a8a583af96. No hay PR abierta. Los commits visuales de esta rama todavía no están integrados en main ni publicados en Pages.
+
+**CI vigente:** [Terrario MVP checks — run 41052207493](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41052207493), SHA f751e32 — **PASS** en instalación, auditoría con umbral high, tests Node, build, Playwright y carga de evidencia. No hay un fallo de CI activo en este snapshot.
+
+**Regresión de pruebas ya corregida:** los runs [41051711014](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41051711014) y [41051911417](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41051911417) fallaron en Playwright al comprobar el color de los botones Diorama/Voxel durante la transición CSS. El problema estaba en la captura/espera del test; el smoke ahora emula prefers-reduced-motion antes de validar el estado estable. El run f751e32 pasó y las capturas muestran la selección correcta. Mantener esta comprobación.
+
+### Errores y deuda nueva detectada
+
+| Prioridad | Incidencia | Evidencia / diagnóstico | Trabajo requerido |
+|---|---|---|---|
+| P0 | Build no reproducible | No existe games/terrario-isopodos/package-lock.json versionado; el workflow usa npm install. El lockfile aparece en los artefactos porque npm lo genera durante CI, no porque esté en Git. | Generar y revisar el lockfile con Node/npm del proyecto; cambiar CI y Pages a npm ci; validar desde checkout limpio. |
+| P1 | Vulnerabilidad moderada en Vite | npm audit identifica Vite 6.4.4 y [GHSA-8g5g-mxqh-grgj](https://github.com/advisories/GHSA-8g5g-mxqh-grgj), bypass de server.fs.deny mediante queries. El audit no rompe porque CI usa --audit-level=high; no significa que esté limpio. El log indica fix disponible en 6.4.5. | Actualizar Vite a una versión corregida compatible, regenerar lockfile y exigir npm audit sin vulnerabilidades conocidas; no usar --force a ciegas. |
+| P1 | Bundle principal supera 500 kB | El build de Vite muestra warning de chunks mayores a 500 kB minificados. Build termina bien, pero la carga inicial y el rendimiento móvil quedan por optimizar. | Inspeccionar el chunk real; separar Three.js/render y módulos diferibles mediante dynamic import() o manualChunks, sin subir el límite para ocultar el aviso. Medir resultado. |
+| P1 | Encuadre móvil con demasiado espacio vacío | La captura mobile-390x844.png del SHA f751e32 deja una zona verde grande sobre el terrario; el hábitat ocupa una fracción reducida del viewport. No hay overflow horizontal (false), pero el reparto vertical es débil. | Ajustar el encuadre/escala inicial en retrato sin cortar el recipiente ni solapar reloj, herramientas y bandeja; añadir captura comparativa. |
+| P1 | Bandeja móvil: recorrido completo de controles no demostrado | En mobile-controls-390x844.png el final de la tienda queda cortado por el borde de la captura. CSS define overflow-y:auto en el contenido, así que no está demostrado que sea un bloqueo funcional; falta probar desplazamiento hasta el último control. | Añadir Playwright que abra la bandeja, haga scroll interno hasta el último artículo y compruebe que todos los botones son visibles y accionables; corregir altura/safe-area si falla. |
+| P1 | Diorama todavía se lee como bandeja/pedestal | Las capturas muestran el sustrato como un disco elevado y la base de madera sigue dominando el perfil. Los cambios de relieve y grosor mejoraron el conjunto, pero aún no cumplen plenamente «microbosque, no placa con props». | Rehacer por iteración la silueta del sustrato y la transición de estratos/borde; integrar más suelo orgánico y madera descompuesta sin perder el espacio central de observación. |
+| P1 | Movimiento reducido incompleto | CSS respeta prefers-reduced-motion, pero el giro automático de cámara del renderer aún no consulta esa preferencia. | Desactivar/evitar auto-rotación al detectar movimiento reducido y mantener el ajuste manual disponible; cubrirlo en navegador. |
+| P1 | Fuente única de verdad incompleta | main.js aún muta directamente estado del dominio y duplica preferencias de presentación. | Encapsular cambios en comandos/funciones de dominio y separar TerrariumState, preferencias y estado de UI; añadir pruebas de invariantes. |
+| P1 | Persistencia incompleta | Solo hay una partida local; faltan autoguardado, slots, backup del último guardado válido, migraciones y exportación/importación. | Implementar de forma segura y versionada, con pruebas de corrupción, versiones futuras, fallo de almacenamiento y roundtrip. |
+| P1 | Observación y ciclo vital incompletos | Selección/ficha de isópodo, reproducción/nacimientos y catálogo de descubrimientos siguen ausentes o parciales frente a la especificación. | Priorizar selección por ID estable y ficha; después reglas de ciclo vital y descubrimientos reproducibles, sin atribuir realismo científico al modelo lúdico. |
+| P2 | Advertencias de compatibilidad en CI | Los logs muestran advertencia de acciones GitHub que todavía apuntan a Node.js 20 y avisos DEP0040 (punycode) / DEP0169 (url.parse). No hicieron fallar la ejecución. | Identificar dependencias/acciones que originan los avisos y actualizar versiones compatibles con Node 24; no confundir estas advertencias de tooling con errores del juego. |
+| P2 | Cobertura de dispositivos reales | CI usa Chromium en 1440x1000 y 390x844; no certifica Safari/iOS, Android físico, orientación horizontal ni safe areas de dispositivos reales. | Probar al menos un iPhone/Safari y un Android real, con scroll, zoom, orientación y recuperación de pestaña. |
+
+### Métricas verificadas en la evidencia vigente
+
+Artefacto del run 41052207493, SHA f751e32: 93 draw calls, 117.125 triángulos, 85 geometrías, 5 texturas, 570 instancias de hojarasca/cobertura, 645 hojas de helecho y 32 almohadillas de musgo. Playwright registra cero errores de consola y horizontalOverflow = false. Menú, setup, modos, guardado/recarga, pinch, bandeja móvil, recuperación cuando WebGL no está disponible y escena woodland pasan en el smoke. Esto valida la vertical probada, no el MVP completo ni la recuperación ante pérdida del contexto WebGL.
+
+### Cierre de la auditoría
+
+- No hay error de ejecución ni fallo de CI vigente en el SHA f751e32.
+- La vulnerabilidad moderada y el warning de chunk siguen presentes aunque el pipeline termine en PASS.
+- El problema de resaltado de modo queda corregido en el test; no volver a tratar las dos ejecuciones históricas como fallos actuales.
+- No declarar integración/publicación hasta fusionar la rama y verificar el workflow de Pages sobre el SHA integrado.
+
+
 ## Tabla de verdad obligatoria del esqueleto
 
 La columna «Decisión» utiliza los estados del framework. «Estado de implementación» indica lo que realmente existe hoy.

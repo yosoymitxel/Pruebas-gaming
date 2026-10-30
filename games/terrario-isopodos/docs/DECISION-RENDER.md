@@ -1,56 +1,68 @@
-# Decisión de render: hábitat naturalista 3D + modo Voxel
+# Decisión de render: microhábitat naturalista 3D + modo Voxel
 
-**Revisión:** 2026-10-30. **Estado:** reconstrucción visual en curso; no declarar aprobado el DESIGN_GATE, GAMEPLAY_GATE ni el MVP hasta disponer de build, capturas reales y ejecución de Playwright asociadas al SHA exacto.
+**Revisión:** 2026-10-30. **Estado:** implementación visual y simulación en revisión; CODE y build tienen checks automatizados, pero el DESIGN_GATE y el MVP siguen **NO APROBADOS** hasta revisar capturas nuevas del SHA final en los tres recipientes y ambos viewports.
 
-## Decisión actual
+## Fuente de verdad y decisión de backend
 
-- Mantener Three.js como backend 3D provisional. El problema comprobado del resultado anterior estaba en la autoría del mundo —suelo plano, objetos primitivos dispersos, vegetación esquemática y vidrio sin lectura física— y no demuestra que Three.js sea incapaz de representar el juego.
-- Mantener Diorama y Voxel como modos paralelos sobre un único estado de dominio. El modo Voxel actual todavía utiliza una textura Canvas aplicada a `THREE.Sprite`; no es voxel volumétrico ni un atlas importado.
-- Se admiten estilos y pipelines adicionales. No se bloqueará la dirección artística a la versión antigua del Diorama ni se sustituirá Three.js sin comparar una escena equivalente, con mismas entidades, cámara y viewport, ejecutada en navegador.
-- El Diorama prioritario es un microhábitat naturalista de escala miniatura. La lectura visual del ecosistema tiene prioridad sobre adornos de interfaz o postprocesado.
+- Three.js 0.180.0 sigue siendo el backend 3D provisional, desacoplado del dominio.
+- Diorama y Voxel comparten exactamente el mismo estado, reloj, entidades, necesidades, recursos y persistencia.
+- Diorama representa al isópodo con una cúpula cuticular continua, siete suturas dorsales, catorce patas articuladas y antenas.
+- Voxel representa al isópodo con geometría volumétrica formada por bloques instanciados. No es un sprite plano ni un modelo 3D convencional suavizado.
+- Los dos modos pueden cambiar durante la partida sin reconstruir el dominio. El modo Voxel no debe convertirse en una segunda simulación.
+- El interior naturalista se crea como grupo separado del recipiente. Las formas rectangular, cilíndrica y esférica comparten materiales, relieve y reglas de altura, pero el encuadre/recipiente puede adaptarse a cada forma.
+- La dirección visual se puede cambiar si mejora sustancialmente la lectura del ecosistema; no se conserva una forma primitiva solo por compatibilidad histórica.
 
 ## Referencias y skills aplicadas
 
-- [Dioramas / Bell & Moss](https://github.com/blendi-remade/dioramas): referencia de globo de vidrio, condensación, presentación de terrario, microhábitat y corte de capas de sustrato. Se reutiliza como referencia técnica; no se copia su web-app ni se afirma que sus GLB estén integrados.
-- [Three.js AAA Graphics Builder](https://www.skills.sh/majidmanzarpour/threejs-game-skills/threejs-aaa-graphics-builder): autoría de silueta, kit de objetos, materiales, iluminación y presupuesto.
-- [Procedural Vegetation](https://www.skills.sh/scottstts/threejs-awesome-graphics-agent-skills/threejs-procedural-vegetation): jerarquía de crecimiento vegetal y frondas.
-- [Procedural Materials](https://www.skills.sh/scottstts/threejs-awesome-graphics-agent-skills/threejs-procedural-materials): identidad material y acoplamiento suelo/humus/musgo.
-- [Three.js Visual Validation](https://www.skills.sh/linegel/threejs-complete-set-of-skill/threejs-visual-validation): semillas, cámaras fijas, baseline sin postprocesado, evidencia temporal y métricas.
-- Estas cuatro skills son externas consultadas desde skills.sh; no se marcan como instaladas dentro de `.agents/skills/`.
+- [Dioramas / Bell & Moss](https://github.com/blendi-remade/dioramas): referencia para vidrio, presentación de terrario, microhábitat y corte de capas. No se afirma que sus modelos GLB estén integrados.
+- [Three.js AAA Graphics Builder](https://www.skills.sh/majidmanzarpour/threejs-game-skills/threejs-aaa-graphics-builder): silueta, kit de objetos, materiales, iluminación y presupuesto.
+- [Procedural Vegetation](https://www.skills.sh/scottstts/threejs-awesome-graphics-agent-skills/threejs-procedural-vegetation): jerarquía de crecimiento y frondas.
+- [Procedural Materials](https://www.skills.sh/scottstts/threejs-awesome-graphics-agent-skills/threejs-procedural-materials): relación de materiales entre suelo, humus y musgo.
+- [Three.js Visual Validation](https://www.skills.sh/linegel/threejs-complete-set-of-skill/threejs-visual-validation): semillas, cámaras fijas, evidencia temporal y métricas.
+- [Game AI](https://github.com/gamedev-skills/awesome-gamedev-agent-skills): necesidades, selección de objetivos, navegación y pruebas deterministas.
+- [Game Feel / Physics Tuning](https://github.com/gamedev-skills/awesome-gamedev-agent-skills): lectura del movimiento, separación y respuesta gradual.
+- Las skills externas se consultaron; no se marcan como instaladas en `.agents/skills/`.
 
-## Kit visual nuevo
+## Escena actual
 
-`src/terrarium-art.js` crea una escena determinista de bosque húmedo y la expone como un grupo de contenido independiente del recipiente:
-
-- tres estratos físicos de sustrato y una superficie de humus con relieve;
-- hojas individuales instanciadas;
+`src/terrarium-art.js` genera una escena determinista con:
+- tres estratos de sustrato, humus irregular y relieve medible;
+- hojarasca individual instanciada;
 - helechos con raquis curvos y frondas;
-- almohadillas y brotes de musgo;
-- rocas, madera hueca, raíces y arco-refugio;
+- cojines irregulares de musgo con microhojas;
+- rocas pequeñas de paleta mineral;
+- tronco y arco de raíces con sección irregular y taper;
 - agrupaciones pequeñas de setas;
-- materiales compartidos y texturas generadas localmente, sin llamadas a servicios externos.
+- texturas generadas localmente, sin servicios externos.
 
-El renderer coloca el mismo interior en el recipiente rectangular, cilíndrico o esférico. Las posiciones del isópodo y de los recursos se apoyan en la misma función de altura del terreno para no flotar sobre el suelo.
+La versión de arte en desarrollo es `woodland-diorama-v11`. La pasada v11 compacta el globo con una base truncada que coincide con el radio del suelo, reforma el Voxel como un caparazón por secciones, acorta las patas laterales del Diorama, aclara la cutícula y elimina el patrón de ondas repetitivas del suelo. La revisión v9 agrupa la hojarasca, diversifica las frondas, añade rosetas de sotobosque, corrige el albedo del sustrato y elimina la mitad frontal del aro del tarro cilíndrico para que no cruce la colonia. Sus estadísticas (frondas, hojas, musgo, relieve y draw calls) se exponen al navegador para QA. No equivalen por sí solas a aprobación visual.
 
-## Límites que siguen abiertos
+El tarro cilíndrico se está llevando a una proporción baja y ancha para evitar un volumen vacío de vidrio que domine al ecosistema. El vivario rectangular conserva más altura y el globo debe leerse como recipiente esférico cerrado.
 
-- El isópodo sigue siendo procedural; las placas/patas actuales necesitan una pasada de anatomía, silueta y locomoción más naturalista.
-- La simulación todavía no ofrece locomoción guiada por necesidades con navegación alrededor de raíces, troncos y plantas.
-- El contenido interactivo del jugador todavía no comparte un catálogo de modelos de calidad con la escena decorativa.
-- No hay una biblioteca de especies vegetales, otros artrópodos ni modelos GLB integrados.
-- El globo utiliza geometría transparente simplificada, no transmisión física completa; no añadir transmisión cara antes de probar su beneficio frente a legibilidad y coste móvil.
+## Simulación actual y límites reales
+
+- La selección de comida/refugio usa utilidades de energía, hidratación, luz, estrés y distancia, con histéresis para que el objetivo no cambie por pequeñas fluctuaciones.
+- La conglobación defensiva tiene recuperación y enfriamiento; no debe quedar como estado permanente.
+- El descanso en refugio recupera energía/hidratación y las entidades se separan para evitar apilamiento.
+- La navegación aplica desvío alrededor de recursos que actúan como obstáculos (piedras, setas, plantas y refugios colocados).
+- La navegación todavía no usa colisionadores de cada raíz, fronda o roca generada proceduralmente en el renderer. Ese acoplamiento sigue pendiente.
+- La locomoción visual es procedural; todavía necesita comparación con referencias reales de *Armadillidium vulgare*, ajustes de postura y validación a tamaño de cámara.
+- No hay una biblioteca de modelos GLB integrados ni más especies vegetales/animales terminadas.
+- El vidrio actual es transparente simplificado, no transmisión física completa. El globo usa una esfera truncada en la base para que el disco de sustrato no sobresalga del volumen de vidrio. No se añade transmisión costosa sin medir beneficio de legibilidad en móvil.
 
 ## Puertas de aceptación
 
-1. CODE: `npm test`, `npm run build`, cero errores de carga/importación y limpieza de geometrías/materiales al alternar formas/modos.
-2. GAMEPLAY: entrada al terrario, colonia visible, cámara, pausa, selección de modo y guardado conservan el dominio.
-3. DESIGN: capturas reales del build bajo la ruta de Pages en los tres recipientes, escritorio y móvil; la escena debe mostrar capas, hojarasca, frondas, musgo, madera y roca como volumen perceptible.
-4. INTEGRATION: probar el artefacto de producción servido bajo `/Pruebas-gaming/games/terrario-isopodos/`, incluyendo recuperación cuando WebGL no está disponible.
+1. **CODE:** `npm test`, build de producción, cero errores de carga y limpieza de geometrías/materiales al alternar formas/modos.
+2. **GAMEPLAY:** necesidades, comida, refugio, defensa, recuperación, navegación, pausa, selección visual y guardado conservan el mismo dominio.
+3. **DESIGN:** capturas reales de Diorama y Voxel en escritorio y móvil, con los tres recipientes. El terrario debe leerse como ecosistema y el isópodo debe ser reconocible a escala normal de juego.
+4. **INTEGRATION:** build de producción servido bajo `/Pruebas-gaming/games/terrario-isopodos/`, incluyendo recuperación sin WebGL.
+5. **PERFORMANCE:** comprobar draw calls, triángulos, memoria y tiempos en viewport móvil con colonia y recursos reales.
 
-No se afirma que estas puertas estén aprobadas hasta que el workflow genere evidencia nueva.
+No se declara aprobado ningún gate hasta que la evidencia esté ligada al SHA final y haya revisión visual humana del resultado.
 
-## Historial de implementación
+## Historial
 
-- Antes de esta revisión, Diorama utilizaba esferas/hojas cónicas y helechos esquemáticos; el terreno base era plano y el recipiente solo tenía dos formas documentadas.
-- El cambio visual nuevo está en la rama de larga vida `feat/isopod-render-spike`. No se ha mergeado a `main` ni se da por publicado.
-- La decisión de conservar Three.js es provisional y reversible. Una comparación futura podrá añadir un modo 2.5D/voxel alternativo, pero no reducir a 2D la experiencia principal 3D.
+- PR #17 integró una primera reconstrucción de escena, cuerpo articulado y modo Voxel volumétrico.
+- El siguiente ciclo se trabaja en la misma rama de larga vida `feat/isopod-render-spike`, reanclada al commit integrado, para no duplicar cambios anteriores.
+- La evidencia del SHA `914953f` mostró debilidades que el smoke no capturaba: aro frontal del tarro, repetición vegetal y sustrato oscuro. La evidencia v10 confirmó que el Voxel aún se leía como una pila de bloques y que el globo dejaba demasiada cámara vacía; la v11 corrige esos perfiles, pero sigue pendiente una nueva revisión visual humana.
+- No se ha aprobado el MVP completo ni se considera terminado el arte.

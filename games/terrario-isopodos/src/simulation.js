@@ -1,17 +1,30 @@
 import { constrainToHabitat } from "./habitat.js";
 
-const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
-const identity=e=>[...String(e.id)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
-export const MODEL_VERSION=1;
+const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
+const identity=entity=>[...String(entity.id)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
+export const MODEL_VERSION=2;
 export const BIOLOGY_RULES=Object.freeze({
   hydrationLossPerMinute:0.0011,
   energyLossPerMinute:0.00075,
+  restEnergyGainPerMinute:0.00125,
   temperatureComfortMinC:16,
   temperatureComfortMaxC:25,
   temperatureStressPerDegreeMinute:0.0005,
   comfortableStressRecoveryPerMinute:0.00018,
-  foodEnergyGainPerMinute:0.012,
-  shelterHydrationGainPerMinute:0.008
+  defensiveRecoveryInShadePerMinute:0.018,
+  defensiveRecoveryExposedPerMinute:0.006,
+  foodEnergyGainPerMinute:0.014,
+  shelterHydrationGainPerMinute:0.008,
+  minimumCollisionDistance:0.09
+});
+
+const RESOURCE_COVER=Object.freeze({
+  shelter:{radius:.58,moisture:.28,shade:.58,collision:.19},
+  bark:{radius:.52,moisture:.19,shade:.47,collision:.17},
+  moss:{radius:.44,moisture:.22,shade:.24,collision:.045},
+  fern:{radius:.38,moisture:.045,shade:.28,collision:.105},
+  stone:{radius:.26,moisture:.035,shade:.16,collision:.17},
+  mushroom:{radius:.2,moisture:.008,shade:.015,collision:.075}
 });
 
 export function sampleMicroclimate(state,x,z){
@@ -21,82 +34,142 @@ export function sampleMicroclimate(state,x,z){
   const lightSetting=clamp(Number(habitat.light??.35),0,1);
   const minuteOfDay=((Number(state?.clockMinutes??480)%1440)+1440)%1440;
   const hour=minuteOfDay/60;
-  // A simple daylight curve: dawn at 06:00, peak at noon, dusk at 18:00.
   const daylight=clamp(Math.sin((hour-6)*Math.PI/12),0,1);
   const ambientLight=daylight*(.22+.78*lightSetting);
   let moisturePocket=0,shade=0;
 
   for(const resource of Array.isArray(state?.resources)?state.resources:[]){
     if(!Number.isFinite(resource.x)||!Number.isFinite(resource.z))continue;
+    const cover=RESOURCE_COVER[resource.type];
+    if(!cover)continue;
     const distance=Math.hypot(x-resource.x,z-resource.z);
-    const radius=resource.type==="shelter"? .58 :
-      resource.type==="bark"? .52 :
-      resource.type==="moss"? .44 :
-      resource.type==="fern"? .38 :
-      resource.type==="stone"? .26 : .2;
-    if(distance>=radius)continue;
-    const falloff=(1-distance/radius)**2;
-    if(resource.type==="shelter"){moisturePocket+=.28*falloff;shade+=.58*falloff;}
-    else if(resource.type==="bark"){moisturePocket+=.19*falloff;shade+=.47*falloff;}
-    else if(resource.type==="moss"){moisturePocket+=.22*falloff;shade+=.24*falloff;}
-    else if(resource.type==="fern"){moisturePocket+=.045*falloff;shade+=.28*falloff;}
-    else if(resource.type==="stone"){moisturePocket+=.035*falloff;shade+=.16*falloff;}
+    if(distance>=cover.radius)continue;
+    const falloff=(1-distance/cover.radius)**2;
+    moisturePocket+=cover.moisture*falloff;
+    shade+=cover.shade*falloff;
   }
 
-  const localHumidity=clamp(humidity+moisturePocket,0,.98);
-  const localLight=clamp(ambientLight-shade,0,1);
-  const localTemperature=clamp(temperatureC+daylight*lightSetting*.72-shade*.62,5,35);
   return {
-    humidity:localHumidity,
-    light:localLight,
-    temperatureC:localTemperature,
+    humidity:clamp(humidity+moisturePocket,0,.98),
+    light:clamp(ambientLight-shade,0,1),
+    temperatureC:clamp(temperatureC+daylight*lightSetting*.72-shade*.62,5,35),
     daylight,
     shade:clamp(shade,0,1)
   };
 }
 
-function closestResource(entity,resources,types){
-  let best=null,bestDistance=Infinity;
-  for(const resource of resources){
-    if(!types.includes(resource.type))continue;
-    if(resource.type==="leaf-litter"&&(Number(resource.amount??0)<=0))continue;
-    const distance=Math.hypot(resource.x-entity.x,resource.z-entity.z);
-    if(distance<bestDistance){best=resource;bestDistance=distance;}
-  }
-  return best?{resource:best,distance:bestDistance}:null;
+function distanceBetween(a,b){
+  return Math.hypot((b?.x??0)-(a?.x??0),(b?.z??0)-(a?.z??0));
 }
 
-function steerEntity(entity,target,resources,speed,phase){
+function candidateFor(entity,resources,types,urgency,weight=1){
+  if(urgency<=.055)return null;
+  let best=null;
+  for(const resource of resources){
+    if(!types.includes(resource.type))continue;
+    if(resource.type==="leaf-litter"&&Number(resource.amount??0)<=.015)continue;
+    const distance=distanceBetween(entity,resource);
+    const availability=resource.type==="leaf-litter"?clamp(Number(resource.amount??0),0,1):1;
+    const score=urgency*weight*availability/(.34+distance);
+    if(!best||score>best.score)best={resource,distance,score,urgency};
+  }
+  return best;
+}
+
+/** Utility arbitration + hysteresis: a small change in needs does not flip targets every minute. */
+function chooseIntent(entity,resources,needs){
+  const food=candidateFor(entity,resources,["leaf-litter"],needs.energy,1.12);
+  const refugeUrgency=needs.hydration+needs.shade+needs.stress;
+  const refuge=candidateFor(entity,resources,["shelter","bark","moss","fern","stone"],refugeUrgency,1);
+  let best=food&&refuge?(food.score>=refuge.score?food:refuge):(food??refuge);
+  const previous=resources.find(resource=>resource.id===entity.targetResourceId);
+  if(previous){
+    const types=previous.type==="leaf-litter"?["leaf-litter"]:["shelter","bark","moss","fern","stone"];
+    const urgency=previous.type==="leaf-litter"?needs.energy:refugeUrgency;
+    const weight=previous.type==="leaf-litter"?1.12:1;
+    const current=candidateFor(entity,[previous],types,urgency,weight);
+    if(current&&best&&current.score>=best.score*.88)best=current;
+  }
+  entity.targetResourceId=best?.resource.id??null;
+  entity.intent=best?.resource.type==="leaf-litter"?"food":best?"shelter":"wander";
+  return best;
+}
+
+function obstacleRadius(resource){
+  return RESOURCE_COVER[resource.type]?.collision??0;
+}
+
+function steerEntity(entity,target,resources,speed,phase,neighbors=[]){
   const dx=target.x-entity.x,dz=target.z-entity.z;
   const distance=Math.hypot(dx,dz);
   if(distance<1e-5)return;
   let vx=dx/distance,vz=dz/distance;
+  let avoidX=0,avoidZ=0,detourX=0,detourZ=0;
 
-  // Gentle local avoidance keeps animals from walking through placed stones and props.
-  let avoidX=0,avoidZ=0;
   for(const obstacle of resources){
     if(obstacle===target)continue;
-    if(!["stone","mushroom","fern"].includes(obstacle.type))continue;
+    const radius=obstacleRadius(obstacle);
+    if(!radius)continue;
     const ox=entity.x-obstacle.x,oz=entity.z-obstacle.z,d=Math.hypot(ox,oz);
-    const radius=obstacle.type==="stone"?.2:.15;
-    if(d>1e-4&&d<radius){
-      const strength=(radius-d)/radius;
-      avoidX+=ox/d*strength;
-      avoidZ+=oz/d*strength;
+    if(d<1e-4||d>=radius)continue;
+    const strength=(radius-d)/radius;
+    avoidX+=ox/d*strength;
+    avoidZ+=oz/d*strength;
+    // A tangent component lets an animal pass an obstacle directly between it and its goal.
+    const side=(identity(entity)&1)?1:-1;
+    detourX+=(-vz)*side*strength*.72;
+    detourZ+=(vx)*side*strength*.72;
+  }
+
+  vx+=avoidX*1.1+detourX;
+  vz+=avoidZ*1.1+detourZ;
+  for(const neighbor of neighbors){
+    if(neighbor===entity||neighbor.alive===false)continue;
+    const ox=entity.x-neighbor.x,oz=entity.z-neighbor.z,d=Math.hypot(ox,oz);
+    if(d>1e-4&&d<BIOLOGY_RULES.minimumCollisionDistance){
+      const strength=(BIOLOGY_RULES.minimumCollisionDistance-d)/BIOLOGY_RULES.minimumCollisionDistance;
+      vx+=ox/d*strength*.65;
+      vz+=oz/d*strength*.65;
     }
   }
-  vx+=avoidX*.85;vz+=avoidZ*.85;
+
   const length=Math.hypot(vx,vz)||1;
   vx/=length;vz/=length;
-
   const desiredHeading=Math.atan2(vx,vz);
   const currentHeading=Number(entity.heading??0);
   const difference=Math.atan2(Math.sin(desiredHeading-currentHeading),Math.cos(desiredHeading-currentHeading));
-  entity.heading=currentHeading+clamp(difference,-.24,.24);
+  entity.heading=currentHeading+clamp(difference,-.28,.28);
   const step=Math.min(distance,speed);
-  const wander=Math.sin(phase)*.0015;
+  const wander=Math.sin(phase)*.00065;
   entity.x+=vx*step+Math.cos(phase)*wander;
   entity.z+=vz*step+Math.sin(phase)*wander;
+}
+
+function applySocialSeparation(entity,living){
+  for(const other of living){
+    if(other===entity||other.alive===false)continue;
+    const dx=entity.x-other.x,dz=entity.z-other.z,d=Math.hypot(dx,dz);
+    if(d<=1e-4||d>=BIOLOGY_RULES.minimumCollisionDistance)continue;
+    const push=(BIOLOGY_RULES.minimumCollisionDistance-d)*.18;
+    entity.x+=dx/d*push;
+    entity.z+=dz/d*push;
+  }
+}
+
+function settlePosition(entity,habitat){
+  const constrained=constrainToHabitat(entity.x,entity.z,habitat.shape,.2);
+  if(constrained.x!==entity.x||constrained.z!==entity.z){
+    entity.x=constrained.x;entity.z=constrained.z;
+    const normalX=-entity.x,normalZ=-entity.z;
+    const magnitude=Math.hypot(normalX,normalZ)||1;
+    const reflected=Math.atan2(normalX/magnitude,normalZ/magnitude);
+    entity.heading=habitat.shape==="rectangular"?-(entity.heading??0):reflected;
+  }
+}
+
+function temperatureDistance(temperatureC){
+  return Math.max(0,BIOLOGY_RULES.temperatureComfortMinC-temperatureC,
+    temperatureC-BIOLOGY_RULES.temperatureComfortMaxC);
 }
 
 export function stepSimulation(state,minutes=1){
@@ -109,11 +182,6 @@ export function stepSimulation(state,minutes=1){
     habitat.humidity=clamp(Number(habitat.humidity??.78),0,1);
     habitat.temperatureC=clamp(Number(habitat.temperatureC??21.4),5,35);
     habitat.light=clamp(Number(habitat.light??.35),0,1);
-    const temperatureDistance=(temperatureC)=>{
-      return Math.max(0,BIOLOGY_RULES.temperatureComfortMinC-temperatureC,
-        temperatureC-BIOLOGY_RULES.temperatureComfortMaxC);
-    };
-
     const living=state.entities.filter(entity=>entity.alive!==false);
     if(state.clockMinutes%60===0&&living.some(e=>e.hydration>.35&&e.energy>.25&&e.stress<.8)){
       state.coins=(Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0)+1;
@@ -126,10 +194,9 @@ export function stepSimulation(state,minutes=1){
       const phase=state.clockMinutes*.11+(seed%97)*.17;
       const micro=sampleMicroclimate(state,entity.x,entity.z);
       const hotColdStress=temperatureDistance(micro.temperatureC);
-      const wasResting=["resting","burrowing"].includes(entity.behavior);
-
-      // Needs react to the local pocket, not just the global slider.
+      const wasResting=["resting","burrowing","feeding"].includes(entity.behavior);
       const dryExposure=Math.max(0,1-micro.humidity);
+
       entity.hydration=clamp((entity.hydration??.8)-
         BIOLOGY_RULES.hydrationLossPerMinute*Math.max(.12,dryExposure),0,1);
       const activityCost=wasResting?.42:1;
@@ -140,97 +207,93 @@ export function stepSimulation(state,minutes=1){
       if(heatStress+lightStress>0)entity.stress=clamp((entity.stress??.2)+heatStress+lightStress,0,1);
       else entity.stress=clamp((entity.stress??.2)-BIOLOGY_RULES.comfortableStressRecoveryPerMinute,0,1);
 
-      const food=closestResource(entity,state.resources,["leaf-litter"]);
-      const refuge=closestResource(entity,state.resources,["shelter","bark","moss","fern","stone"]);
-      const hydrationNeed=Math.max(0,.61-entity.hydration)*1.8+
+      const foodUrgency=Math.max(0,.67-entity.energy)*1.55;
+      const hydrationUrgency=Math.max(0,.61-entity.hydration)*1.8+
         Math.max(0,.54-micro.humidity)*1.35+
-        Math.max(0,micro.light-.55)*1.25+
         Math.max(0,hotColdStress-.5)*.18;
-      const energyNeed=Math.max(0,.67-entity.energy)*1.55;
-      let target=null;
+      const shadeUrgency=Math.max(0,micro.light-.58)*1.3;
+      const stressUrgency=Math.max(0,(entity.stress??0)-.28)*.72;
+      const needs={energy:foodUrgency,hydration:hydrationUrgency,shade:shadeUrgency,stress:stressUrgency};
 
-      // Armadillidium rolls into a ball when seriously threatened or stressed;
-      // no arbitrary 47-minute schedule forces the response.
-      if(entity.stress>=.88){
+      // Conglobation is a temporary defence, not a permanent dead-end state.
+      if(entity.behavior==="defensive-curl"){
+        entity.defensiveTicks=(entity.defensiveTicks??0)+1;
+        const sheltered=micro.shade>.16||micro.humidity>.7;
+        const recovery=sheltered?BIOLOGY_RULES.defensiveRecoveryInShadePerMinute:BIOLOGY_RULES.defensiveRecoveryExposedPerMinute;
+        entity.stress=clamp(entity.stress-recovery,0,1);
+        if(entity.stress<=.62||entity.defensiveTicks>=30){
+          entity.behavior="resting";
+          entity.defensiveTicks=0;
+          entity.defensiveCooldown=18;
+        }else{
+          if(entity.hydration<.15&&entity.energy<.1)entity.alive=false;
+          continue;
+        }
+      }else if((entity.defensiveCooldown??0)>0){
+        entity.defensiveCooldown--;
+      }
+
+      if(entity.stress>=.88&&(entity.defensiveCooldown??0)===0){
         entity.behavior="defensive-curl";
-        entity.heading=(entity.heading??0)+Math.sin(phase)*.003;
+        entity.defensiveTicks=0;
+        entity.targetResourceId=null;
+        entity.intent="defend";
         continue;
       }
-      if(entity.behavior==="defensive-curl"&&entity.stress>.62){
-        entity.behavior="defensive-curl";
-        continue;
-      }
 
-      if(hydrationNeed>.12&&refuge){
-        target=refuge.resource;
-      }else if(energyNeed>.08&&food){
-        target=food.resource;
-      }else if(micro.light>.7&&refuge){
-        target=refuge.resource;
-      }
-
+      const chosen=chooseIntent(entity,state.resources,needs);
+      const target=chosen?.resource??null;
       if(target){
-        const distance=Math.hypot(target.x-entity.x,target.z-entity.z);
-        if(distance<.15){
+        if(chosen.distance<.16){
           if(target.type==="leaf-litter"){
             entity.behavior=entity.energy<.55?"feeding":"grooming";
-            target.amount=Math.max(0,(target.amount??1)-.0065);
+            target.amount=Math.max(0,(target.amount??1)-.0038);
             entity.energy=clamp(entity.energy+BIOLOGY_RULES.foodEnergyGainPerMinute,0,1);
           }else{
             entity.behavior=entity.hydration<.55?"resting":"burrowing";
-            entity.hydration=clamp(entity.hydration+BIOLOGY_RULES.shelterHydrationGainPerMinute,0,1);
+            const hydrationGain=target.type==="shelter"?BIOLOGY_RULES.shelterHydrationGainPerMinute:
+              target.type==="bark"?.006:target.type==="moss"?.004:target.type==="fern"?.0018:.0012;
+            entity.hydration=clamp(entity.hydration+hydrationGain,0,1);
             entity.stress=clamp(entity.stress-.0035,0,1);
+            entity.energy=clamp(entity.energy+BIOLOGY_RULES.restEnergyGainPerMinute,0,1);
           }
         }else{
-          const drynessBoost=1+dryExposure*.72;
           const lightDampening=1-micro.light*.24;
-          const speed=(.022+(seed%5)*.002)*drynessBoost*lightDampening;
-          steerEntity(entity,target,state.resources,speed,phase);
+          const speed=(.018+(seed%5)*.0018)*(1+dryExposure*.52)*lightDampening;
+          steerEntity(entity,target,state.resources,speed,phase,living);
           entity.behavior=target.type==="leaf-litter"?"seeking-food":"seeking-shelter";
         }
-      }else if(entity.hydration<.42&&micro.humidity<.48){
-        entity.behavior="burrowing";
-        entity.heading=(entity.heading??0)+Math.sin(phase)*.008;
-        entity.x+=Math.sin(entity.heading)*.0025;
-        entity.z+=Math.cos(entity.heading)*.0025;
       }else{
-        const neighbors=living.filter(other=>other!==entity);
-        const neighbor=neighbors.map(other=>({other,d:Math.hypot(other.x-entity.x,other.z-entity.z)}))
-          .filter(item=>item.d<.26).sort((a,b)=>a.d-b.d)[0];
-        if(neighbor&&micro.temperatureC>=20&&micro.temperatureC<=30&&micro.humidity>.48){
+        entity.targetResourceId=null;
+        entity.intent="wander";
+        const neighbor=living
+          .filter(other=>other!==entity&&other.alive!==false)
+          .map(other=>({other,d:distanceBetween(entity,other)}))
+          .filter(item=>item.d<.24)
+          .sort((a,b)=>a.d-b.d)[0];
+        if(neighbor&&micro.temperatureC>=18&&micro.temperatureC<=28&&micro.humidity>.48&&entity.stress<.62){
           entity.behavior="socializing";
-          const attraction=neighbor.d>.105?.002:-.001;
+          const attraction=neighbor.d>.14?.0011:-.0008;
           const dx=neighbor.other.x-entity.x,dz=neighbor.other.z-entity.z,d=neighbor.d||1;
           entity.x+=dx/d*attraction;
           entity.z+=dz/d*attraction;
           entity.heading=Math.atan2(dx,dz);
-        }else if(micro.light>.68&&refuge){
-          entity.behavior="seeking-shelter";
-          const targetShade=refuge.resource;
-          steerEntity(entity,targetShade,state.resources,.018,phase);
-        }else if(entity.energy>.82&&entity.stress<.3&&Math.sin(phase*.17+seed%11)>.92){
-          entity.behavior="grooming";
-          entity.heading=(entity.heading??0)+Math.sin(phase)*.025;
-        }else if(entity.energy<.35){
+        }else if(entity.energy<.34){
           entity.behavior="resting";
-          entity.heading=(entity.heading??0)+Math.sin(phase)*.003;
+          entity.energy=clamp(entity.energy+BIOLOGY_RULES.restEnergyGainPerMinute,0,1);
+          entity.heading=(entity.heading??0)+Math.sin(phase)*.002;
         }else{
-          entity.behavior="exploring";
-          const drynessBoost=1+dryExposure*.72;
-          const lightDampening=1-micro.light*.28;
-          const turn=Math.sin(phase)*.035+Math.cos(phase*.37)*.018;
+          entity.behavior=entity.energy>.82&&entity.stress<.3&&Math.sin(phase*.17+seed%11)>.94?"grooming":"exploring";
+          const turn=Math.sin(phase)*.012+Math.cos(phase*.37+seed%17)*.008;
           entity.heading=(entity.heading??0)+turn;
-          const stride=(.009+(seed%5)*.002)*drynessBoost*lightDampening;
+          const stride=(.0085+(seed%5)*.0015)*(1+dryExposure*.5)*(1-micro.light*.28);
           entity.x+=Math.sin(entity.heading)*stride;
           entity.z+=Math.cos(entity.heading)*stride;
         }
       }
 
-      const constrained=constrainToHabitat(entity.x,entity.z,habitat.shape,.2);
-      if(constrained.x!==entity.x||constrained.z!==entity.z){
-        entity.x=constrained.x;entity.z=constrained.z;
-        entity.heading=habitat.shape==="cilindrico"?Math.atan2(-entity.x,-entity.z):-(entity.heading??0);
-      }
+      applySocialSeparation(entity,living);
+      settlePosition(entity,habitat);
       if(entity.hydration<=0||entity.energy<=0)entity.stress=clamp(entity.stress+.002,0,1);
       if(entity.hydration<.15&&entity.energy<.1)entity.alive=false;
     }
@@ -252,15 +315,14 @@ export function addShelter(state){
   return state;
 }
 
-
 export const SHOP_ITEMS=Object.freeze([
   {id:"leaf-litter",label:"Hojarasca fresca",type:"leaf-litter",price:4,description:"Recarga energía y favorece la búsqueda de alimento."},
   {id:"shelter",label:"Refugio de corteza",type:"shelter",price:12,description:"Un escondite que reduce estrés y conserva humedad."},
   {id:"fern",label:"Helecho pequeño",type:"fern",price:8,description:"Vegetación para dar volumen al diorama."},
   {id:"mushroom",label:"Setas de bosque",type:"mushroom",price:7,description:"Un pequeño grupo de setas decorativas."},
   {id:"stone",label:"Piedras húmedas",type:"stone",price:5,description:"Rocas para romper la superficie plana."},
-  {id:"bark",label:"Tronco hueco",type:"bark",price:10,description:"Un tronco que aporta textura y refugio visual."},
-  {id:"moss",label:"Isla de musgo",type:"moss",price:6,description:"Una mancha de musgo para enriquecer el suelo."}
+  {id:"bark",label:"Tronco hueco",type:"bark",price:10,description:"Un tronco que aporta textura y refugio."},
+  {id:"moss",label:"Isla de musgo",type:"moss",price:6,description:"Un cojín de musgo para conservar humedad y sombra."}
 ]);
 
 export function purchaseItem(state,itemId){

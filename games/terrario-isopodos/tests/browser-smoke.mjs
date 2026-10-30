@@ -61,17 +61,28 @@ try{
  const cameraCanvas=page.locator("#scene canvas");
  if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
  if(await cameraCanvas.getAttribute("data-isopod-model")!=="voxel-isopod-mesh")throw new Error("No se aplicó el modelo voxel de la especie");
+  if(await cameraCanvas.getAttribute("data-isopod-voxel-palette")!=="forest-floor-olive-v1")throw new Error("El caparazón voxel no usa la paleta naturalista del suelo del bosque");
  if(await cameraCanvas.getAttribute("data-isopod-shell-profile")!=="voxel-domed-shell"||await cameraCanvas.getAttribute("data-isopod-dorsal-plates")!=="7"||await cameraCanvas.getAttribute("data-isopod-walking-legs")!=="14"||await cameraCanvas.getAttribute("data-isopod-antennae")!=="2")throw new Error("El modelo voxel no tiene volumen, placas, patas y antenas");
  if(Number(await cameraCanvas.getAttribute("data-isopod-voxel-blocks"))<160)throw new Error("El isópodo voxel no construyó un cuerpo volumétrico suficiente");
+ if(Number(await cameraCanvas.getAttribute("data-isopod-voxel-blocks"))>Number(await cameraCanvas.getAttribute("data-isopod-voxel-capacity")))throw new Error("El caparazón voxel superó su capacidad instanciada");
+ if(Number(await cameraCanvas.getAttribute("data-isopod-voxel-capacity"))<700)throw new Error("La reserva de bloques Voxel no tiene margen suficiente");
 
   if(await cameraCanvas.getAttribute("data-container-shape")!=="cilindrico"||await cameraCanvas.getAttribute("data-container-wall-count")!=="1")throw new Error("El terrario cilíndrico no construyó sus paredes verticales");
+ if(Number(await cameraCanvas.getAttribute("data-container-wall-height"))>0.9)throw new Error("El tarro cilíndrico sigue teniendo una pared excesivamente alta");
+ if(await cameraCanvas.getAttribute("data-container-base-style")!=="slim-support"||Number(await cameraCanvas.getAttribute("data-container-base-thickness"))>.1)throw new Error("La base del recipiente debe ser fina y no parecer un pedestal");
+ if(await cameraCanvas.getAttribute("data-container-rim-style")!=="full-circle-glass-rim"||await cameraCanvas.getAttribute("data-container-glass-treatment")!=="clearcoat-wall-reflections")throw new Error("El tarro debe mostrar el borde circular completo y reflejos de vidrio");
+  if(Number(await cameraCanvas.getAttribute("data-container-glass-wall-opacity"))<.11||Number(await cameraCanvas.getAttribute("data-container-glass-reflection-opacity"))<.35)throw new Error("Las paredes del cilindro deben leerse como vidrio transparente con reflejos visibles");
+ if(await cameraCanvas.getAttribute("data-container-rim-treatment")!=="pale-clear-glass-edge"||Number(await cameraCanvas.getAttribute("data-container-rim-thickness"))>.006)throw new Error("El borde superior debe ser fino y translúcido, no un aro opaco dominante");
+ if(Number(await cameraCanvas.getAttribute("data-isopod-display-scale"))>.75)throw new Error("El isópodo debe conservar una escala natural respecto al microhábitat");
+ if(Number(await cameraCanvas.getAttribute("data-camera-elevation"))<0.6)throw new Error("La cámara cilíndrica está demasiado baja");
  const terrainRelief=Number(await cameraCanvas.getAttribute("data-terrain-relief"));
  if(!(terrainRelief>=0.12))throw new Error(`El relieve del microbosque es insuficiente: ${terrainRelief}`);
- if(await cameraCanvas.getAttribute("data-art-version")!=="woodland-diorama-v6")throw new Error("No se montó el nuevo kit de ecosistema");
+ if(await cameraCanvas.getAttribute("data-art-version")!=="woodland-diorama-v12")throw new Error("No se montó el nuevo kit de ecosistema");
  if(await cameraCanvas.getAttribute("data-terrain-layer-count")!=="3")throw new Error("El sustrato no expone sus tres estratos");
- if(Number(await cameraCanvas.getAttribute("data-leaf-count"))<150)throw new Error("Falta hojarasca individual instanciada");
- if(Number(await cameraCanvas.getAttribute("data-fern-leaves"))<300)throw new Error("No se generaron frondas suficientes en el diorama");
- if(Number(await cameraCanvas.getAttribute("data-moss-count"))<30)throw new Error("El tapiz de musgo no está presente");
+ if(Number(await cameraCanvas.getAttribute("data-leaf-count"))<550)throw new Error("Falta hojarasca individual instanciada");
+ if(Number(await cameraCanvas.getAttribute("data-fern-leaves"))<280)throw new Error("No se generaron frondas suficientes en el diorama");
+ if(Number(await cameraCanvas.getAttribute("data-moss-count"))<20)throw new Error("El tapiz de musgo no está presente");
+ if(Number(await cameraCanvas.getAttribute("data-moss-blades"))<1000)throw new Error("El musgo no tiene suficiente detalle de hojas");
  await page.waitForFunction(()=>Number(document.querySelector("#scene canvas")?.dataset.renderCalls)>0&&Number(document.querySelector("#scene canvas")?.dataset.renderTriangles)>0);
  if(Number(await cameraCanvas.getAttribute("data-render-calls"))>150)throw new Error("La escena excede el presupuesto orientativo de llamadas de dibujo móvil");
  if(Number(await cameraCanvas.getAttribute("data-render-triangles"))>300000)throw new Error("La escena excede el presupuesto orientativo de triángulos móvil");
@@ -96,8 +107,13 @@ try{
  await page.keyboard.press("Escape");
  if(await page.locator("#screen-modal").isVisible())throw new Error("Escape no cierra Ayuda");
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
+ await page.emulateMedia({reducedMotion:"reduce"}); // elimina transiciones del UI para capturas de estado deterministas
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
+ if(await page.locator('[data-mode="diorama"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-mode="voxel"]').getAttribute("aria-pressed")!=="false")throw new Error("La selección accesible no coincide con el modo Diorama visible");
+ const dioramaVisual=await page.locator('[data-mode="diorama"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));
+ const voxelVisual=await page.locator('[data-mode="voxel"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));
+ if(!dioramaVisual.active||voxelVisual.active||dioramaVisual.background!=="rgb(220, 229, 204)"||dioramaVisual.background===voxelVisual.background)throw new Error("Resaltado Diorama incorrecto: "+JSON.stringify({dioramaVisual,voxelVisual,ariaDiorama:await page.locator('[data-mode="diorama"]').getAttribute("aria-pressed"),ariaVoxel:await page.locator('[data-mode="voxel"]').getAttribute("aria-pressed")}));
  if(await cameraCanvas.getAttribute("data-isopod-model")!=="continuous-carapace-seven-tergites-fourteen-pereopods")throw new Error("El modelo Diorama no presenta placas y patas articuladas");
  if(await cameraCanvas.getAttribute("data-isopod-dorsal-plates")!=="7"||await cameraCanvas.getAttribute("data-isopod-walking-legs")!=="14"||await cameraCanvas.getAttribute("data-isopod-antennae")!=="2")throw new Error("El isópodo Diorama no completa su anatomía base");
  if(await cameraCanvas.getAttribute("data-isopod-shell-profile")!=="continuous-domed-carapace")throw new Error("El isópodo no usa el caparazón continuo con siete suturas");
@@ -106,6 +122,10 @@ try{
  await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
  await page.getByRole("button",{name:/Voxel/}).click();
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("No volvió realmente a Voxel");
+ if(await page.locator('[data-mode="voxel"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-mode="diorama"]').getAttribute("aria-pressed")!=="false")throw new Error("La selección accesible no coincide con el modo Voxel visible");
+ const voxelVisualAfter=await page.locator('[data-mode="voxel"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));
+ const dioramaVisualAfter=await page.locator('[data-mode="diorama"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));
+ if(!voxelVisualAfter.active||dioramaVisualAfter.active||voxelVisualAfter.background!=="rgb(220, 229, 204)"||voxelVisualAfter.background===dioramaVisualAfter.background)throw new Error("Resaltado Voxel incorrecto: "+JSON.stringify({voxelVisualAfter,dioramaVisualAfter,ariaVoxel:await page.locator('[data-mode="voxel"]').getAttribute("aria-pressed"),ariaDiorama:await page.locator('[data-mode="diorama"]').getAttribute("aria-pressed")}));
  if(Number(await cameraCanvas.getAttribute("data-render-triangles"))<=0)throw new Error("Voxel quedó sin el terrario 3D después del cambio de modo");
  await page.getByRole("button",{name:/Pausar/}).click();
  await page.locator("#pause-settings").click();
@@ -202,6 +222,9 @@ try{
  if(Number(await page.locator("#scene canvas").getAttribute("data-render-calls"))>150)throw new Error("Diorama esférico excede 150 draw calls en móvil");
  const orb=page.locator("#scene canvas");
  if(await orb.getAttribute("data-container-shape")!=="esferico"||await orb.getAttribute("data-container-kind")!=="spherical-globe")throw new Error("No se creó el globo esférico real");
+ if(await orb.getAttribute("data-container-globe-cut")!=="flat-base")throw new Error("El globo no tiene una base de vidrio truncada al nivel del suelo");
+ if(Math.abs(Number(await orb.getAttribute("data-container-globe-floor-radius"))-1.18)>.01)throw new Error("El suelo esférico sobresale del radio de su base");
+ if(Number(await orb.getAttribute("data-container-globe-top"))>2.1)throw new Error("El globo conserva demasiado volumen vacío sobre el terrario");
  const orbDistance=Number(await orb.getAttribute("data-camera-distance")),orbFit=Number(await orb.getAttribute("data-camera-fit-distance"));
  if(!Number.isFinite(orbDistance)||!Number.isFinite(orbFit)||orbDistance+.02<orbFit)throw new Error("La cámara no encuadra el globo en móvil");
  await page.screenshot({path:"artifacts/visual/spherical-orb-390x844.png",fullPage:true});

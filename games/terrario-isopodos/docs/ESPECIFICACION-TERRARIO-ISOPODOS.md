@@ -27,7 +27,7 @@ La biología es deliberadamente simplificada y orientada al juego. No presentar 
 | Render | Three.js/WebGL como backend 3D actual, desacoplado del dominio; se permite un backend alternativo si gana una comparativa real en navegador |
 | Modos visuales | Diorama y Voxel, conmutables durante una sesión |
 | Animales en Diorama | Modelos 3D con animaciones simples |
-| Animales en Voxel | Sprites voxelizados desde atlas/spritesheets; no sustituirlos por modelos 3D convencionales |
+| Animales en Voxel | Modelos voxelizados volumétricos con bloques instanciados; mantener la lectura de píxel/cubo y no usar modelos 3D convencionales suavizados |
 | Contenedor | Vivario rectangular, tarro cilíndrico y globo esférico; cada uno con vidrio, base, proporción y encuadre propios |
 | Cámara | Cámara orbital con rotación y zoom; encuadre inicial automático según la forma del recipiente y el viewport |
 | Tiempo | Pausa, velocidad normal y aceleración; el tiempo de simulación no depende de la tasa de render |

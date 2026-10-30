@@ -32,16 +32,17 @@ test("el terreno rectangular conserva límites y relieve interior", () => {
   assert.ok(edge < center, "el relieve debe desvanecerse al acercarse al canto");
 });
 
-test("el montículo principal tiene relieve real frente al borde en cada recipiente", () => {
-  for (const [shape, radius, edgeX] of [
-    ["rectangular", 1.48, 1.56],
-    ["cilindrico", 1.48, 1.465],
-    ["esferico", 1.18, 1.165]
+test("el relieve del microbosque se mantiene moderado en cada recipiente", () => {
+  for (const [shape, radius, moundX, moundZ, edgeX] of [
+    ["rectangular", 1.48, -0.68, -0.34, 1.56],
+    ["cilindrico", 1.48, -0.68, -0.34, 1.465],
+    ["esferico", 1.18, -0.34, -0.22, 1.165]
   ]) {
-    const mound = terrainHeightAt(-0.68, -0.34, shape, radius);
+    const mound = terrainHeightAt(moundX, moundZ, shape, radius);
     const edge = terrainHeightAt(edgeX, 0, shape, radius);
-    assert.ok(mound - edge >= 0.12,
-      `${shape}: elevación del montículo frente al borde ${(mound-edge).toFixed(3)} m`);
+    const relief = mound - edge;
+    assert.ok(relief >= 0.12 && relief <= 0.34,
+      `${shape}: el relieve debe quedar entre 0.12 y 0.34 m (actual ${relief.toFixed(3)} m)`);
   }
 });
 

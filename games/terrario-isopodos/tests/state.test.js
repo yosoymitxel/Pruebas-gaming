@@ -244,3 +244,70 @@ test("el estado de conglobación depende del estrés y no de un temporizador",()
   stepSimulation(s,1);
   assert.equal(s.entities[0].behavior,"defensive-curl");
 });
+
+test("la defensa por conglobación se recupera en un refugio y no queda bloqueada",()=>{
+  const s=createTerrariumState();
+  const entity=s.entities[0];
+  const refuge=s.resources.find(resource=>resource.type==="shelter");
+  entity.x=refuge.x;entity.z=refuge.z;
+  entity.energy=.82;entity.hydration=.82;entity.stress=.95;
+  stepSimulation(s,24);
+  assert.notEqual(entity.behavior,"defensive-curl","el animal debe abandonar la defensa cuando recupera seguridad");
+  assert.ok(entity.stress<.64,"el estrés debe bajar en sombra, recibido "+entity.stress);
+  assert.equal(entity.defensiveTicks,0);
+});
+
+test("descansar bajo refugio recupera energía e hidratación",()=>{
+  const s=createTerrariumState();
+  const entity=s.entities[0];
+  const refuge=s.resources.find(resource=>resource.type==="shelter");
+  const food=s.resources.find(resource=>resource.type==="leaf-litter");
+  entity.x=refuge.x;entity.z=refuge.z;entity.energy=.2;entity.hydration=.2;
+  food.amount=0;
+  const energyBefore=entity.energy,hydrationBefore=entity.hydration;
+  stepSimulation(s,20);
+  assert.ok(entity.energy>energyBefore,"la energía no se recuperó: "+entity.energy);
+  assert.ok(entity.hydration>hydrationBefore,"la hidratación no se recuperó: "+entity.hydration);
+  assert.ok(["resting","burrowing"].includes(entity.behavior));
+});
+
+test("la navegación esquiva una piedra que bloquea el trayecto a la comida",()=>{
+  const s=createTerrariumState();
+  const entity=s.entities[0];
+  entity.x=0;entity.z=0;entity.energy=.2;entity.hydration=.95;entity.stress=.05;
+  const food=s.resources.find(resource=>resource.type==="leaf-litter");
+  food.x=0;food.z=.42;food.amount=.8;
+  s.resources.push({id:"blocking-stone",type:"stone",amount:1,x:0,z:.085});
+  stepSimulation(s,1);
+  assert.equal(entity.behavior,"seeking-food");
+  assert.ok(Math.abs(entity.x)>.0001,"la ruta debe desviarse lateralmente y no atravesar el obstáculo");
+  assert.ok(Number.isFinite(entity.heading));
+});
+
+test("la intención conserva el recurso elegido ante pequeñas variaciones de utilidad",()=>{
+  const s=createTerrariumState();
+  const entity=s.entities[0];
+  entity.x=0;entity.z=0;entity.energy=.18;entity.hydration=.8;
+  const food=s.resources.find(resource=>resource.type==="leaf-litter");
+  food.x=0;food.z=.35;food.amount=.9;
+  stepSimulation(s,1);
+  assert.equal(entity.targetResourceId,food.id);
+  s.resources.push({id:"nearby-moss",type:"moss",amount:1,x:.02,z:.03});
+  entity.hydration=.77;
+  stepSimulation(s,1);
+  assert.equal(entity.targetResourceId,food.id,"no debe alternar comida/refugio por una fluctuación pequeña");
+});
+
+test("el tarro cilíndrico mantiene proporciones bajas frente a su diámetro",()=>{
+  const {floorRadius,wallHeight}=HABITAT_GEOMETRY.cilindrico;
+  assert.ok(wallHeight<=1.0,`el tarro no debe volver a una pared de pecera: ${wallHeight}`);
+  assert.ok(wallHeight>floorRadius*.5 && wallHeight<floorRadius*.7);
+});
+
+test("el globo esférico tiene base plana coherente con el diámetro del suelo",()=>{
+  const {floorRadius,outerRadius,wallHeight}=HABITAT_GEOMETRY.esferico;
+  assert.ok(floorRadius<outerRadius,"el suelo debe quedar dentro del radio exterior");
+  const capHeight=outerRadius+Math.sqrt(outerRadius**2-floorRadius**2);
+  assert.ok(Math.abs(capHeight-wallHeight)<.025,"la altura de la cúpula debe coincidir con el corte de su base");
+  assert.ok(wallHeight>1.6 && wallHeight<2.0,"el globo no debe recuperar el exceso de cámara vacía");
+});
