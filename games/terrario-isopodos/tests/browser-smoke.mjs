@@ -236,7 +236,7 @@ try{
  await page.locator("#tool-hand").click();
  if(await cameraCanvas.getAttribute("data-active-tool")!=="hand")throw new Error("No se puede recuperar la herramienta Mano");
 
- await page.locator("#humidity-input").evaluate(el=>{el.value="0.4";el.dispatchEvent(new Event("input",{bubbles:true}));});
+ for(let step=0;step<19;step++)await page.getByRole("button",{name:"Reducir humedad"}).click();
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("No se pudo cambiar la humedad");
  await page.getByRole("button",{name:/Pausar/}).click();
  let savedClock=await page.locator("#clock").textContent();

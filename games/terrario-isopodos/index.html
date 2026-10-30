@@ -61,11 +61,22 @@
 
   <div class="panel-group">
     <h2>Microclima</h2>
-    <div class="metrics"><div><small>Colonia</small><strong id="count">01</strong></div><div><small>Humedad</small><strong><span id="humidity">78</span>%</strong></div><div><small>Temperatura</small><strong><span id="temperature">21.4</span>°C</strong></div></div>
-    <label for="humidity-input"><span>Humedad</span><b id="humidity-value">78 %</b></label>
-    <input id="humidity-input" type="range" min="0.2" max="1" step="0.01" value="0.78" aria-label="Humedad del hábitat">
-    <label for="temperature-input"><span>Temperatura</span><b id="temperature-value">21.4 °C</b></label>
-    <input id="temperature-input" type="range" min="10" max="30" step="0.1" value="21.4" aria-label="Temperatura del hábitat">
+    <div class="microclimate-overview">
+      <span class="colony-reading"><small>Colonia activa</small><strong><span id="count">05</span> individuos</strong></span>
+      <span class="microclimate-caption">Condiciones del sustrato</span>
+    </div>
+    <div class="climate-readings">
+      <section class="climate-control" role="group" aria-label="Ajustar humedad del terrario">
+        <div class="climate-reading"><span>Humedad</span><strong><span id="humidity">78</span><small>%</small></strong></div>
+        <div id="humidity-meter" class="climate-meter" role="meter" aria-label="Humedad relativa" aria-valuemin="20" aria-valuemax="100" aria-valuenow="78"><span></span></div>
+        <div class="climate-stepper"><button type="button" data-climate="humidity" data-step="-0.02" aria-label="Reducir humedad">−</button><small>Humedad relativa</small><button type="button" data-climate="humidity" data-step="0.02" aria-label="Aumentar humedad">+</button></div>
+      </section>
+      <section class="climate-control" role="group" aria-label="Ajustar temperatura del terrario">
+        <div class="climate-reading"><span>Temperatura</span><strong><span id="temperature">21.4</span><small>°C</small></strong></div>
+        <div id="temperature-meter" class="climate-meter temperature-meter" role="meter" aria-label="Temperatura del hábitat" aria-valuemin="10" aria-valuemax="30" aria-valuenow="21.4"><span></span></div>
+        <div class="climate-stepper"><button type="button" data-climate="temperature" data-step="-0.5" aria-label="Reducir temperatura">−</button><small>Temperatura ambiente</small><button type="button" data-climate="temperature" data-step="0.5" aria-label="Aumentar temperatura">+</button></div>
+      </section>
+    </div>
     <div class="weather-control" role="group" aria-label="Clima del terrario">
       <span>Tiempo</span>
       <button type="button" data-weather="clear" aria-pressed="true">Claro</button>
