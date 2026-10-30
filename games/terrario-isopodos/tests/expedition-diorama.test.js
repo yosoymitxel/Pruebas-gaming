@@ -25,6 +25,11 @@ test("el kit compartido expone piezas locales y biomas reutilizables",()=>{
     kit.addAsset(scene,"fallen-fruit",{position:[-.3,0,.2],groundY:.078,size:.38})
   ];
   assert.ok(assets.every(asset=>asset.isGroup),"addAsset siempre devuelve un Group");
+  const shelterShell=assets[3].getObjectByName("bark-shelter-shell");
+  assert.ok(shelterShell?.isMesh,"el refugio tiene una cubierta física");
+  assert.ok(shelterShell.geometry.parameters.thetaStart<0,"la abertura del arco queda orientada hacia abajo");
+  const shelterBounds=new THREE.Box3().setFromObject(assets[3]);
+  assert.ok(shelterBounds.max.y>.078+.24*1.35,"el techo del refugio debe quedar sobre la altura del isópodo");
   for(const [index,asset] of assets.entries()){
     const bounds=new THREE.Box3().setFromObject(asset),size=bounds.getSize(new THREE.Vector3());
     assert.ok(size.x<1.4&&size.z<1.4,"la pieza "+index+" no debe rellenar una escena completa");
@@ -48,6 +53,8 @@ test("el mismo kit soporta la altura del suelo de expedición y del hábitat pri
   const parent=new THREE.Group();
   const shelter=habitatKit.addAsset(parent,"bark-shelter",{position:[0,0,0]});
   const localBase=terrainHeightAt(0,0,"esferico",1.48);
+  const shelterBounds=new THREE.Box3().setFromObject(shelter);
+  assert.ok(shelterBounds.max.y>.19+.34,"la cubierta tiene espacio real para que los isópodos trepen encima");
   assert.ok(Math.abs(shelter.position.y+localBase-.19)<1e-9,
     "los recursos se apoyan en el suelo real del terrario sin quedar enterrados");
   expeditionKit.dispose();
