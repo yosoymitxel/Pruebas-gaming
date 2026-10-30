@@ -18,6 +18,14 @@ function loadSettings(){const reduced=window.matchMedia?.("(prefers-reduced-moti
 function saveSettings(){try{localStorage.setItem("terrario-isopodos.settings.v1",JSON.stringify(settings));return true}catch(error){saveMessage="No se pudieron guardar los ajustes: "+error.message;return false}}
 function refreshMenu(){ $("#continue-game").disabled=!hasValidTerrariumSave(); }
 function setLoadingStage(label){$("#loading-stage").textContent=label;}
+function activateTool(tool){
+ document.querySelectorAll("[data-tool]").forEach(button=>{
+  const active=button.dataset.tool===tool;
+  button.classList.toggle("active",active);
+  button.setAttribute("aria-pressed",String(active));
+ });
+ renderer?.setTool(tool);
+}
 function attachRendererActions(){
  renderer.onInteractionStart=target=>{
   if(target.kind!=="entity")return;
@@ -62,7 +70,7 @@ async function enterGame(){
   renderer.setMode(state.presentation.mode);
   renderer.setQuality(settings.quality);
   renderer.setWeather(state.habitat.weather??"clear");
-  renderer.setTool("hand");
+  activateTool("hand");
   await nextFrame();
   setLoadingStage("Despertando a los isópodos…");
   menu.hidden=true;setup.hidden=true;modal.hidden=true;modal.classList.remove("is-pause");
@@ -139,10 +147,7 @@ $("#camera-toggle").addEventListener("click",()=>{
  $("#camera-toggle").setAttribute("aria-label",expanded?"Ocultar controles de cámara":"Mostrar controles de cámara");
  $("#camera-rail").classList.toggle("is-expanded",expanded);
 });
-document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>{
- document.querySelectorAll("[data-tool]").forEach(item=>{const active=item===button;item.classList.toggle("active",active);item.setAttribute("aria-pressed",String(active));});
- renderer?.setTool(button.dataset.tool);
-}));
+document.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>activateTool(button.dataset.tool)));
 document.querySelectorAll("[data-weather]").forEach(button=>button.addEventListener("click",()=>{
  state.habitat.weather=button.dataset.weather;
  renderer?.setWeather(state.habitat.weather);
