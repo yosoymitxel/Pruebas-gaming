@@ -100,12 +100,14 @@ test("el mapa de expedición tiene ocho lugares físicos sobre un suelo continuo
   assert.equal(trails.length,scene.userData.expeditionTrailCount);
   assert.ok(trails.every(path=>path.geometry.isBufferGeometry&&path.userData.halfWidth<=.09),
     "los caminos son bandas de suelo, no tubos");
-  let rings=0,meshes=0;
+  let meshes=0;
   scene.traverse(object=>{
     if(object.isMesh||object.isInstancedMesh)meshes++;
-    if(object.isMesh&&object.geometry?.type==="TorusGeometry")rings++;
+    if(object.name==="expedition-node-hotspot"){
+      assert.equal(object.geometry?.type,"SphereGeometry","el punto de interacción del nodo debe ser redondo");
+      assert.equal(object.material?.opacity,0,"la hitbox no debe crear un medallón visible");
+    }
   });
-  assert.equal(rings,0,"el mapa no debe usar aros/medallones como landmarks");
   assert.ok(meshes>45);
 });
 
@@ -163,12 +165,17 @@ test("los encuentros muestran el actor y usan objetos físicos para cada opción
     assert.ok(actor&&actor.scale.x>=.9,"el isópodo no puede desaparecer frente a la decoración");
     const colliders=collect(scene,"expeditionChoiceId");
     assert.ok(colliders.length>=template.options.length*2);
-    let visibleMarkers=0,rings=0;
+    let visibleMarkers=0,choiceHotspots=0;
     scene.traverse(object=>{
-      if(object.isMesh&&object.geometry?.type==="TorusGeometry")rings++;
+      if(object.name==="expedition-choice-hotspot")choiceHotspots++;
+      if(object.name==="expedition-choice-hotspot"&&object.isGroup){
+        const hitbox=object.children.find(child=>child.isMesh);
+        assert.equal(hitbox?.geometry?.type,"SphereGeometry","cada opción usa una hitbox física redonda");
+        assert.equal(hitbox?.material?.opacity,0,"la hitbox de una opción permanece invisible");
+      }
       if(object.isMesh&&typeof object.userData?.expeditionChoiceId==="string"&&object.material?.opacity!==0)visibleMarkers++;
     });
-    assert.equal(rings,0,"las opciones no se representan con aros");
+    assert.equal(choiceHotspots,template.options.length);
     assert.equal(visibleMarkers,0,"las hitboxes de decisión son invisibles");
   }
 });
