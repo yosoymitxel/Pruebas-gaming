@@ -57,9 +57,9 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 
 | Orden | ID | Tarea | Esfuerzo | Estado |
 |---:|---|---|---|---|
-| 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | En progreso · pendiente CI |
-| 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente CI |
-| 3 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | Pendiente |
+| 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | En progreso · pendiente Playwright actualizado |
+| 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente Playwright actualizado |
+| 3 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
 | 4 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | Pendiente |
 | 5 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | Pendiente |
 | 6 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
@@ -83,12 +83,12 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Verificar dimensiones, accesibilidad, responsive y captura real.
 
 ### INV-01 — Contadores
-- [ ] Auditar `SHOP_ITEMS`, `purchaseItem`, `resources`, monedas y guardado.
-- [ ] Diferenciar herramientas permanentes, stock disponible y objetos colocados.
-- [ ] Definir cantidades visibles y una única fuente de verdad.
-- [ ] Compra aumenta stock/cobra una vez; colocar consume una unidad; cancelar no consume.
-- [ ] Retirar/devolver aplica una regla por tipo, sin duplicar artículos.
-- [ ] Probar saldo insuficiente, cero stock, duplicación y restauración.
+- [x] Auditar `SHOP_ITEMS`, `purchaseItem`, `resources`, monedas y guardado.
+- [x] Documentar el modelo actual: no existe stock/almacén; las compras colocan el objeto inmediatamente y descuentan `coins` una vez.
+- [x] Diferenciar visualmente el coste en bellotas de la cantidad de objetos colocados; no llamar stock a los recursos existentes en el mundo.
+- [x] Derivar los contadores de `state.resources`, sin estado UI paralelo.
+- [ ] Stock disponible, compra a almacén, cancelación y devolución quedan para INV-02; no inventar estas operaciones antes de migrar dominio y guardados.
+- [ ] Probar contadores iniciales, compra, colocación, saldo insuficiente y restauración en Playwright/CI.
 
 ### INPUT-01 — Cámara y Mano
 - [ ] Agregar icono Cámara antes de Mano.
