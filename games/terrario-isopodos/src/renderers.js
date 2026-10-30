@@ -106,18 +106,18 @@ function getIsopodShellTexture(){
   const random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
   for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
     const i=(y*canvas.width+x)*4;
-    const broad=Math.sin(x*.073+Math.sin(y*.041)*1.4)*4+Math.cos(y*.13-x*.017)*3;
-    const grain=(random()-.5)*22;
-    const mottling=Math.sin(x*.33+Math.sin(y*.19)*2.2)*Math.cos(y*.27)*3;
-    image.data[i]=Math.max(0,Math.min(255,82+broad+grain+mottling));
-    image.data[i+1]=Math.max(0,Math.min(255,91+broad*.9+grain*.92+mottling));
-    image.data[i+2]=Math.max(0,Math.min(255,84+broad*.72+grain*.78+mottling*.8));
+    const broad=Math.sin(x*.073+Math.sin(y*.041)*1.4)*5+Math.cos(y*.13-x*.017)*3;
+    const grain=(random()-.5)*19;
+    const mottling=Math.sin(x*.33+Math.sin(y*.19)*2.2)*Math.cos(y*.27)*4;
+    image.data[i]=Math.max(0,Math.min(255,166+broad+grain+mottling));
+    image.data[i+1]=Math.max(0,Math.min(255,158+broad*.9+grain*.92+mottling));
+    image.data[i+2]=Math.max(0,Math.min(255,133+broad*.72+grain*.78+mottling*.8));
     image.data[i+3]=255;
   }
   context.putImageData(image,0,0);
-  for(let i=0;i<950;i++){
-    const x=random()*canvas.width,y=random()*canvas.height,r=.35+random()*1.2;
-    context.fillStyle=random()>.5?"rgba(194,201,183,.2)":"rgba(24,34,29,.19)";
+  for(let i=0;i<720;i++){
+    const x=random()*canvas.width,y=random()*canvas.height,r=.3+random()*.9;
+    context.fillStyle=random()>.5?"rgba(226,219,188,.18)":"rgba(58,53,39,.13)";
     context.beginPath();context.ellipse(x,y,r,r*.55,random()*Math.PI,0,Math.PI*2);context.fill();
   }
   isopodShellTexture=new T.CanvasTexture(canvas);
@@ -127,7 +127,6 @@ function getIsopodShellTexture(){
   isopodShellTexture.anisotropy=4;
   return isopodShellTexture;
 }
-
 function isopod(voxel){
   const root=new T.Group();
   root.userData.isVoxel=voxel;
@@ -142,7 +141,7 @@ function isopod(voxel){
 
   const shellTexture=getIsopodShellTexture();
   const shellMaterial=new T.MeshStandardMaterial({
-    color:0xd0d6cb,map:shellTexture,roughness:.72,metalness:.018
+    color:0xf7f1df,map:shellTexture,roughness:.84,metalness:.008
   });
   const undersideMaterial=mat(0x343d39,.92);
   const edgeMaterial=mat(0x59645d,.76);
@@ -150,7 +149,7 @@ function isopod(voxel){
   const jointMaterial=mat(0x68736a,.78);
   const eyeMaterial=mat(0x101817,.42);
   const antennaMaterial=mat(0x879184,.72);
-  const bumpMaterial=mat(0x9da89a,.76);
+  const bumpMaterial=mat(0x6d725e,.92);
 
   const abdomen=mesh(new T.SphereGeometry(1,22,14),undersideMaterial,[0,.078,0]);
   abdomen.scale.set(.255,.063,.106);
@@ -159,7 +158,7 @@ function isopod(voxel){
   const plates=new T.InstancedMesh(shellPlateGeometry(),shellMaterial,7);
   plates.name="seven-overlapping-tergites";
   plates.instanceMatrix.setUsage(T.DynamicDrawUsage);
-  const plateColors=[0x87928a,0x7b877f,0x6f7b74,0x90998d,0x78837b,0x6e7971,0x78837b];
+  const plateColors=[0xc8c2a5,0xbab9a1,0xb0ae98,0xd1c9ab,0xb8b59b,0xa9a992,0xbab79d];
   const dummy=new T.Object3D();
   for(let i=0;i<7;i++){
     const x=.18-i*.066;
@@ -254,7 +253,7 @@ function isopod(voxel){
       const pz=z;
       const topY=.105+.013+.105*Math.sqrt(Math.max(0,1-(pz/.125)**2));
       dummy.position.set(px,topY,pz);
-      const size=.0045+(bumpIndex%4)*.0008;
+      const size=.0027+(bumpIndex%4)*.00045;
       dummy.scale.set(size,size*.7,size);
       dummy.rotation.y=(i+bumpIndex)*.4;
       dummy.updateMatrix();
@@ -363,7 +362,9 @@ export class TerrariumRenderer {
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
     this.scene.add(this.world);
-    this.angle=.68; this.elevation=.78; this.distance=6.8;
+    this.angle=.68;
+    this.elevation=state.habitat.shape==="cilindrico"?.59:.72;
+    this.distance=6.8;
     this.userAdjustedCamera=false;
     this.resourceSignature="";
     this.bind();
@@ -491,7 +492,7 @@ export class TerrariumRenderer {
 
   resetCamera(){
     this.angle=.68;
-    this.elevation=.78;
+    this.elevation=this.state.habitat.shape==="cilindrico"?.59:.72;
     this.userAdjustedCamera=false;
     this.distance=Math.max(6.8,this.fitDistance());
     this.cameraUpdate();
@@ -591,7 +592,7 @@ export class TerrariumRenderer {
       color:0xcbdccb,transparent:true,opacity,roughness:.22,
       metalness:.015,side:T.DoubleSide,depthWrite:false
     });
-    const frame=mat(0x8b9a7a,.32,{metalness:.05});
+    const frame=mat(0x69765f,.42,{metalness:.025});
     const timber=mat(0x493323,.88);
     const timberEdge=mat(0x9c754a,.7);
     const round=shape!=="rectangular";
@@ -630,7 +631,7 @@ export class TerrariumRenderer {
 
     const wallMaterial=glass(shape==="cilindrico"?.1:.065);
     const floorTop=.19,wallY=floorTop+spec.wallHeight/2,rimY=floorTop+spec.wallHeight;
-    const highlight=new T.MeshBasicMaterial({color:0xe8f3df,transparent:true,opacity:.34,depthWrite:false});
+    const highlight=new T.MeshBasicMaterial({color:0xd7e4cc,transparent:true,opacity:.17,depthWrite:false});
     if(shape==="esferico"){
       const centerY=.1+spec.outerRadius;
       const globe=mesh(new T.SphereGeometry(spec.outerRadius,64,48),glass(.045),[0,centerY,0]);
@@ -655,11 +656,11 @@ export class TerrariumRenderer {
         new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,spec.wallHeight,64,1,true),
         wallMaterial,[0,wallY,0]
       ));
-      const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.023,8,64),frame,[0,rimY,0]);
+      const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.012,8,64),frame,[0,rimY,0]);
       rim.rotation.x=Math.PI/2;
       const points=[];
-      for(let i=0;i<=24;i++){const a=-.9+i/24*1.8;points.push([Math.sin(a)*(spec.outerRadius+.002),floorTop+spec.wallHeight*.53,Math.cos(a)*(spec.outerRadius+.002)]);}
-      const arc=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),32,.008,5,false),highlight);
+      for(let i=0;i<=20;i++){const a=2.0+i/20*2.28;points.push([Math.sin(a)*(spec.outerRadius+.002),floorTop+spec.wallHeight*.56,Math.cos(a)*(spec.outerRadius+.002)]);}
+      const arc=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),32,.0045,5,false),highlight);
       this.habitat.add(rim,arc);
       this.renderer.domElement.dataset.containerWallCount="1";
       this.renderer.domElement.dataset.containerKind="cylindrical-jar";
