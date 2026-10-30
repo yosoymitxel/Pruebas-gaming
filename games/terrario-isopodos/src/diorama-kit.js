@@ -38,13 +38,28 @@ export const DIORAMA_BIOMES=Object.freeze({
     Object.freeze({type:"compost-pile",scale:1.12,size:.68}),
     Object.freeze({type:"moss-bed",position:[.28,0,-.1],scale:.56,density:.72}),
     Object.freeze({type:"mushroom-cluster",position:[-.5,0,.28],scale:.82,density:.68})
+  ]),
+  "abandoned-pot":Object.freeze([
+    Object.freeze({type:"broken-pot",scale:1.04,size:.82}),
+    Object.freeze({type:"root-arch",position:[.42,0,-.2],scale:.76}),
+    Object.freeze({type:"moss-bed",position:[-.36,0,.22],scale:.52,density:.66})
+  ]),
+  "mite-nest":Object.freeze([
+    Object.freeze({type:"mites",position:[-.12,0,.08],scale:1.08,count:30,size:.033,radius:.24}),
+    Object.freeze({type:"fallen-log",position:[.56,0,-.2],scale:.88}),
+    Object.freeze({type:"leaf-litter",position:[-.38,0,-.18],scale:.82,count:34,kind:"local-litter"})
+  ]),
+  "web-zone":Object.freeze([
+    Object.freeze({type:"web",position:[-.12,0,-.08],scale:1.08,span:.68}),
+    Object.freeze({type:"fallen-log",position:[.52,0,.2],scale:1.14}),
+    Object.freeze({type:"moss-bed",position:[-.46,0,.22],scale:.56,density:.7})
   ])
 });
 
 export const DIORAMA_ASSETS=Object.freeze([
   "leaf-litter","groundcover","fern-bed","forest-rosettes","moss-bed",
   "rock-scatter","fallen-log","bark-shelter","root-arch","mushroom-cluster",
-  "fallen-fruit","compost-pile","mites","dew","web"
+  "fallen-fruit","broken-pot","compost-pile","mites","dew","web"
 ]);
 
 const SOIL_TONES=Object.freeze([0x493a2b,0x5b4532,0x756045,0x95805d]);
@@ -65,6 +80,8 @@ export function createDioramaKit({
   materials.fruit=new T.MeshStandardMaterial({color:paletteOverrides.fruit??0x80503b,roughness:.98});
   materials.fruitStem=new T.MeshStandardMaterial({color:paletteOverrides.fruitStem??0x50402d,roughness:.95});
   materials.fruitLeaf=new T.MeshStandardMaterial({color:paletteOverrides.fruitLeaf??0x657a43,roughness:.98});
+  materials.pot=new T.MeshStandardMaterial({color:paletteOverrides.pot??0x895a3d,roughness:.96,side:T.DoubleSide});
+  materials.potEdge=new T.MeshStandardMaterial({color:paletteOverrides.potEdge??0xb07a51,roughness:.94,side:T.DoubleSide});
   materials.barkInterior=new T.MeshStandardMaterial({color:paletteOverrides.barkInterior??0x302318,roughness:1,side:T.DoubleSide});
   materials.compost=new T.MeshStandardMaterial({color:paletteOverrides.compost??0x4b4030,roughness:.99});
   materials.compostFragment=new T.MeshStandardMaterial({color:paletteOverrides.compostFragment??0x816a43,roughness:.99});
@@ -174,6 +191,26 @@ export function createDioramaKit({
         entrance.rotation.z=.08;
         target.add(arch,entrance);
         target.userData.dioramaStats={length,thickness};
+        break;
+      }
+      case "broken-pot":{
+        const size=Number(options.size??.32),height=size*.78,outer=size*.5;
+        const shellGeometry=new T.CylinderGeometry(outer*.94,outer*.72,height,30,1,true,.12,Math.PI*1.78);
+        const shell=new T.Mesh(shellGeometry,materials.pot);
+        shell.name="abandoned-pot-shell";
+        shell.position.set(x,localBase+height*.5,z);
+        shell.castShadow=true;shell.receiveShadow=true;
+        const rimGeometry=new T.TorusGeometry(outer*.94,.019*size/.32,8,32,Math.PI*1.78);
+        const rim=new T.Mesh(rimGeometry,materials.potEdge);
+        rim.name="abandoned-pot-rim";
+        rim.position.set(x,localBase+height,z);
+        rim.rotation.x=-Math.PI/2;
+        const floor=new T.Mesh(new T.CircleGeometry(outer*.68,24),materials.compost);
+        floor.name="abandoned-pot-soil";
+        floor.position.set(x,localBase+.018,z);
+        floor.rotation.x=-Math.PI/2;
+        target.add(shell,rim,floor);
+        target.userData.dioramaStats={height,diameter:outer*2,brokenOpening:true};
         break;
       }
       case "root-arch":
