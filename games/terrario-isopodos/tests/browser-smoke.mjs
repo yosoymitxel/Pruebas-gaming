@@ -402,6 +402,26 @@ try{
  if(await expeditionCanvas.getAttribute("data-expedition-surface")!=="organic-soil-cutaway")throw new Error("El encuentro no usa el motor de suelo compartido");
  if(Number(await expeditionCanvas.getAttribute("data-expedition-actor-scale"))<.9)throw new Error("El isópodo explorador no tiene escala legible en el encuentro");
  if(!await page.locator("#expedition-run-actions").isVisible())throw new Error("Guardar/retirarse no está disponible dentro del nivel");
+ const eventHeader=await page.locator(".expedition-header").boundingBox();
+ const mapBackBox=await page.locator("#expedition-map-back").boundingBox();
+ const vitalsBox=await page.locator("#expedition-vitals").boundingBox();
+ const headerTitleBox=await page.locator(".expedition-heading").boundingBox();
+ const decisionPanel=await page.locator("#expedition-decision-panel").boundingBox();
+ const eventCard=await page.locator("#expedition-event").boundingBox();
+ const choicePanel=await page.locator("#expedition-choice-dock").boundingBox();
+ const levelScene=await page.locator("#expedition-diorama").boundingBox();
+ const viewportHeight=await page.evaluate(()=>window.innerHeight);
+ const overlaps=(a,b)=>Boolean(a&&b&&Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>1);
+ if(!eventHeader||!mapBackBox||!vitalsBox||!headerTitleBox||!decisionPanel||!eventCard||!choicePanel||!levelScene)throw new Error("La composición del encuentro no expone todas sus regiones");
+ if(!await page.locator("#expedition-map-back").evaluate(el=>el.parentElement?.classList.contains("expedition-header")))throw new Error("Volver al mapa debe estar integrado en la cabecera");
+ if(!await page.locator("#expedition-vitals").evaluate(el=>el.parentElement?.classList.contains("expedition-header")))throw new Error("Las métricas deben compartir la cabecera compacta");
+ if(overlaps(mapBackBox,headerTitleBox)||overlaps(headerTitleBox,vitalsBox)||overlaps(mapBackBox,vitalsBox))throw new Error("La cabecera del encuentro tiene controles solapados");
+ if(overlaps(eventCard,choicePanel))throw new Error("La descripción del encuentro se solapa con las opciones");
+ if(levelScene.y+levelScene.height>decisionPanel.y+2)throw new Error("El panel de decisión invade el espacio reservado al diorama 3D");
+ if(decisionPanel.y+decisionPanel.height>viewportHeight+1)throw new Error("El panel de decisión queda fuera del viewport móvil");
+ if((await page.locator("#expedition-event-location").textContent())!=="ENCUENTRO")throw new Error("El evento repite el nombre de la zona que ya aparece en la cabecera");
+ if((await page.locator("#expedition-session-message").textContent()).trim())throw new Error("Un mensaje de inicio redundante aparece encima del encuentro");
+
  const firstChoiceBox=await page.locator(".expedition-choice:not(:disabled)").first().boundingBox();
  const firstChoiceHit=await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest("[data-choice-id]")?.dataset.choiceId??null,{x:firstChoiceBox.x+firstChoiceBox.width/2,y:firstChoiceBox.y+firstChoiceBox.height/2});
  if(!firstChoiceHit)throw new Error("El HUD tapa la zona de decisión del encuentro");
