@@ -62,13 +62,14 @@ try{
      throw new Error(`El control móvil queda fuera del viewport 360x640: ${selector} ${JSON.stringify(bounds)}`);
    await mobileMenuPage.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
  };
- for(const selector of ["#new-game","#open-settings","#open-help"]){
+ for(const selector of ["#new-game","#open-settings","#open-help","#menu-fullscreen"]){
    const bounds=await mobileMenuPage.locator(selector).boundingBox();
    if(!bounds||bounds.y<0||bounds.y+bounds.height>640)
      throw new Error(`La opción principal no cabe en 360x640: ${selector} ${JSON.stringify(bounds)}`);
  }
  await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-menu-360x640.png",fullPage:true});
  await mobileTap("#open-settings");
+ if(!await mobileMenuPage.locator("#settings-fullscreen").isVisible())throw new Error("Ajustes no ofrece pantalla completa");
  if(!await mobileMenuPage.locator("#screen-modal").isVisible()||await mobileMenuPage.locator("#modal-title").textContent()!=="Ajustes")
    throw new Error("Ajustes del menú principal no responde al tacto móvil");
  await mobileTap("#close-modal");
@@ -87,7 +88,7 @@ try{
  await mobileTap("#start-game");
  await mobileMenuPage.locator("#screen-loading").waitFor({state:"visible",timeout:2500});
  const loadingTheme=await mobileMenuPage.locator("#screen-loading").getAttribute("data-theme");
- if(!loadingTheme)throw new Error("La pantalla de carga no muestra uno de los 11 motivos de isópodos");
+ if(!new Set(["bark","moss","leaves","tunnel","molt","colony","night","fern","shelter","mist","tracks"]).has(loadingTheme))throw new Error("La pantalla de carga no seleccionó uno de los 11 motivos de isópodos: "+loadingTheme);
  await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-loading-360x640.png",fullPage:true});
  await mobileMenuPage.locator("#screen-loading").waitFor({state:"hidden",timeout:15000});
  await mobileMenuPage.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
@@ -161,6 +162,7 @@ try{
  if(await cameraCanvas.getAttribute("data-weather")!=="clear")throw new Error("No se puede retirar el clima");
  await page.locator("#open-game-menu").click();
  if(!await page.locator("#screen-modal").evaluate(el=>el.classList.contains("is-pause")))throw new Error("La pausa no usa el menú flotante compacto");
+ if(!await page.locator("#pause-fullscreen").isVisible())throw new Error("La pausa no ofrece pantalla completa");
  const pauseBounds=await page.locator("#screen-modal .modal-card").boundingBox();
  if(!pauseBounds||pauseBounds.width>320)throw new Error("El menú de pausa ocupa demasiado espacio");
  await page.locator("#pause-settings").click();
