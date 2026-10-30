@@ -208,6 +208,7 @@ function update(){
 }
 expeditionUI=mountExpeditionScreen({
  state,
+ getRenderer:()=>renderer,
  onEnter:()=>{const wasRunning=state.running;state.running=false;last=performance.now();acc=0;update();return wasRunning;},
  onExit:({resume})=>{state.running=Boolean(resume);last=performance.now();acc=0;renderer?.syncEntities();renderer?.syncResources();update();try{saveTerrarium(state);refreshMenu();}catch(error){saveMessage="No se pudo guardar el regreso: "+error.message;update();}},
  onSave:()=>{try{saveTerrarium(state);refreshMenu();return true;}catch(error){saveMessage="No se pudo guardar la expedición: "+error.message;return false;}},

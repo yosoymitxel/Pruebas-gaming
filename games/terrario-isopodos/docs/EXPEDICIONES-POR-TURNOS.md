@@ -1,6 +1,6 @@
 # Expediciones por turnos
 
-**Estado:** diseño aprobado para implementación incremental. La expedición v0.1 no está implementada hasta que los gates de código, gameplay, diseño e integración pasen.
+**Estado:** dominio v0.1 implementado; presentación de exploración convertida a dioramas 3D navegables. La aprobación final depende de CODE/GAMEPLAY/DESIGN/INTEGRATION en el SHA que se integre.
 **Modo:** opcional. El terrario libre sigue siendo el modo principal y no necesita completar expediciones.
 **Versión de alcance:** 0.1, cinco nodos, cinco familias de eventos, cuatro materiales y tres mejoras permanentes.
 
@@ -81,7 +81,7 @@ El valor se debe ajustar con pruebas de balance, no presentarse como biología c
 
 ## 3. Mapa v0.1
 
-Grafo fijo, corto y legible. La variación aparece en los eventos y las rutas que el jugador escoge, no en generar topología aleatoria que pueda resultar desconectada.
+Grafo lógico fijo, corto y legible; la representación visual sí se genera proceduralmente por semilla. La posición fina de los lugares, la distribución de hojas, piedras, musgo y restos varía de forma determinista sin romper la topología ni crear rutas desconectadas.
 
 | Nodo | Acceso / coste | Conexiones | Temática y botín esperado |
 |---|---:|---|---|
@@ -208,6 +208,7 @@ La pantalla de expedición es una vista, no un estado paralelo. Si se carga una 
 ## 10. Archivos previstos
 
 - `src/expedition/rng.js`: hash de semilla, PRNG y selección ponderada.
+- `src/expedition/diorama.js`: construcción procedural determinista del diorama del jardín y de los cinco dioramas de encuentro, con hitboxes 3D por nodo y opción.
 - `src/expedition/content.js`: nodos, conexiones, eventos, opciones y mejoras como datos.
 - `src/expedition/state.js`: fábrica y normalización estricta del progreso/run.
 - `src/expedition/system.js`: comandos de inicio, viaje, elección, liquidación y mejoras.
@@ -243,17 +244,28 @@ No se añaden dependencias runtime. Se reutilizan `stepSimulation`, `constrainTo
 - EXP-G12: cambiar Diorama/Voxel o entrar/salir de expedición no crea un segundo estado ni reinicia el renderer.
 
 ### DESIGN_GATE
-- EXP-D01: mapa con cinco nodos y conexiones legibles; estado actual, visitados, bloqueados y costes se distinguen por texto/icono, no solo por color.
-- EXP-D02: preparación, evento, resultado y regreso tienen jerarquía visual clara y el evento mantiene texto y costes visibles antes de decidir.
-- EXP-D03: usable a 1440x1000, 390x844 y 360x640 sin overflow ni controles cortados.
-- EXP-D04: mouse, touch, Tab, Enter y Escape; foco visible y restaurado al volver.
-- EXP-D05: movimiento reducido no impide entender el estado; animaciones no son necesarias para completar la expedición.
+- EXP-D01: el mapa es un diorama 3D de terreno, senderos y lugares físicos; cada lugar tiene hotspot por raycast y alternativa accesible por botón.
+- EXP-D02: cada nodo abre un diorama contextual con objetos coherentes con el encuentro; cada opción tiene un objeto/hotspot 3D seleccionable y un control equivalente con coste visible.
+- EXP-D03: mapa y escenas de encuentro dominan el viewport; el HUD no tapa la escena ni convierte la exploración en formulario o cuadrícula de tarjetas.
+- EXP-D04: usable a 1440x1000, 390x844 y 360x640; navegación por mouse/touch y teclado, hitboxes suficientes, foco visible y sin overflow.
+- EXP-D05: el mapa conserva una distribución procedural reproducible por semilla; el movimiento reducido no impide entender estado, opciones o recompensas.
 
 ### INTEGRATION_GATE
-- EXP-I01: renderer se conserva al entrar/salir de la pantalla de expedición; referencia de canvas permanece estable.
+- EXP-I01: el mismo canvas y la misma instancia de WebGLRenderer se reubican entre terrario, mapa y escenas de nodo; al regresar se restituye el grupo, cámara y host del terrario sin recrearlo.
 - EXP-I02: guardado antiguo v1/v2 sigue continuable.
 - EXP-I03: no hay errores de consola, requests fallidos o regresiones en flujos anteriores.
 - EXP-I04: evidencia Playwright actual vinculada al SHA y revisada visualmente.
 
 ### Estado de implementación
 Todos los criterios EXP-C/G/D/I se encuentran **PENDIENTES** antes de la fase de implementación. El diseño de esta especificación no equivale a aprobación del MVP.
+
+
+## 12. Presentación diegética por dioramas
+
+La exploración no se presenta como una página de administración ni como un grafo de tarjetas. El terrario sigue siendo el diorama principal; al abrir Explorar, el mismo renderer muestra un diorama panorámico del jardín. Los cinco lugares se representan físicamente en el terreno (piedra con musgo, tronco, fruta y compost), conectados por raíces y senderos.
+
+La semilla de la expedición controla pequeños desplazamientos y el dressing procedural del terreno. La topología lógica permanece fija en v0.1 para garantizar conectividad y pruebas reproducibles. Tocar un elemento físico usa raycasting sobre un collider 3D; la lista de nombres del sendero es una alternativa accesible, no la interacción primaria.
+
+Al entrar a un nodo, el mapa se sustituye temporalmente por un diorama contextual del encuentro. Telarañas, fruta, ácaros, gotas y compost se representan en escena. Los objetos/zonas de acción tienen hotspots 3D y una alternativa accesible con el mismo comando de dominio. La resolución devuelve al mapa y actualiza acciones, energía, rutas, recompensas y feedback.
+
+La transición no crea un segundo renderer ni un segundo estado ecológico. El canvas existente se mueve al host de expedición y vuelve al host del terrario. El grupo 3D del terrario se oculta durante la exploración y se restaura junto con su cámara al regresar.

@@ -345,71 +345,102 @@ try{
  await page.screenshot({path:"artifacts/visual/spherical-orb-390x844.png",fullPage:true});
 
 
- // Expedition smoke: the overlay keeps the terrarium canvas alive and restores an active run.
+ // Expedition: the same WebGL canvas moves between the terrarium, the garden map and a node diorama.
  await page.evaluate(()=>{window.__terrariumCanvasBeforeExpedition=document.querySelector("#scene canvas");});
  await page.locator("#open-expedition").click();
  await page.locator("#screen-expedition").waitFor({state:"visible"});
+ const expeditionCanvas=page.locator("#expedition-diorama canvas");
+ await expeditionCanvas.waitFor({state:"visible",timeout:15000});
+ if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#expedition-diorama canvas")))throw new Error("La expedición creó otro canvas en vez de reutilizar el del terrario");
+ if(await expeditionCanvas.getAttribute("data-expedition-view")!=="map")throw new Error("Explorar no abrió el diorama del mapa");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==5)throw new Error("El mapa 3D no tiene cinco lugares seleccionables");
+ await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
  if(await page.locator("#expedition-start").isDisabled())throw new Error("No hay explorador disponible aunque la colonia tiene energía");
+ await page.locator('[data-node-id="garden-entry"]').click();
  await page.locator("#expedition-start").click();
  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("No se generó el encuentro inicial");
- await page.locator(".expedition-choice:not(:disabled)").first().click();
- const route=page.locator(".expedition-node:not(:disabled)").first();
- if(await route.count()===0)throw new Error("No aparece una ruta conectada desde la entrada");
- await route.click();
- if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nuevo nodo no generó su evento");
- await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
- const expeditionNodeBoxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
- for(let i=0;i<expeditionNodeBoxes.length;i++)for(let j=i+1;j<expeditionNodeBoxes.length;j++){
-  const a=expeditionNodeBoxes[i],b=expeditionNodeBoxes[j];
-  const overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x);
-  const overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
-  if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en móvil");
- }
- if(await page.locator("#expedition-close").isVisible())throw new Error("El botón de cabecera no debe aparecer durante un encuentro activo");
+ if(await expeditionCanvas.getAttribute("data-expedition-view")!=="level"||Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==2)throw new Error("El encuentro no abrió su diorama con dos interacciones");
+ await page.screenshot({path:"artifacts/visual/expedition-level-garden-390x844.png",fullPage:true});
+ const chooseFirstExpeditionAction=async()=>{
+  const first=page.locator(".expedition-choice:not(:disabled)").first();
+  if(await first.count()===0)throw new Error("El encuentro no ofrece una acción accesible");
+  await first.click();
+  await page.locator("#expedition-map-layer").waitFor({state:"visible"});
+ };
+ await chooseFirstExpeditionAction();
+
+ const clickDioramaNode=async nodeId=>{
+  const point=await expeditionCanvas.evaluate((canvas,id)=>{
+   const rect=canvas.getBoundingClientRect(),positions=JSON.parse(canvas.dataset.expeditionMapPositions||"{}"),position=positions[id];
+   const distance=Number(canvas.dataset.cameraDistance),angle=Number(canvas.dataset.cameraAngle),elevation=Number(canvas.dataset.cameraElevation);
+   if(!position||![distance,angle,elevation].every(Number.isFinite))return null;
+   const horizontal=Math.cos(elevation)*distance;
+   const camera=[Math.sin(angle)*horizontal,.2+Math.sin(elevation)*distance,Math.cos(angle)*horizontal];
+   const target=[0,.2,0],subtract=(a,b)=>a.map((v,i)=>v-b[i]),dot=(a,b)=>a.reduce((sum,v,i)=>sum+v*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],normalize=v=>{const n=Math.hypot(...v);return v.map(x=>x/n);};
+   const forward=normalize(subtract(target,camera)),right=normalize(cross(forward,[0,1,0])),up=cross(right,forward);
+   const relative=subtract([position[0],.31,position[1]],camera),depth=dot(relative,forward);
+   const tanVertical=Math.tan(33*Math.PI/360),tanHorizontal=tanVertical*(rect.width/rect.height);
+   const ndcX=dot(relative,right)/(depth*tanHorizontal),ndcY=dot(relative,up)/(depth*tanVertical);
+   return{x:rect.left+(ndcX+1)*rect.width/2,y:rect.top+(1-ndcY)*rect.height/2,inside:depth>0&&Math.abs(ndcX)<.96&&Math.abs(ndcY)<.96};
+  },nodeId);
+  if(!point?.inside)throw new Error("El nodo 3D "+nodeId+" quedó fuera del encuadre del mapa");
+  await page.mouse.click(point.x,point.y);
+ };
+ await clickDioramaNode("mossy-stone");
+ await page.locator("#expedition-event-title").waitFor({state:"visible"});
+ if(await expeditionCanvas.getAttribute("data-expedition-view")!=="level")throw new Error("Tocar un lugar del diorama no abrió su nivel");
+ await page.screenshot({path:"artifacts/visual/expedition-level-moss-390x844.png",fullPage:true});
+ await page.locator("#expedition-map-back").click();
+ if(!await page.locator("#expedition-resume-event").isVisible())throw new Error("El mapa no permite retomar un encuentro pendiente");
  const assertExpeditionNodesDoNotOverlap=async()=>{
   const boxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
   for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
    const a=boxes[i],b=boxes[j],overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x),overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
-   if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en responsive");
+   if(overlapX>1&&overlapY>1)throw new Error("Los lugares del mapa se solapan en responsive");
   }
  };
  await assertExpeditionNodesDoNotOverlap();
  await page.setViewportSize({width:360,height:640});
- await page.waitForTimeout(150);
- if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 360x640");
+ await page.waitForTimeout(120);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El diorama del mapa genera overflow a 360x640");
  await assertExpeditionNodesDoNotOverlap();
  await page.screenshot({path:"artifacts/visual/expedition-map-360x640.png",fullPage:true});
  await page.setViewportSize({width:1440,height:1000});
- await page.waitForTimeout(150);
- if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El mapa de expedición genera overflow a 1440x1000");
+ await page.waitForTimeout(120);
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El diorama del mapa genera overflow a 1440x1000");
  await assertExpeditionNodesDoNotOverlap();
  await page.screenshot({path:"artifacts/visual/expedition-map-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});
- await page.waitForTimeout(150);
-
- if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
+ await page.locator("#expedition-resume-event").click();
+ await page.locator("#expedition-event-title").waitFor({state:"visible"});
+ if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#expedition-diorama canvas")))throw new Error("Cambiar entre mapa y nivel reemplazó el canvas");
+ await page.locator("#expedition-map-back").click();
  await page.locator("#expedition-save").click();
  const activeRun=await page.evaluate(()=>{
   const run=JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active;
   localStorage.setItem("terrario-test.expedition-id",run.id);
   return run;
  });
- if(!activeRun||!["mossy-stone","rotting-log"].includes(activeRun.currentNodeId))throw new Error("El guardado no conserva la posición de la expedición");
+ if(!activeRun||activeRun.currentNodeId!=="mossy-stone")throw new Error("El guardado no conserva la ubicación seleccionada en el mapa");
  await page.reload({waitUntil:"networkidle"});
  await page.getByRole("button",{name:/Continuar partida/}).click();
- await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.locator("#expedition-diorama canvas").waitFor({state:"visible",timeout:15000});
  await page.locator("#screen-expedition").waitFor({state:"visible",timeout:15000});
- const restored=await page.evaluate(()=>({run:JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active,expected:localStorage.getItem("terrario-test.expedition-id")}));
- if(!restored.run||restored.run.id!==restored.expected||restored.run.currentNodeId!==activeRun.currentNodeId)throw new Error("La misma expedición y ubicación no se restauraron al recargar");
+ const restored=await page.evaluate(()=>{
+  window.__restoredExpeditionCanvas=document.querySelector("#expedition-diorama canvas");
+  return{run:JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.expeditionProgress.active,expected:localStorage.getItem("terrario-test.expedition-id")};
+ });
+ if(!restored.run||restored.run.id!==restored.expected||restored.run.currentNodeId!==activeRun.currentNodeId||!await page.locator("#expedition-event-title").isVisible())throw new Error("La misma expedición y nivel no se restauraron al recargar");
  await page.locator("#expedition-return").click();
- if(!await page.locator("#expedition-home").isVisible())throw new Error("No aparece la liquidación del regreso");
- if(!(await page.locator("#expedition-day").textContent()).includes("Día 02"))throw new Error("El regreso no avanzó exactamente una jornada");
+ if(!await page.locator("#expedition-home").isVisible())throw new Error("No aparece el registro de regreso");
+ if(!(await page.locator("#expedition-day").textContent()).includes("DÍA 02"))throw new Error("El regreso no avanzó exactamente una jornada");
  await page.screenshot({path:"artifacts/visual/expedition-settlement-390x844.png",fullPage:true});
  await page.locator("#expedition-home").click();
  if(await page.locator("#screen-expedition").isVisible())throw new Error("La pantalla de expedición no se cerró");
- if(!await page.locator("#scene canvas").isVisible())throw new Error("El renderer desapareció al volver al terrario");
+ if(!await page.locator("#scene canvas").isVisible())throw new Error("El renderer no regresó al terrario");
+ if(!await page.evaluate(()=>window.__restoredExpeditionCanvas===document.querySelector("#scene canvas")))throw new Error("El retorno reconstruyó el canvas del terrario");
+ if(await page.locator("#scene canvas").getAttribute("data-expedition-view")!=="terrarium")throw new Error("El renderer siguió mostrando la escena de expedición tras regresar");
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("La expedición genera overflow horizontal en móvil");
-
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];
  unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
@@ -449,7 +480,7 @@ try{
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
- console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",rendererMetrics:renderMetrics,errors},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
+ console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}
