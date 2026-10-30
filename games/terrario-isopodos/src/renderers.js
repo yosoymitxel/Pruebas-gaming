@@ -40,8 +40,8 @@ function segmentMatrix(start,end){
 function dorsalCarapaceGeometry(){
   const positions=[],colors=[],uvs=[],indices=[];
   const lengthSegments=56,widthSegments=24,stride=widthSegments+1;
-  const halfLength=.205,halfWidth=.153,height=.111;
-  const plateTones=[0x92998d,0x858f84,0x7a857a,0x9ca394,0x808c81,0x758176,0x8c9788].map(hex=>new T.Color(hex));
+  const halfLength=.205,halfWidth=.145,height=.112;
+  const plateTones=[0x737b73,0x81877b,0x707970,0x8c9182,0x747d73,0x69736b,0x7d857a].map(hex=>new T.Color(hex));
   for(let i=0;i<=lengthSegments;i++){
     const t=i/lengthSegments;
     const x=(t-.5)*halfLength*2;
@@ -56,10 +56,10 @@ function dorsalCarapaceGeometry(){
       const angle=(j/widthSegments*2-1)*1.28;
       const z=Math.sin(angle)*halfWidth*taper;
       const dome=Math.cos(angle)*height*taper;
-      const y=.025+dome-groove*.0065*taper;
+      const y=.025+dome-groove*.011*taper;
       positions.push(x,y,z);
       uvs.push(t,j/widthSegments);
-      const tone=plateTones[plateIndex].clone().multiplyScalar(1-groove*.12);
+      const tone=plateTones[plateIndex].clone().multiplyScalar(1-groove*.34);
       const flank=1-Math.abs(Math.sin(angle))*.045;
       tone.multiplyScalar(flank);
       colors.push(tone.r,tone.g,tone.b);
@@ -116,7 +116,7 @@ function createVoxelIsopod(){
   root.userData.isVoxel=true;
   const unit=.032;
   const geometry=new T.BoxGeometry(1,1,1);
-  const material=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.84,metalness:.012,flatShading:true});
+  const material=new T.MeshStandardMaterial({color:0xffffff,roughness:.84,metalness:.008,flatShading:true});
   const blocks=new T.InstancedMesh(geometry,material,280);
   blocks.name="voxel-isopod-volume";
   blocks.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -200,8 +200,8 @@ function createVoxelIsopod(){
   root.userData.voxelBlocks=blocks;
   root.userData.voxelLegIndices=legIndices;
   root.userData.voxelBlockCount=count;
-  root.userData.baseScale=1.02;
-  root.scale.setScalar(1.02);
+  root.userData.baseScale=1.08;
+  root.scale.setScalar(1.08);
   return root;
 }
 
@@ -239,14 +239,14 @@ function isopod(voxel){
     color:0xf7f1df,map:shellTexture,vertexColors:true,roughness:.84,metalness:.008
   });
   const headShellMaterial=new T.MeshStandardMaterial({
-    color:0xdedcc9,map:shellTexture,roughness:.88,metalness:.004
+    color:0x9b9b87,map:shellTexture,roughness:.9,metalness:.002
   });
   const undersideMaterial=mat(0x343d39,.94);
   const edgeMaterial=mat(0x59645d,.84);
   const legMaterial=mat(0x414b44,.86);
   const jointMaterial=mat(0x68736a,.82);
   const eyeMaterial=mat(0x101817,.42);
-  const antennaMaterial=mat(0x879184,.76);
+  const antennaMaterial=mat(0xb1ae93,.78);
   const bumpMaterial=mat(0x77745f,.92);
 
   const carapace=mesh(dorsalCarapaceGeometry(),shellMaterial,[0,0,0]);
@@ -264,8 +264,8 @@ function isopod(voxel){
   const eyes=new T.InstancedMesh(new T.SphereGeometry(1,10,8),eyeMaterial,2);
   const dummy=new T.Object3D();
   for(let i=0;i<2;i++){
-    dummy.position.set(.051,.018,(i===0?-1:1)*.069);
-    dummy.scale.set(.014,.014,.014);
+    dummy.position.set(.052,.021,(i===0?-1:1)*.073);
+    dummy.scale.set(.018,.018,.018);
     dummy.updateMatrix();
     eyes.setMatrixAt(i,dummy.matrix);
   }
@@ -282,7 +282,7 @@ function isopod(voxel){
       new T.Vector3(.09,.044,side*.032),
       new T.Vector3(.135,.055,side*.054)
     ]);
-    pivot.add(new T.Mesh(new T.TubeGeometry(curve,14,.0042,5,false),antennaMaterial));
+    pivot.add(new T.Mesh(new T.TubeGeometry(curve,16,.0062,6,false),antennaMaterial));
     head.add(pivot);
     antennae.push({pivot,side});
   }
@@ -304,8 +304,8 @@ function isopod(voxel){
   uropods.instanceMatrix.needsUpdate=true;
   root.add(uropods);
 
-  const legUpper=new T.InstancedMesh(new T.CylinderGeometry(.008,.012,1,7),legMaterial,14);
-  const legLower=new T.InstancedMesh(new T.CylinderGeometry(.005,.008,1,7),jointMaterial,14);
+  const legUpper=new T.InstancedMesh(new T.CylinderGeometry(.011,.016,1,7),legMaterial,14);
+  const legLower=new T.InstancedMesh(new T.CylinderGeometry(.008,.012,1,7),jointMaterial,14);
   legUpper.name="fourteen-pereopod-coxae";
   legLower.name="fourteen-pereopod-tibiae";
   legUpper.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -314,7 +314,7 @@ function isopod(voxel){
   for(let i=0;i<7;i++){
     for(const side of [-1,1]){
       const index=i*2+(side===1?1:0),x=.125-i*.041;
-      const hip=[x,.071,side*.103],knee=[x,.045,side*.145],toe=[x,.024,side*.182];
+      const hip=[x,.081,side*.106],knee=[x,.054,side*.173],toe=[x,.033,side*.222];
       legUpper.setMatrixAt(index,segmentMatrix(hip,knee));
       legLower.setMatrixAt(index,segmentMatrix(knee,toe));
       legPairs.push({index,x,side});
@@ -369,7 +369,7 @@ function updateIsopodRig(object,phase,moving,curled){
       const {index,x,side}=leg;
       const wave=moving?Math.sin(phase*2.1-index*.76+side*Math.PI):Math.sin(phase*.32+index)*.05;
       const tuck=curled?1:0;
-      const hip=[x,.071,side*.094];
+      const hip=[x,.081,side*.106];
       const knee=[
         x+wave*.022,
         .045+(tuck*.025),
@@ -401,19 +401,19 @@ export class TerrariumRenderer {
     this.el=el;
     this.state=state;
     this.scene=new T.Scene();
-    this.scene.background=new T.Color(0x687466);
-    this.scene.fog=new T.Fog(0x687466,13,30);
-    const ambientLight=new T.HemisphereLight(0xe8e4d0,0x4b4539,1.55);
+    this.scene.background=new T.Color(0x354238);
+    this.scene.fog=new T.Fog(0x354238,15,34);
+    const ambientLight=new T.HemisphereLight(0xdfe6d7,0x343a31,1.35);
     this.scene.add(ambientLight);
-    const keyLight=new T.DirectionalLight(0xffe4c0,2.35);
+    const keyLight=new T.DirectionalLight(0xffe2bd,2.75);
     keyLight.position.set(-3.5,7,4.5);
     keyLight.castShadow=true;
     keyLight.shadow.mapSize.set(1024,1024);
     this.scene.add(keyLight);
-    const fillLight=new T.DirectionalLight(0xc5d0bb,.82);
+    const fillLight=new T.DirectionalLight(0xb9d1bd,1.05);
     fillLight.position.set(4,3,-4);
     this.scene.add(fillLight);
-    const rimLight=new T.DirectionalLight(0xf2e7c9,.48);
+    const rimLight=new T.DirectionalLight(0xe6e8d9,.62);
     rimLight.position.set(2.5,4,-5.5);
     this.scene.add(rimLight);
     this.camera=new T.PerspectiveCamera(33,1,.1,100);
@@ -421,7 +421,7 @@ export class TerrariumRenderer {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=T.PCFSoftShadowMap;
-    this.renderer.setClearColor(0x687466,1);
+    this.renderer.setClearColor(0x354238,1);
     this.renderer.outputColorSpace=T.SRGBColorSpace;
     this.renderer.toneMapping=T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure=1.16;
@@ -431,13 +431,13 @@ export class TerrariumRenderer {
     this.habitat=new T.Group();
     this.life=new T.Group();
     this.resourcesGroup=new T.Group();
-    this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x566050, roughness:.98}));
+    this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x3e483c, roughness:.99}));
     this.ground.rotation.x=-Math.PI/2;
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
     this.scene.add(this.world);
     this.angle=.68;
-    this.elevation=state.habitat.shape==="cilindrico"?.59:.72;
+    this.elevation=state.habitat.shape==="cilindrico"?.38:.68;
     this.distance=6.8;
     this.userAdjustedCamera=false;
     this.resourceSignature="";
@@ -566,7 +566,7 @@ export class TerrariumRenderer {
 
   resetCamera(){
     this.angle=.68;
-    this.elevation=this.state.habitat.shape==="cilindrico"?.59:.72;
+    this.elevation=this.state.habitat.shape==="cilindrico"?.38:.68;
     this.userAdjustedCamera=false;
     this.distance=Math.max(6.8,this.fitDistance());
     this.cameraUpdate();
@@ -702,7 +702,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.mossCount=String(interior.userData.visualStats.mossPillows);
     this.renderer.domElement.dataset.terrainRelief=String(interior.userData.visualStats.terrainRelief);
 
-    const wallMaterial=glass(shape==="cilindrico"?.1:.065);
+    const wallMaterial=glass(shape==="cilindrico"?.055:.065);
     const floorTop=.19,wallY=floorTop+spec.wallHeight/2,rimY=floorTop+spec.wallHeight;
     const highlight=new T.MeshBasicMaterial({color:0xd7e4cc,transparent:true,opacity:.17,depthWrite:false});
     if(shape==="esferico"){
@@ -729,12 +729,9 @@ export class TerrariumRenderer {
         new T.CylinderGeometry(spec.outerRadius,spec.outerRadius,spec.wallHeight,64,1,true),
         wallMaterial,[0,wallY,0]
       ));
-      const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.012,8,64),frame,[0,rimY,0]);
+      const rim=mesh(new T.TorusGeometry(spec.outerRadius-spec.wallThickness/2,.007,7,64),frame,[0,rimY,0]);
       rim.rotation.x=Math.PI/2;
-      const points=[];
-      for(let i=0;i<=20;i++){const a=2.0+i/20*2.28;points.push([Math.sin(a)*(spec.outerRadius+.002),floorTop+spec.wallHeight*.56,Math.cos(a)*(spec.outerRadius+.002)]);}
-      const arc=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),32,.0045,5,false),highlight);
-      this.habitat.add(rim,arc);
+      this.habitat.add(rim);
       this.renderer.domElement.dataset.containerWallCount="1";
       this.renderer.domElement.dataset.containerKind="cylindrical-jar";
     }else{
@@ -791,7 +788,7 @@ export class TerrariumRenderer {
       const curled=entity.behavior==="defensive-curl";
       const shape=this.state.habitat.shape;
       const floorY=terrainHeightAt(x,z,shape,HABITAT_GEOMETRY[shape].floorRadius);
-      object.position.set(x,floorY+(object.userData.isVoxel?.035:-.02)-(entity.behavior==="burrowing"?.07:0),z);
+      object.position.set(x,floorY+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"?.045:0),z);
       object.rotation.y=entity.heading??0;
       if(object.userData.isVoxel){
         updateVoxelIsopod(object,phase,moving,curled);
@@ -803,38 +800,106 @@ export class TerrariumRenderer {
   }
 
   syncResources(){
-    const sig=JSON.stringify(this.state.resources.map(r => [r.id,r.type,Math.round((r.amount ?? 1)*10)/10,r.x,r.z]));
-    if(sig===this.resourceSignature) return;
+    const sig=JSON.stringify(this.state.resources.map(r=>[r.id,r.type,Math.round((r.amount??1)*10)/10,r.x,r.z]));
+    if(sig===this.resourceSignature)return;
     this.resourceSignature=sig;
     this.clear(this.resourcesGroup);
-
     const shape=this.state.habitat.shape;
     const radius=HABITAT_GEOMETRY[shape].floorRadius;
-    for(const r of this.state.resources){
-      const floor=terrainHeightAt(r.x,r.z,shape,radius);
-      let object=null;
-      if(r.type==="leaf-litter"){
-        object=mesh(new T.SphereGeometry(.16,10,7),mat(0x8a6844,.97),[r.x,floor+.02,r.z]);
-        object.scale.set(1.35,.035,.62);
-      }else if(r.type==="shelter"||r.type==="bark"){
-        const length=r.type==="bark"?.42:.34,thickness=r.type==="bark"?.12:.16;
-        object=mesh(new T.CylinderGeometry(thickness*.9,thickness,length,12,1,true),mat(0x795034,.94,{side:T.DoubleSide}),[r.x,floor+thickness*.58,r.z]);
-        object.rotation.z=Math.PI/2;
-      }else if(r.type==="fern"){
-        object=mesh(new T.ConeGeometry(.13,.24,7),mat(0x5b7d45,.95),[r.x,floor+.12,r.z]);
-      }else if(r.type==="mushroom"){
-        const stem=mesh(new T.CylinderGeometry(.035,.05,.12,9),mat(0xe0d4b8,.98),[r.x,floor+.06,r.z]);
-        const cap=mesh(new T.SphereGeometry(1,12,8),mat(0x986348,.96),[r.x,floor+.15,r.z]);
-        cap.scale.set(.095,.045,.095);
+    const makeLeaf=()=>{
+      const positions=[-.09,0,0,-.045,.018,-.026,0,.026,0,.045,.018,.026,.09,0,0];
+      const geometry=new T.BufferGeometry();
+      geometry.setAttribute("position",new T.Float32BufferAttribute(positions,3));
+      geometry.setIndex([0,1,2,2,1,3,2,3,4]);
+      geometry.computeVertexNormals();
+      return geometry;
+    };
+    for(const resource of this.state.resources){
+      const floor=terrainHeightAt(resource.x,resource.z,shape,radius);
+      if(resource.type==="leaf-litter"){
+        const leafMaterial=mat(0x806342,.98,{side:T.DoubleSide});
+        const geometry=makeLeaf();
+        for(let i=0;i<3;i++){
+          const leaf=mesh(geometry,leafMaterial,[resource.x+(i-1)*.035,floor+.014+i*.002,resource.z+(i%2)*.025]);
+          leaf.rotation.y=i*.92;
+          leaf.scale.setScalar(.75+i*.12);
+          this.resourcesGroup.add(leaf);
+        }
+      }else if(resource.type==="shelter"||resource.type==="bark"){
+        const length=resource.type==="shelter"?.34:.42;
+        const thickness=resource.type==="shelter"?.115:.078;
+        const barkMaterial=mat(0x634832,.98,{side:T.DoubleSide,flatShading:true});
+        const archGeometry=new T.CylinderGeometry(thickness,thickness*.92,length,20,5,true,0,Math.PI);
+        const position=archGeometry.attributes.position;
+        for(let i=0;i<position.count;i++){
+          const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
+          const ripple=1+Math.sin(x*63+z*28)*.035+Math.cos(y*41-z*17)*.022;
+          position.setXYZ(i,x*ripple,y*ripple,z*ripple);
+        }
+        archGeometry.computeVertexNormals();
+        const arch=mesh(archGeometry,barkMaterial,[resource.x,floor+thickness*.72,resource.z]);
+        arch.rotation.z=Math.PI/2;
+        arch.rotation.x=.06;
+        this.resourcesGroup.add(arch);
+        const entrance=mesh(new T.CircleGeometry(thickness*.82,18),mat(0x241f18,1),
+          [resource.x+length*.47,floor+thickness*.12,resource.z]);
+        entrance.rotation.y=Math.PI/2;
+        entrance.rotation.z=.08;
+        this.resourcesGroup.add(entrance);
+      }else if(resource.type==="fern"){
+        const plant=new T.Group();
+        const stemMaterial=mat(0x49653a,.98);
+        const leafMaterial=mat(0x66834a,.96,{side:T.DoubleSide});
+        for(let frond=0;frond<5;frond++){
+          const angle=frond/5*Math.PI*2;
+          const tip=new T.Vector3(Math.cos(angle)*.12,.2,Math.sin(angle)*.12);
+          const curve=new T.CatmullRomCurve3([
+            new T.Vector3(0,.012,0),new T.Vector3(tip.x*.42,.11,tip.z*.42),tip
+          ]);
+          plant.add(new T.Mesh(new T.TubeGeometry(curve,12,.004,5,false),stemMaterial));
+          for(let leaf=1;leaf<=5;leaf++){
+            const t=leaf/6,point=curve.getPoint(t);
+            const blade=mesh(new T.SphereGeometry(1,8,6),leafMaterial,[point.x,point.y,point.z]);
+            blade.scale.set(.035,.009,.012);
+            blade.rotation.y=angle+(leaf%2?-.55:.55);
+            plant.add(blade);
+          }
+        }
+        plant.position.set(resource.x,floor,resource.z);
+        this.resourcesGroup.add(plant);
+      }else if(resource.type==="mushroom"){
+        const stem=mesh(new T.CylinderGeometry(.018,.024,.075,9),mat(0xd2c6aa,.98),
+          [resource.x,floor+.038,resource.z]);
+        const cap=mesh(new T.SphereGeometry(1,14,9),mat(0x8a6345,.96),
+          [resource.x,floor+.082,resource.z]);
+        cap.scale.set(.052,.025,.052);
         this.resourcesGroup.add(stem,cap);
-      }else if(r.type==="stone"){
-        object=mesh(new T.DodecahedronGeometry(.12,1),mat(0x817966,.98,{flatShading:true}),[r.x,floor+.045,r.z]);
-        object.scale.set(1.2,.65,1);
-      }else if(r.type==="moss"){
-        object=mesh(new T.SphereGeometry(.13,10,7),mat(0x5e8242,.99),[r.x,floor+.02,r.z]);
-        object.scale.set(1.5,.28,1.3);
+      }else if(resource.type==="stone"){
+        const geometry=new T.IcosahedronGeometry(.075,1);
+        const p=geometry.attributes.position;
+        for(let i=0;i<p.count;i++){
+          const scale=.88+Math.sin(i*2.17)*.1;
+          p.setXYZ(i,p.getX(i)*scale,p.getY(i)*(.7+Math.cos(i*1.9)*.12),p.getZ(i)*scale);
+        }
+        geometry.computeVertexNormals();
+        const stone=mesh(geometry,mat(0x76776d,.99,{flatShading:true}),
+          [resource.x,floor+.026,resource.z]);
+        stone.rotation.y=resource.x*2.3;
+        this.resourcesGroup.add(stone);
+      }else if(resource.type==="moss"){
+        const patch=new T.Group();
+        for(let i=0;i<18;i++){
+          const angle=i*2.399963229728653;
+          const distance=.045*Math.sqrt((i+.5)/18);
+          const tuft=mesh(new T.IcosahedronGeometry(.014+(i%3)*.002,0),
+            mat([0x4e6942,0x627d48,0x7d9253][i%3],.99,{flatShading:true}),
+            [Math.cos(angle)*distance,.012,Math.sin(angle)*distance]);
+          tuft.scale.y=1.2;
+          patch.add(tuft);
+        }
+        patch.position.set(resource.x,floor,resource.z);
+        this.resourcesGroup.add(patch);
       }
-      if(object)this.resourcesGroup.add(object);
     }
   }
 
