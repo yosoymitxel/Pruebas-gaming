@@ -83,7 +83,7 @@ try{
  if(!setupButtonBounds||setupButtonBounds.y<0||setupButtonBounds.y+setupButtonBounds.height>640)
    throw new Error(`El botón Entrar al terrario no queda accesible en 360x640: ${JSON.stringify(setupButtonBounds)}`);
  await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-setup-360x640.png",fullPage:true});
- await mobileMenuPage.route(url=>url.includes("renderers-"),async route=>{await new Promise(resolve=>setTimeout(resolve,420));await route.continue();});
+ await mobileMenuPage.route(url=>url.href.includes("renderers-"),async route=>{await new Promise(resolve=>setTimeout(resolve,420));await route.continue();});
  await mobileTap("#start-game");
  await mobileMenuPage.locator("#screen-loading").waitFor({state:"visible",timeout:2500});
  const loadingTheme=await mobileMenuPage.locator("#screen-loading").getAttribute("data-theme");
@@ -245,9 +245,10 @@ try{
  const restoredClock=await page.locator("#clock").textContent();const savedMatch=savedClock.match(/(\d{2}):(\d{2})$/),restoredMatch=restoredClock.match(/(\d{2}):(\d{2})$/);const savedMinutes=savedMatch?Number(savedMatch[1])*60+Number(savedMatch[2]):-1,restoredMinutes=restoredMatch?Number(restoredMatch[1])*60+Number(restoredMatch[2]):-1;if(restoredMinutes<savedMinutes||restoredMinutes>savedMinutes+1)throw new Error(`El reloj restaurado está fuera de tolerancia: guardado=${savedClock}, restaurado=${restoredClock}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
- if(await page.locator("#coins").textContent()!=="23")throw new Error("El saldo de la tienda no sobrevivió a guardar/cargar");
- const hasPurchasedItem=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources.some(r=>r.type==="mushroom"));
- if(!hasPurchasedItem)throw new Error("El objeto comprado no sobrevivió a guardar/cargar");
+ if(await page.locator("#coins").textContent()!=="7")throw new Error("El saldo no conservó las compras y las colocaciones al guardar/cargar");
+ const savedResources=await page.evaluate(()=>JSON.parse(localStorage.getItem("terrario-isopodos.save.v1")).state.resources);
+ if(!savedResources.some(r=>r.type==="mushroom")||!savedResources.some(r=>r.type==="shelter"&&r.id!=="shelter-1")||!savedResources.some(r=>r.type==="leaf-litter"))throw new Error("Los objetos colocados/comprados no sobrevivieron a guardar/cargar");
+ if(await page.locator("#scene canvas").getAttribute("data-weather")!=="clear")throw new Error("El clima no conserva el valor final al restaurar");
 
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
