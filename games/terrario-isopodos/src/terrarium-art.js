@@ -1,4 +1,5 @@
 import * as T from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const BASE_Y = 0.19;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -453,6 +454,94 @@ function palette() {
   };
 }
 
+export function mergeStaticMeshes(group) {
+  group.updateMatrixWorld(true);
+  const inverseWorld = new T.Matrix4().copy(group.matrixWorld).invert();
+  const buckets = new Map();
+  const protectedGeometries = new Set();
+  const removed = new Set();
+  const replacements = [];
+  let mergedSourceMeshes = 0;
+  let mergedDrawMeshes = 0;
+
+  group.traverse(object => {
+    if (!object.isMesh || object.isInstancedMesh || object.isSkinnedMesh ||
+        Array.isArray(object.material) || object.children.length ||
+        Object.keys(object.geometry.morphAttributes ?? {}).length) {
+      if (object.isMesh && object.geometry) protectedGeometries.add(object.geometry);
+      return;
+    }
+    const geometry = object.geometry;
+    const attributes = Object.keys(geometry.attributes).sort().map(name => {
+      const attribute = geometry.attributes[name];
+      return [
+        name,
+        attribute.itemSize,
+        attribute.normalized ? 1 : 0,
+        attribute.array.constructor.name,
+        attribute.gpuType ?? 0
+      ].join(":");
+    }).join(",");
+    const signature = [
+      object.material.uuid,
+      geometry.index ? "indexed" : "non-indexed",
+      attributes,
+      object.castShadow ? 1 : 0,
+      object.receiveShadow ? 1 : 0,
+      object.renderOrder
+    ].join("|");
+    let bucket = buckets.get(signature);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(signature, bucket);
+    }
+    const clone = geometry.clone();
+    clone.applyMatrix4(new T.Matrix4().multiplyMatrices(inverseWorld, object.matrixWorld));
+    clone.clearGroups();
+    bucket.push({ object, geometry: clone });
+  });
+
+  const disposedGeometries = new Set();
+  for (const bucket of buckets.values()) {
+    if (bucket.length < 2) {
+      for (const entry of bucket) entry.geometry.dispose();
+      continue;
+    }
+    const geometry = mergeGeometries(bucket.map(entry => entry.geometry), false);
+    if (!geometry) {
+      for (const entry of bucket) entry.geometry.dispose();
+      continue;
+    }
+    geometry.computeBoundingSphere();
+    const source = bucket[0].object;
+    const merged = new T.Mesh(geometry, source.material);
+    merged.name = "merged-" + (source.material.name || source.material.type.toLowerCase());
+    merged.castShadow = source.castShadow;
+    merged.receiveShadow = source.receiveShadow;
+    merged.renderOrder = source.renderOrder;
+    replacements.push(merged);
+    for (const entry of bucket) {
+      removed.add(entry.object);
+      const original = entry.object.geometry;
+      if (!protectedGeometries.has(original) && !disposedGeometries.has(original)) {
+        original.dispose();
+        disposedGeometries.add(original);
+      }
+      mergedSourceMeshes++;
+    }
+    mergedDrawMeshes++;
+  }
+
+  for (const object of removed) object.removeFromParent();
+  group.add(...replacements);
+  group.updateMatrixWorld(true);
+  return {
+    sourceMeshes: mergedSourceMeshes,
+    mergedDrawMeshes,
+    drawCallsSaved: mergedSourceMeshes - mergedDrawMeshes
+  };
+}
+
 export function buildWoodlandInterior(shape, spec) {
   const group = new T.Group();
   group.name = "woodland-interior";
@@ -486,6 +575,7 @@ export function buildWoodlandInterior(shape, spec) {
       object.receiveShadow = true;
     }
   });
+  const batchingStats = mergeStaticMeshes(group);
   let lowest = Infinity, highest = -Infinity;
   for (let iz = 0; iz <= 18; iz++) {
     for (let ix = 0; ix <= 26; ix++) {
@@ -505,7 +595,10 @@ export function buildWoodlandInterior(shape, spec) {
     mossPillows: 38,
     rocks: 28,
     substrateLayers: 3,
-    terrainRelief: Number((highest - lowest).toFixed(3))
+    terrainRelief: Number((highest - lowest).toFixed(3)),
+    staticMeshesMerged: batchingStats.sourceMeshes,
+    staticDrawMeshes: batchingStats.mergedDrawMeshes,
+    staticDrawCallsSaved: batchingStats.drawCallsSaved
   };
   return group;
 }
