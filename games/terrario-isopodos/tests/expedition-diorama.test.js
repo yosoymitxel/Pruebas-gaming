@@ -34,8 +34,30 @@ test("el mapa de expedición contiene cinco nodos seleccionables y biomas del ki
   assert.equal(scene.userData.biomeId,"woodland-map");
   assert.equal(Object.keys(scene.userData.mapPositions).length,5);
   assert.ok(collect(scene,"dioramaBiome").length>=6);
+  const groundcover=scene.getObjectByName("expedition-groundcover");
+  const leafLitter=scene.getObjectByName("expedition-leaf-litter");
+  assert.ok(groundcover?.isInstancedMesh&&groundcover.count>=250,"el mapa tiene cobertura baja instanciada");
+  assert.ok(leafLitter?.isInstancedMesh&&leafLitter.count>=190,"el suelo conserva hojarasca visible instanciada");
   let meshes=0;scene.traverse(object=>{if(object.isMesh||object.isInstancedMesh)meshes++;});
   assert.ok(meshes>45,"la escena debe contener vegetación y nodos 3D");
+});
+
+test("la selección previa del mapa no se confunde con la posición actual",()=>{
+  const scene=buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,currentNodeId:null,previewNodeId:"rotten-fruit",seed:7821});
+  const markers=[];
+  scene.traverse(object=>{if(object.userData?.expeditionNodeId)markers.push(object);});
+  assert.ok(markers.some(marker=>marker.userData.isPreview&&marker.userData.expeditionNodeId==="rotten-fruit"));
+  assert.equal(markers.filter(marker=>marker.userData.isCurrent).length,0);
+});
+
+test("los senderos del mapa quedan integrados en el suelo y no parecen tubos",()=>{
+  const scene=buildExpeditionMapDiorama(THREE,{nodes:EXPEDITION_NODES,seed:7821});
+  const trails=[];
+  scene.traverse(object=>{if(object.userData?.expeditionTrail)trails.push(object);});
+  assert.equal(trails.length,scene.userData.expeditionTrailCount);
+  assert.ok(trails.length>=5);
+  assert.ok(trails.every(path=>path.geometry.parameters.radius<=0.018));
+  assert.ok(trails.every(path=>path.castShadow===false));
 });
 
 test("la distribución del mapa es determinista por semilla y cambia con otra",()=>{

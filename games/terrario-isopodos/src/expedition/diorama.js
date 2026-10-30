@@ -11,32 +11,36 @@ const PORTRAIT_MAP_POSITIONS = {
   "compost-bin": [0.55, 1.9]
 };
 
-function addPath(T, group, start, end, material, radius = 0.052) {
+function addPath(T, group, start, end, material, radius = 0.017) {
   const a = new T.Vector3(...start), b = new T.Vector3(...end);
   const curve = new T.CatmullRomCurve3([
-    a, a.clone().lerp(b, 0.32).add(new T.Vector3(0, 0.035, 0)),
-    a.clone().lerp(b, 0.72).add(new T.Vector3(0, 0.018, 0)), b
+    a, a.clone().lerp(b, 0.32).add(new T.Vector3(0, 0.014, 0)),
+    a.clone().lerp(b, 0.72).add(new T.Vector3(0, 0.008, 0)), b
   ]);
-  const mesh = new T.Mesh(new T.TubeGeometry(curve, 22, radius, 7, false), material);
-  mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh);
+  const mesh = new T.Mesh(new T.TubeGeometry(curve, 22, radius, 6, false), material);
+  mesh.userData.expeditionTrail = true;
+  mesh.castShadow = false; mesh.receiveShadow = true; group.add(mesh);
   return mesh;
 }
 
-function addNodeMarker(T, kit, group, node, current, seen, nodeScale) {
+function addNodeMarker(T, kit, group, node, current, seen, nodeScale, preview = false) {
   const island = new T.Group();
   island.position.set(node.position[0], 0.08, node.position[1]);
   island.userData.expeditionNodeId = node.id;
+  island.userData.isCurrent = Boolean(current);
+  island.userData.isPreview = Boolean(preview);
+  island.userData.isVisited = Boolean(seen);
   const marker = new T.Mesh(
-    new T.CylinderGeometry(0.4, 0.44, 0.075, 28),
-    new T.MeshStandardMaterial({ color: current ? 0x536b3b : seen ? 0x78694b : 0x6d694d, roughness: 0.94 })
+    new T.CylinderGeometry(0.34, 0.38, 0.05, 28),
+    new T.MeshStandardMaterial({ color: current ? 0x536b3b : preview ? 0x806b45 : seen ? 0x78694b : 0x6d694d, roughness: 0.94 })
   );
-  marker.position.y = 0.03; marker.castShadow = true; marker.receiveShadow = true;
+  marker.position.y = 0.02; marker.castShadow = true; marker.receiveShadow = true;
   island.add(marker);
   const ring = new T.Mesh(
-    new T.TorusGeometry(0.32, 0.024, 8, 28),
-    new T.MeshStandardMaterial({ color: current ? 0xe4dda9 : seen ? 0x8b9d72 : 0xb78b50, roughness: 0.55 })
+    new T.TorusGeometry(0.275, 0.014, 7, 28),
+    new T.MeshStandardMaterial({ color: current ? 0xe4dda9 : preview ? 0xc5a36b : seen ? 0x8b9d72 : 0x827b5c, roughness: 0.7 })
   );
-  ring.position.y = 0.075; ring.rotation.x = Math.PI / 2; island.add(ring);
+  ring.position.y = 0.048; ring.rotation.x = Math.PI / 2; island.add(ring);
   kit.addBiome(island, node.id, { groundY: 0.07, scale: nodeScale, density: 0.72 });
   const pick = new T.Mesh(
     new T.CylinderGeometry(0.45, 0.45, 0.5, 24),
@@ -57,14 +61,14 @@ function addActor(root, position, makeIsopod, scale, rotation) {
 }
 
 export function buildExpeditionMapDiorama(T, {
-  nodes, visitedNodes = [], currentNodeId = "garden-entry", seed = 0,
+  nodes, visitedNodes = [], currentNodeId = "garden-entry", previewNodeId = null, seed = 0,
   aspect = 1, makeIsopod = null, biomeId = "woodland-map",
-  paletteOverrides = {}, nodePositions = null, nodeScale = 0.52,
-  actorScale = 0.38, scatterDensity = 0.65
+  paletteOverrides = {}, nodePositions = null, nodeScale = 0.58,
+  actorScale = 0.42, scatterDensity = 1
 } = {}) {
   const portrait = aspect < 0.78;
   const kit = createDioramaKit({ shape: "esferico", radius: 2.62, seed, paletteOverrides });
-  const root = kit.createBase(2.75);
+  const root = kit.createBase(2.75,{plinthDepth:0.14,soilDepth:0.09,plinthOverhang:0.04,rimRadius:0.018});
   const localPositions = nodePositions
     ? { ...(portrait ? PORTRAIT_MAP_POSITIONS : MAP_POSITIONS), ...nodePositions }
     : (portrait ? PORTRAIT_MAP_POSITIONS : MAP_POSITIONS);
@@ -75,27 +79,35 @@ export function buildExpeditionMapDiorama(T, {
       base[1] + (kit.random() - 0.5) * (portrait ? 0.11 : 0.13)
     ];
   }
-  kit.addBiome(root, biomeId, { groundY: 0.078, density: 0.8 });
+  kit.addBiome(root, biomeId, { groundY: 0.078, density: 1 });
+  kit.addAsset(root, "groundcover", {
+    groundY: 0.078, count: Math.round(260 * scatterDensity), kind: "groundcover",
+    name: "expedition-groundcover",
+    colors: [0x496b3b, 0x5d7d43, 0x759451]
+  });
   kit.addAsset(root, "leaf-litter", {
-    groundY: 0.078, count: Math.round(72 * scatterDensity), kind: "ground",
+    groundY: 0.078, count: Math.round(200 * scatterDensity), kind: "ground",
+    name: "expedition-leaf-litter",
     colors: [0x6c5038, 0x856343, 0xa17c4f, 0x596542, 0xb18a58]
   });
   const links = new Set();
+  const trailMaterial = new T.MeshStandardMaterial({color:0x6c7b50,roughness:0.99,metalness:0});
   for (const node of Object.values(nodes ?? {})) {
     for (const target of node.links ?? []) {
       const key = [node.id, target].sort().join("|");
       if (links.has(key)) continue;
       links.add(key);
       const a = positionMap[node.id], b = positionMap[target];
-      if (a && b) addPath(T, root, [a[0], 0.17, a[1]], [b[0], 0.17, b[1]], kit.materials.barkEdge);
+      if (a && b) addPath(T, root, [a[0], 0.095, a[1]], [b[0], 0.095, b[1]], trailMaterial);
     }
   }
   const visited = new Set(visitedNodes);
   for (const node of Object.values(nodes ?? {})) {
     const [x, z] = positionMap[node.id] ?? [0, 0];
-    addNodeMarker(T, kit, root, { ...node, position: [x, z] }, node.id === currentNodeId, visited.has(node.id), nodeScale);
+    addNodeMarker(T, kit, root, { ...node, position: [x, z] }, node.id === currentNodeId, visited.has(node.id), nodeScale, node.id === previewNodeId);
   }
-  const current = positionMap[currentNodeId] ?? [0, 0];
+  const actorNodeId=currentNodeId??"garden-entry";
+  const current = positionMap[actorNodeId] ?? [0, 0];
   addActor(root, [current[0] - 0.43, 0.17, current[1] + 0.38], makeIsopod, actorScale, -0.5);
 
   const localMapPositions = structuredClone(positionMap);
@@ -104,6 +116,7 @@ export function buildExpeditionMapDiorama(T, {
     for (const [id, position] of Object.entries(positionMap)) positionMap[id] = [position[0] * 0.55, position[1] * 1.05];
   }
   root.userData.mapPositions = positionMap;
+  root.userData.expeditionTrailCount = links.size;
   root.userData.mapPositionsLocal = localMapPositions;
   root.userData.expeditionPortrait = portrait;
   root.userData.expeditionScene = "map";

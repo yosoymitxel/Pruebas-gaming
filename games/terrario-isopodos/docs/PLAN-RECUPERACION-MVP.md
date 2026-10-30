@@ -2,12 +2,12 @@
 
 **Auditoría normativa:** `framework/BASELINE-VIDEOJUEGO.md` y `framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md`.  
 **Producto:** [Especificación técnica](ESPECIFICACION-TERRARIO-ISOPODOS.md).  
-**Base de auditoría:** `main` en `6590ff5ffc7f892962d17f389015cde0ba6eacd2` (29-10-2026), contrastada con el código de la rama activa.  
-**Integración actual:** PR #14 se fusionó mediante squash en `main` como `7bf5ff65521b4581126367c0190226f2115a0e9e`; las correcciones documentales posteriores se mantienen en la única rama activa `feat/isopod-render-spike`.  
-**Validación de PR #14:** Framework checks [40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450) y Terrario checks [40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742) terminaron correctamente. Playwright registró el merge ref `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75`; su evidencia está en el [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939). No se ha verificado todavía el deployment de Pages del SHA integrado.  
-**Estado general:** vertical jugable; **MVP completo NO APROBADO**. No confundir código presente con criterio de aceptación demostrado.
+**Snapshot vigente — 30-10-2026:** `main` = `2f5dbe1c63f644f820d7897e022aabda0b7533c3`, PR #19 fusionada mediante squash. La rama `feat/isopod-render-spike` contiene únicamente seguimiento documental posterior; el código del juego no diverge del merge de PR #19. El SHA probado antes del squash fue `99e860ad05bb06553bd29c5360dea17ab1638edd`.  
+**Validación vigente:** Terrario MVP [41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251), Terrario game [41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122) y Framework [41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312) terminaron PASS. Artefacto visual inspeccionado: [12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214).  
+**Pages:** build y deployment publicados para el merge SHA por [run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831); URL: https://yosoymitxel.github.io/Pruebas-gaming/. La validación Playwright post-deployment [41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637) también terminó PASS.  
+**Estado general:** expediciones 3D funcionales e integradas; DESIGN_GATE parcial por deuda visual. **MVP completo NO APROBADO.** La auditoría vigente añadida al final de este documento supersede snapshots históricos.
 
-## Auditoría vigente de errores y tareas — 30-10-2026
+## Auditoría histórica de errores y tareas — snapshot temprano f751e32 (30-10-2026)
 
 **Snapshot comprobado:** main = 714504c0562bda5734cd6238fff8cd5611e9e91c; rama activa feat/isopod-render-spike = f751e327c156fef9997aac76441858a8a583af96. No hay PR abierta. Los commits visuales de esta rama todavía no están integrados en main ni publicados en Pages.
 
@@ -175,7 +175,7 @@ La especificación de diseño está implementada en el dominio y conectada a una
 No integrar a `main` hasta que las cuatro puertas aplicables estén verificadas en el mismo SHA.
 
 
-## Seguimiento de implementación visual y expediciones — 30-10-2026
+## Seguimiento histórico tras PR #18 — 30-10-2026
 
 **Integración periódica:** PR #18, `feat(terrario): add turn-based expeditions`, fusionada mediante squash en `main`. SHA integrado: `c09945d6e5e683e96eb9a96655ee748a8b009d89`. La rama de trabajo única `feat/isopod-render-spike` quedó sincronizada al mismo SHA.
 
@@ -211,3 +211,43 @@ Para el commit integrado `c09945d6e5e683e96eb9a96655ee748a8b009d89`, el build de
 - GAMEPLAY_GATE: recorrido de expedición validado; drag sobre meshes y casos de borde quedan por demostrar en navegador.
 - DESIGN_GATE: capturas reales actuales del SHA pre-squash; la siguiente ejecución sobre `main` debe volver a producir evidencia tras los cambios nuevos.
 - INTEGRATION_GATE: no se observó pérdida del renderer en la expedición; deployment Pages pendiente del servicio.
+
+
+## Auditoría vigente tras PR #19 — 30-10-2026
+
+### Integración y evidencia
+
+- `main` = `2f5dbe1c63f644f820d7897e022aabda0b7533c3`.
+- `feat/isopod-render-spike` quedó sincronizada a ese mismo SHA.
+- PR #19 integró el mapa y encuentros como dioramas 3D, picking por hitboxes y el kit compartido.
+- SHA probado antes del squash: `99e860ad05bb06553bd29c5360dea17ab1638edd`.
+- Terrario MVP [41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251), Terrario game [41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122) y Framework [41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312): PASS.
+- Evidencia Playwright [12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214): 1440×1000, 390×844 y 360×640; Chromium 156.0.8078.4; zero console errors; no horizontal overflow.
+- Pages build/deploy [41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831): build y deploy PASS para el merge SHA. El workflow de verificación post-deployment [41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637) también terminó PASS.
+
+### Pendientes vigentes, por prioridad
+
+| Prioridad | Tarea | Criterio de cierre |
+|---|---|---|
+| P0 | Lockfile reproducible | Versionar `package-lock.json`, sustituir `npm install` por `npm ci` en CI/Pages y probar checkout limpio. |
+| P0 | Fuente única de verdad | Dominio solo cambia mediante comandos validados; preferencias, sesión y estado UI separados. Añadir tests de invariantes. |
+| P1 | Vite con vulnerabilidad moderada | `package.json` fija Vite 6.4.4; npm audit detecta GHSA-8g5g-mxqh-grgj. Revisar compatibilidad y subir a versión corregida; quitar la tolerancia al nivel high tras limpiar el árbol. |
+| P1 | Chunk principal >500 kB | Build informa un chunk minificado sobre 500 kB; analizar bundle y aplicar code splitting real sin elevar el límite como atajo. |
+| P1 | Pulido del mapa de expedición | Más cobertura orgánica irregular, escala de props y hotspots legible; HUD no debe restar lectura al diorama. Capturas comparativas. |
+| P1 | Ficha y selección de isópodo | Selección por ID estable y ficha coherente en ambos renderers. |
+| P1 | Ciclo vital / descubrimientos | Reglas deterministas de nacimientos/reproducción y catálogo de descubrimientos con persistencia. |
+| P1 | Persistencia completa | Autosave, slots, renombrar/borrar, backup válido, migraciones y export/import seguro. |
+| P1 | Navegación ecológica | Colisionadores del dressing procedural integrados en la navegación sin acoplar reglas al renderer. |
+| P2 | Accesibilidad y motion | Teclado/foco, contraste, safe areas y `prefers-reduced-motion` para la cámara y animaciones. |
+| P2 | WebGL | Probar recuperación real ante pérdida de contexto, además del caso de contexto no disponible al inicio. |
+| P2 | Movimiento reducido y accesibilidad | La animación de clima/actor consulta `prefers-reduced-motion`, pero la auto-rotación de cámara aún incrementa el ángulo sin comprobarlo. Añadir una prueba Playwright y ampliar teclado/foco/contraste. |
+| P2 | Dispositivos físicos | Safari/iOS y Android, orientación, zoom, scroll y restauración de pestaña. |
+| P2 | Toolchain CI | Avisos Node 20 en acciones de GitHub y deprecaciones `punycode`/`url.parse`; actualizar cuando las acciones/dependencias compatibles estén disponibles. |
+
+### Decisión Voxel aclarada
+
+La implementación actual crea el isópodo Voxel con bloques volumétricos de `THREE.InstancedMesh` en `src/renderers.js`; no utiliza un sprite Canvas 2D como representación principal. Las referencias históricas de este plan a un sprite/atlas no describen el renderer actual y deben leerse como una decisión anterior que fue sustituida por voxel volumétrico. Mantener una comprobación visual y de rendimiento antes de cerrar el criterio Voxel de la especificación.
+
+### Skills
+
+`game-project-orchestrator` y `game-project-skeleton` están disponibles localmente y se leyeron en esta revisión. Anti-Slop, Ponytail, Taste, Impeccable y las skills especializadas de GameDev/UI/save/input figuran en el catálogo o manifest, pero no están instaladas como copias locales validadas en este checkout.

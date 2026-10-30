@@ -2,17 +2,29 @@
 
 Sandbox ecológico de navegador centrado inicialmente en *Armadillidium vulgare*.
 
-## Estado actual
+## Estado actual — 30-10-2026
 
-**Vertical jugable inicial implementada; CI y smoke de navegador aprobados para el alcance probado. El MVP completo sigue NO APROBADO.**
+**PR #19 integrada en `main`** mediante squash. Commit: `2f5dbe1c63f644f820d7897e022aabda0b7533c3`.
 
-La revisión de integración de PR #14 ejecutó y aprobó los tests unitarios, el build de producción y el smoke real de Playwright. El workflow de Terrario fue [40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742); los checks del framework fueron [40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450). El manifiesto Playwright registra el commit sintético de integración `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75`, Chromium 156.0.8078.4 y viewports 1440×1000 / 390×844. Sus capturas están en el [artefacto 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939).
+La integración añade el mapa de exploración y los encuentros como dioramas 3D interactivos, además de un kit procedural compartido entre el terrario y las expediciones. Se conserva la instancia del renderer/canvas al entrar, navegar y regresar.
 
-PR #14 quedó integrada mediante squash en `main` con el commit `7bf5ff65521b4581126367c0190226f2115a0e9e`. Las correcciones documentales posteriores se trabajaron en la misma rama activa `feat/isopod-render-spike`; no se creó una rama adicional. **No se da por verificado todavía el deployment de GitHub Pages correspondiente al commit integrado.**
+Validación previa al squash sobre `99e860ad05bb06553bd29c5360dea17ab1638edd`:
+- [Terrario MVP checks — run 41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251): PASS.
+- [Terrario game checks — run 41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122): PASS.
+- [Framework checks — run 41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312): PASS.
+- [Evidencia Playwright — artefacto 12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214): capturas reales de escritorio, móvil, mapa, encuentros y liquidación. Chromium 156.0.8078.4; 1440×1000, 390×844 y 360×640; cero errores de consola y sin overflow horizontal.
 
-Incluye escena Three.js, recipientes rectangular/cilíndrico con paredes, representaciones Diorama y Voxel dentro de la misma escena, cámara orbital/táctil, ajuste de encuadre y niebla al viewport, simulación determinista mínima, controles ambientales y guardado local versionado. El smoke cubre menú, ajustes/ayuda, cambio de renderer, pausa, controles táctiles, guardado/recarga, paredes de ambas formas y viewport móvil.
+GitHub Pages publicó el merge SHA mediante [pages build and deployment — run 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831). La URL del sitio es https://yosoymitxel.github.io/Pruebas-gaming/. La validación post-deployment adicional terminó PASS en [run 41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637), también sobre el merge SHA.
 
-Las brechas del esqueleto transversal están registradas en [PLAN-RECUPERACION-MVP.md](docs/PLAN-RECUPERACION-MVP.md). Entre ellas: fuente única de verdad aún parcial, autoguardado, exportación/importación, catálogo i18n, reproducción/fichas/descubrimientos, recuperación WebGL y atlas real de sprites Voxel. La ausencia de lockfile también impide una instalación estricta con `npm ci`.
+**El MVP completo sigue NO APROBADO.** El mapa y los encuentros ya funcionan y son seleccionables, pero la composición todavía es demasiado despejada: falta densidad orgánica en el terreno, aumentar algunos props/hotspots y revisar solapamientos visuales del HUD. Las brechas del esqueleto siguen en el plan de recuperación.
+
+## Lo que contiene
+
+- Escena Three.js con recipientes rectangular, cilíndrico y esférico.
+- Representaciones Diorama y Voxel sobre el mismo estado de dominio.
+- Kit de dioramas procedural basado en los generadores naturales de `src/terrarium-art.js`, reutilizado en el terrario y las expediciones.
+- Cámara orbital/táctil, simulación ecológica lúdica, controles ambientales y guardado local.
+- Expediciones opcionales por turnos, con cinco nodos, eventos, botín, mejoras, persistencia de run y liquidación de una jornada.
 
 ## Arranque
 
@@ -24,26 +36,32 @@ npm test
 npm run dev
 ```
 
-Verificación de producción: `npm run build`. Aún falta generar y versionar el lockfile para habilitar `npm ci`. La automatización CI ejecuta tests, build y smoke test Playwright, con capturas desktop/móvil como artefactos.
+Verificación de producción:
+
+```sh
+npm run build
+```
+
+**Pendiente P0:** no hay `package-lock.json` versionado. CI usa `npm install`; falta pasar a instalación reproducible con `npm ci` tras generar y revisar el lockfile.
 
 ## Dioramas reutilizables
 
-El juego incluye un kit procedural compartido para configurar biomas, piezas, semillas, densidades y paletas en el terrario y las expediciones: [Kit de dioramas](docs/DIORAMA-KIT.md).
+El juego incluye un kit procedural para configurar biomas, piezas, semillas, densidades, formas, escalas y paletas en el terrario y las expediciones: [Kit de dioramas](docs/DIORAMA-KIT.md). La API aún es específica de este juego; no está extraída como biblioteca común para los demás juegos del repositorio.
 
 ## Documentación
 
-- [Expediciones por turnos: diseño, economía, máquina de estados y aceptación](docs/EXPEDICIONES-POR-TURNOS.md)
-
+- [Expediciones por turnos](docs/EXPEDICIONES-POR-TURNOS.md)
 - [Especificación técnica y criterios de aceptación](docs/ESPECIFICACION-TERRARIO-ISOPODOS.md)
-- [Decisión de render y referencias Dioramas](docs/DECISION-RENDER.md)
-- [Gates y estado del spike](docs/SPIKE-RENDER.md)
-- [Informe de calidad y bloqueos](docs/QUALITY-REPORT.md)
-- [Matriz de cumplimiento del esqueleto y plan de recuperación](docs/PLAN-RECUPERACION-MVP.md)
+- [Decisión de render](docs/DECISION-RENDER.md)
+- [Spike de render](docs/SPIKE-RENDER.md)
+- [Informe de calidad](docs/QUALITY-REPORT.md)
+- [Plan de recuperación del MVP](docs/PLAN-RECUPERACION-MVP.md)
 
-## Límites
+## Límites vigentes
 
-- Código, assets, pruebas y documentación exclusivos del juego viven en esta carpeta.
-- No modificar ni duplicar skills compartidas.
-- El cambio de renderer no debe reiniciar ni duplicar el estado.
-- Humedad y temperatura son datos ilustrativos, no un modelo biológico validado.
-- No declarar el MVP completo mientras los criterios aplicables del esqueleto sigan pendientes.
+- Fuente única de verdad todavía parcial: separar dominio, preferencias, sesión y estado de UI.
+- Persistencia general incompleta: faltan autoguardado, slots, backup, exportación/importación y recuperación integral.
+- Observación/ciclo vital incompletos: selección/ficha, nacimientos/reproducción y descubrimientos.
+- Fallback por falta de WebGL probado; la recuperación tras pérdida de contexto real necesita cobertura adicional.
+- Accesibilidad, movimiento reducido y dispositivos físicos aún requieren más validación.
+- El microclima y las tasas biológicas son simplificaciones lúdicas, no un modelo científico validado.

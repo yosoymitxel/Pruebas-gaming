@@ -1,79 +1,99 @@
 # Informe de calidad — Terrario de isópodos
 
-**Rama activa del juego:** `feat/isopod-render-spike`  
-**Integración:** PR #14 fusionada mediante squash en `main`; merge commit `7bf5ff65521b4581126367c0190226f2115a0e9e`. Las correcciones documentales posteriores se trabajan en la misma rama activa.  
-**Estado:** CI de PR aprobado para el alcance probado; deployment de Pages del SHA integrado pendiente de verificación. **MVP completo NO APROBADO.**
+**Fecha de revisión:** 30-10-2026  
+**Rama única de trabajo:** `feat/isopod-render-spike`  
+**main:** `2f5dbe1c63f644f820d7897e022aabda0b7533c3`  
+**Integración:** [PR #19](https://github.com/yosoymitxel/Pruebas-gaming/pull/19), squash merge.  
+**Estado del producto:** vertical jugable con expediciones 3D integradas; **MVP completo NO APROBADO**.
 
-La matriz normativa del esqueleto, los sistemas ausentes y sus criterios están en [PLAN-RECUPERACION-MVP.md](PLAN-RECUPERACION-MVP.md).
+## Evidencia vigente
 
-## Evidencia actual de PR #14
+El SHA probado antes del squash fue `99e860ad05bb06553bd29c5360dea17ab1638edd`; el merge squash conserva ese árbol de cambios en `main`.
 
-- **Terrario game checks:** [run 40979999742](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742), job `validate` completado con éxito. Los pasos de tests unitarios, build de producción, smoke Playwright y subida de evidencia terminaron correctamente.
-- **Framework checks:** [run 40979999450](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999450), job `validate` completado con éxito.
-- **Commit ejecutado por Playwright:** el manifiesto registra el merge ref sintético `10b3d2af6c1a4b00c5a5a5e5c340d1cc0aee7e75` (PR head `67f54cc87f2dc74f2ef2d053c5d04616b3697c61` integrado temporalmente sobre la base `6590ff5ffc7f892962d17f389015cde0ba6eacd2`). PR #14 quedó después fusionada por squash en `7bf5ff65521b4581126367c0190226f2115a0e9e`; no se afirma que esos workflows se ejecutaran después del squash.
-- **Artefacto visual:** [evidencia Playwright 12944302939](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/40979999742/artifacts/12944302939), ZIP de 1.9 MB, Chromium 156.0.8078.4, viewports 1440×1000 y 390×844. Se inspeccionaron capturas de Diorama y Voxel en escritorio y del recipiente rectangular en móvil.
-- El manifiesto registra menú, setup, IDs únicos, ajustes/ayuda, foco y Escape de diálogos, cambio de renderer, zoom táctil, guardado/recarga, bandeja móvil, ausencia de overflow horizontal y cero errores de consola/red.
-- **GitHub Pages:** el deployment asociado al merge SHA no se ha verificado en este informe.
+| Comprobación | Resultado |
+|---|---|
+| [Terrario MVP checks — 41089329251](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251) | PASS |
+| [Terrario game checks — 41089338122](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338122) | PASS |
+| [Framework checks — 41089338312](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089338312) | PASS |
+| [Artefacto visual — 12993906214](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41089329251/artifacts/12993906214) | Generado e inspeccionado |
+| [Pages build and deployment — 41091166831](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091166831) | Build y deploy PASS sobre el merge SHA |
 
-## Estado del esqueleto transversal
+El manifiesto del artefacto registra Chromium 156.0.8078.4, origen local del checkout probado, captura a las 2026-10-30T16:29:11.706Z, viewports 1440×1000, 390×844 y 360×640, cero errores de consola y `horizontalOverflow: false`.
 
-| Sistema | Estado | Hallazgo |
-|---|---|---|
-| Inicio / menú / nueva partida | PASS en el alcance probado | El menú carga y una partida corrupta no bloquea crear una nueva. |
-| Flujo de pantallas | PARCIAL | Hay navegación funcional; falta formalizar y cubrir todas las transiciones como router/estados explícitos. |
-| HUD y autoridad del estado | PARCIAL | La vista se deriva en buena medida del dominio, pero persisten mutaciones desde UI y duplicidad entre preferencias, sesión y dominio. |
-| Pausa / reanudación | PASS en el smoke | Se prueba pausa y avance manual; falta ampliar pruebas de regresión de transiciones. |
-| Nueva partida / reinicio | PARCIAL | Nueva partida funciona; política completa de reinicio/borrado/recuperación no está cerrada. |
-| Configuración persistente | PARCIAL | Hay preferencias locales de modo visual, giro y calidad; falta prueba completa de aislamiento y persistencia de todos los ajustes aplicables. |
-| Idioma | PENDIENTE | No existe catálogo i18n con fallback; cadenas españolas permanecen dispersas. |
-| Temas | NO APLICA | Diorama y Voxel son representaciones del mismo mundo, no temas. |
-| Guardado / carga | PARCIAL | Un único slot local, esquema v1 y validación; faltan migraciones probadas, backup válido, slots y recuperación integral. |
-| Exportar / importar | PENDIENTE | No implementado. |
-| Autoguardado | PENDIENTE | No implementado con puntos seguros y feedback. |
-| Victoria / derrota | NO APLICA | Es un sandbox libre sin condición final obligatoria; no se inventa una pantalla terminal. |
-| Ayuda | PARCIAL | Existe ayuda básica; faltan instrucciones completas y límites del modelo. |
-| Input | PARCIAL | Ratón/tacto para cámara y teclado para navegación general; faltan alternativas de teclado para algunas acciones de juego. |
-| Audio | PENDIENTE, no bloqueante | No existe audio; si se incorpora deberá haber controles persistentes de mute/volumen. |
-| Responsive / safe areas | PASS en viewports probados; cobertura física parcial | Smoke en escritorio y 390×844; no equivale a certificar todos los dispositivos físicos. |
-| Accesibilidad | PARCIAL | Diálogos y CSS reduced-motion presentes; giro automático y cobertura de foco/teclado/contraste aún incompletos. |
-| Errores / diagnóstico | PARCIAL | Hay errores de persistencia visibles; falta recuperación probada ante WebGL no disponible o pérdida de contexto. |
-| Build / publicación | PARCIAL | Build Vite pasa; no hay lockfile para `npm ci` y Pages del merge SHA no está verificado. |
-| QA | PASS para el alcance probado | Los workflows ejecutaron tests, build, smoke y artefacto real; los sistemas incompletos no quedan aprobados por ello. |
+Métricas del renderer del terrario en el smoke: 96 draw calls, 118.601 triángulos, 88 geometrías, 5 texturas, 570 instancias de hojarasca/cobertura, 645 hojas de helecho y 32 almohadillas de musgo. Son métricas de esa escena/build, no un benchmark de todos los dispositivos.
 
-## Brechas restantes prioritarias
+## Alcance de PR #19
 
-- **P0 — Dependencias reproducibles:** falta `package-lock.json` y una instalación limpia con `npm ci`.
-- **P0 — Fuente única de verdad:** separar preferencias, sesión y dominio; evitar que la UI cambie campos del dominio fuera de operaciones validadas.
-- **P1 — Experiencia de observación:** faltan población/tamaño inicial configurable, selección/ficha de isópodo, reproducción/ciclo vital y descubrimientos.
-- **P1 — Persistencia completa:** faltan autosave, slots, renombrado/borrado, migraciones y exportación/importación segura.
-- **P1 — Voxel:** la textura actual se genera en Canvas y se muestra como `THREE.Sprite`; no es un atlas/spritesheet de isópodos versionado con procedencia registrada.
-- **P1 — WebGL:** falta fallback/recuperación visible para contexto no disponible o perdido.
-- **P2 — Accesibilidad y pulido:** la cámara automática debe respetar `prefers-reduced-motion`; ampliar teclado y pruebas en dispositivos físicos.
-- **P2 — Recursos:** verificar todos los tipos comprados, su representación y su persistencia round-trip.
-
-## Correcciones integradas en PR #14
-
-- Geometría compartida del hábitat y límites de movimiento/compra para recipientes rectangular y cilíndrico.
-- Paredes y bordes de ambos recipientes, con materiales transparentes ajustados.
-- Cámara adaptada a forma/aspecto y niebla relacionada con distancia para evitar que el hábitat desaparezca en móvil.
-- Validación del guardado antes de habilitar «Continuar partida».
-- Tests unitarios y smoke de navegador para guardado corrupto, formas, paredes y encuadre móvil.
-- Corrección de una referencia rota en la skill de orquestación y política explícita de una sola rama larga por juego.
+- Mapa del jardín y encuentros convertidos a dioramas 3D.
+- Hotspots físicos por raycast para nodos y elecciones; botones accesibles alternativos.
+- Picking limitado a las hitboxes explícitas, para que los props decorativos no intercepten el clic.
+- Coordenadas de hotspot proyectadas por la cámara activa, compartidas con la prueba de navegador.
+- Un único `WebGLRenderer` y canvas al entrar al mapa, pasar a un encuentro y regresar al terrario.
+- Reanudación de una run activa después de guardar/recargar y liquidación de una jornada al regresar.
+- Kit procedural reutilizable dentro del juego, basado en los generadores de `terrarium-art.js`, sin duplicar helechos, musgo, rocas, raíces, troncos o setas.
 
 ## Puertas de calidad
 
-| Puerta | Estado | Evidencia / cierre requerido |
+| Puerta | Estado | Alcance demostrado / límite |
 |---|---|---|
-| CODE_GATE | PASS para el alcance validado | Unit tests y build pasan en run 40979999742; framework checks pasan en 40979999450. Falta resolver lockfile/instalación reproducible. |
-| GAMEPLAY_GATE | PASS para el alcance del smoke | Menú, setup, modo visual, pausa, recursos, guardado/recarga y controles móviles pasan. No certifica las funciones marcadas PENDIENTE/PARCIAL. |
-| DESIGN_GATE | PASS para la corrección visual probada | Capturas reales del artefacto 12944302939 inspeccionadas; el smoke no registró errores de consola/red ni overflow horizontal. La cobertura de dispositivos físicos sigue parcial. |
-| INTEGRATION_GATE | PENDIENTE SOLO PARA DEPLOYMENT | PR #14 está fusionada y la rama activa continúa el trabajo desde ese merge. Falta comprobar que Pages publica el SHA integrado. |
+| CODE_GATE | PASS | Auditoría de dependencias, tests Node y build de producción completados en los workflows del SHA probado. |
+| GAMEPLAY_GATE | PASS para el alcance probado | Inicio del sandbox, selección 3D de nodo, elección, guardado/reanudación, retorno y avance diario; tests de dominio de expediciones. No certifica funciones ecológicas aún ausentes. |
+| DESIGN_GATE | PARCIAL | El layout 3D, interacción y responsive se probaron y las capturas fueron inspeccionadas. El mapa sigue visualmente vacío en zonas amplias, varios props son pequeños y hay que pulir composición/HUD antes de considerar cerrada la dirección visual. |
+| INTEGRATION_GATE | PASS para PR #19 | El renderer/canvas se conserva; el sitio se construyó y publicó con el merge SHA. La validación post-deployment adicional terminó PASS en [run 41091167637](https://github.com/yosoymitxel/Pruebas-gaming/actions/runs/41091167637). |
 
-## Política de ramas aplicada
+La integración se realizó como avance funcional bajo la petición de merge; **no implica que el DESIGN_GATE del arte general ni el MVP completo estén cerrados**.
 
-- `main`: rama compartida de integración.
-- `feat/isopod-render-spike`: única rama activa de trabajo para este juego.
-- `ci/terrario-pr-checks`, `fix/framework-validation`, `fix/isopod-polish` y `fix/isopod-polish-validated`: ramas históricas obviadas; no se integraron ni se borraron.
-- Los cambios de implementación, pruebas y documentación se hacen en la misma rama activa; tras integrar una PR, se sincroniza con `main`.
+## Matriz resumida del esqueleto transversal
 
-No declarar el MVP completo hasta cerrar los sistemas aplicables del baseline o registrar excepciones explícitas y aprobadas.
+| Sistema | Estado | Pendiente principal |
+|---|---|---|
+| Inicio / menú / nueva partida | PASS en smoke | Ampliar casos de recuperación y reinicio. |
+| Flujo de pantallas | PARCIAL | Formalizar transiciones y evitar estados UI duplicados. |
+| HUD / autoridad del estado | PARCIAL | Extraer mutaciones de dominio de la UI. |
+| Pausa / reanudación | PASS en smoke | Ampliar regresiones combinadas. |
+| Configuración persistente | PARCIAL | Separar preferencias de datos biológicos. |
+| Idioma / i18n | PENDIENTE | Catálogo español y fallback centralizados. |
+| Temas | NO APLICA | Diorama/Voxel son renderers, no temas. |
+| Guardado / carga | PARCIAL | Backup válido, migraciones completas y recovery. |
+| Exportar / importar | PENDIENTE | Formato versionado y validación atómica. |
+| Autoguardado | PENDIENTE | Guardado en puntos seguros con feedback. |
+| Victoria / derrota | NO APLICA | Sandbox ecológico sin condición terminal obligatoria. |
+| Ayuda | PARCIAL | Ampliar instrucciones y límites del modelo. |
+| Input | PARCIAL | Alternativas de teclado y cobertura de dispositivos físicos. |
+| Audio | PENDIENTE, no bloqueante | No forma parte del MVP actual. |
+| Responsive / safe areas | PASS en viewports de CI | Falta Safari/iOS y Android físico. |
+| Accesibilidad | PARCIAL | Foco/teclado integral, contraste y reduced-motion. |
+| Diagnóstico | PARCIAL | WebGL no disponible tiene aviso; pérdida de contexto requiere más cobertura. |
+| Build / publicación | PASS del SHA integrado | La instalación reproducible sigue pendiente por ausencia de lockfile. |
+| QA | PASS para PR #19 | El MVP global mantiene brechas. |
+
+## Deuda priorizada vigente
+
+### P0
+1. Versionar `package-lock.json`, migrar CI/Pages a `npm ci` y probar instalación limpia.
+2. Definir fuente única de verdad: comandos de dominio, preferencias persistentes y estado de presentación/UI separados; eliminar mutaciones directas desde `main.js`.
+
+### P1
+3. Vite está fijado en `6.4.4`; `npm audit` detecta una vulnerabilidad moderada [GHSA-8g5g-mxqh-grgj](https://github.com/advisories/GHSA-8g5g-mxqh-grgj) relacionada con el bypass de `server.fs.deny`. El workflow pasa porque usa `--audit-level=high`; no equivale a un árbol sin vulnerabilidades. El log del run 41089329251 señala fix en 6.4.5 fuera del rango declarado: revisar compatibilidad, actualizar Vite y exigir auditoría sin ese hallazgo.
+4. El build minificado advierte un chunk de más de 500 kB. Perfilar el bundle y separar Three.js/render u otras rutas diferibles sin aumentar el umbral para esconder el aviso.
+5. Observación: selección por ID estable y ficha del isópodo; después reproducción/nacimientos y catálogo de descubrimientos.
+6. Persistencia integral: autosave, múltiples slots, renombrado/borrado, backup del último guardado válido, migraciones y export/import atómico.
+7. Pulido del diorama: rellenar los vacíos del mapa con cobertura natural escalonada, dar escala legible a refugios/rocas/setas y mejorar la separación entre caminos, hotspots y vegetación. Mantener clics libres y presupuesto móvil.
+8. Revisar la decisión Voxel contra la especificación: el renderer actual usa geometría volumétrica por bloques instanciados; no es un sprite plano/Canvas. Mantener esta arquitectura solo con evidencia visual y de rendimiento suficiente.
+9. Validar navegación del isópodo frente a colisionadores del dressing procedural, no solo obstáculos de recursos.
+
+### P2
+10. Respetar `prefers-reduced-motion` en la cámara y todas las animaciones continuas.
+11. Teclado, foco, contraste, safe areas y pruebas en dispositivos reales.
+12. Recuperación tras pérdida de contexto WebGL, más allá de simular que WebGL no está disponible al arranque.
+13. Revisar recursos adquiridos/colocados y su ciclo completo de persistencia.
+14. Actualizar actions/checkout@v4, setup-node@v4 y upload-artifact@v4 al runtime recomendado cuando haya versiones compatibles; investigar avisos DEP0040/DEP0169 de dependencias del pipeline.
+
+## Skills y fuentes
+
+- **Disponibles localmente, leídas en esta revisión:** `game-project-orchestrator` y `game-project-skeleton`.
+- **Contratos leídos:** `AGENTS.md`, `framework/README.md`, `framework/ORCHESTRATION.md`, `framework/QUALITY-GATES.md`, `framework/TASK-PROFILES.md`, `framework/BASELINE-VIDEOJUEGO.md`, `framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md`.
+- **Fuentes catalogadas, no instaladas localmente:** Anti-Slop, Ponytail, Taste, Impeccable, GameDev Agent Skills y Emil skills. No se afirma que hayan sido leídas o ejecutadas desde el checkout en esta revisión.
+- `game-ui-ux`, `save-systems` e `input-systems` siguen identificadas, pero sin copia local validada.
+
+El estado de esta auditoría supersede los snapshots históricos anteriores del archivo y de `PLAN-RECUPERACION-MVP.md`.
