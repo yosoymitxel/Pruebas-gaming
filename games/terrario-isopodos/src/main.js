@@ -95,21 +95,6 @@ function openModal(title,body,{push=true}={}){
  $("#modal-title").textContent=title;$("#modal-body").innerHTML=body;modal.hidden=false;
  $("#close-modal").focus({preventScroll:true});
 }
-function ensureRenderer(){
- if(renderer)return renderer;
- try{
-  renderer=new TerrariumRenderer($("#scene"),state);
-  renderer.setQuality(settings.quality);
-  return renderer;
- }catch(error){
-  renderer=null;
-  state.running=false;
-  $("#scene").replaceChildren();
-  console.error("[Terrario] No se pudo inicializar WebGL:",error);
-  openModal("No se pudo iniciar el terrario",`<p>El navegador no pudo crear la escena 3D necesaria para este terrario.</p><p>Comprueba que WebGL y la aceleración por hardware estén disponibles, actualiza el navegador y vuelve a intentar.</p><button class="menu-primary" id="reload-app">Reintentar</button>`);
-  return null;
- }
-}
 function closeModal({all=false}={}){
  if(!all&&modalHistory.length){
   const previous=modalHistory.pop();openModal(previous.title,previous.body,{push:false});if(previous.pause)modal.classList.add("is-pause");
