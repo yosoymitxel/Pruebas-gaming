@@ -1,5 +1,6 @@
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const BASE_Y = 0.19;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -35,7 +36,7 @@ function texture(kind, seed) {
   if (!ctx) return null;
   const pixels = ctx.createImageData(128, 128);
   const random = rng(seed);
-  const base = kind === "moss" ? [80, 108, 48] : kind === "bark" ? [83, 53, 32] : [104, 78, 49];
+  const base = kind === "moss" ? [112, 143, 65] : kind === "bark" ? [105, 73, 45] : [112, 85, 54];
   for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
     const i = (y * 128 + x) * 4;
     const wave = Math.sin(x * 0.22 + Math.sin(y * 0.08) * 1.8) * Math.cos(y * 0.17) * 10;
@@ -95,6 +96,22 @@ function point(random, shape, radius, margin = 0.1) {
 function addTube(group, points, radius, material, segments = 14) {
   const curve = new T.CatmullRomCurve3(points.map(p => new T.Vector3(...p)));
   const tube = new T.Mesh(new T.TubeGeometry(curve, segments, radius, 5, false), material);
+  tube.castShadow = true;
+  tube.receiveShadow = true;
+  group.add(tube);
+  return tube;
+}
+
+function addMergedTubes(group, paths, radius, material, segments = 24) {
+  const geometries = paths.map(points => {
+    const curve = new T.CatmullRomCurve3(points.map(p => new T.Vector3(...p)));
+    return new T.TubeGeometry(curve, segments, radius, 5, false);
+  });
+  if (!geometries.length) return null;
+  const merged = mergeGeometries(geometries, false);
+  for (const geometry of geometries) geometry.dispose();
+  if (!merged) throw new Error("No se pudieron combinar los tubos del hábitat");
+  const tube = new T.Mesh(merged, material);
   tube.castShadow = true;
   tube.receiveShadow = true;
   group.add(tube);
@@ -217,9 +234,10 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
   const seeds = shape === "esferico"
     ? [[-0.58, -0.42, 0.68], [0.55, -0.4, 0.58], [-0.35, 0.57, 0.5], [0.44, 0.52, 0.52]]
     : [[-1.08, -0.56, 0.7], [1.08, -0.52, 0.62], [-1.1, 0.46, 0.55], [0.98, 0.48, 0.68], [-0.12, 0.78, 0.42]];
-  const leaves = new T.InstancedMesh(leafGeo, materials.fern, 620);
+  const leaves = new T.InstancedMesh(leafGeo, materials.fern, 820);
+  const stems = new T.InstancedMesh(new T.CylinderGeometry(.005,.011,1,6), materials.fernStem, 820);
   const dummy = new T.Object3D();
-  let used = 0;
+  let used = 0, stemCount = 0;
   for (const [x, z, size] of seeds) {
     if (!inside(x, z, shape, radius)) continue;
     const base = terrainHeightAt(x, z, shape, radius);
@@ -236,7 +254,15 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
           z + direction.z * length * t
         ]);
       }
-      addTube(group, points, 0.006 + size * 0.004, materials.fernStem, 14);
+      for (let segment = 0; segment < points.length - 1; segment++) {
+        const a = new T.Vector3(...points[segment]), b = new T.Vector3(...points[segment + 1]);
+        const direction = b.clone().sub(a);
+        dummy.position.copy(a.add(b).multiplyScalar(.5));
+        dummy.quaternion.setFromUnitVectors(new T.Vector3(0,1,0), direction.normalize());
+        dummy.scale.set(1,direction.length(),1);
+        dummy.updateMatrix();
+        stems.setMatrixAt(stemCount++,dummy.matrix);
+      }
       const across = new T.Vector3(-direction.z, 0, direction.x);
       for (let node = 1; node <= 10; node++) {
         const t = node / 11;
@@ -253,8 +279,8 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
           const vertical = new T.Vector3().crossVectors(normal, axis).normalize();
           dummy.position.copy(origin).addScaledVector(across, side * size * 0.025);
           dummy.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(axis, vertical, normal));
-          const leafLength = size * (0.2 * (1 - t) + 0.06);
-          dummy.scale.set(leafLength, 1, leafLength * 0.3);
+          const leafLength = size * (0.28 * (1 - t) + 0.09);
+          dummy.scale.set(leafLength, 1, leafLength * 0.43);
           dummy.updateMatrix();
           leaves.setMatrixAt(used, dummy.matrix);
           leaves.setColorAt(used, new T.Color([0x52763c, 0x71934c, 0x8ba75e][Math.floor(random() * 3)]));
@@ -263,6 +289,9 @@ function addFerns(group, random, shape, radius, materials, leafGeo) {
       }
     }
   }
+  stems.count = stemCount;
+  stems.instanceMatrix.needsUpdate = true;
+  group.add(stems);
   leaves.count = used;
   leaves.instanceMatrix.needsUpdate = true;
   if (leaves.instanceColor) leaves.instanceColor.needsUpdate = true;
@@ -295,7 +324,7 @@ function addMoss(group, random, shape, radius, materials, leafGeo) {
 }
 
 function addRocks(group, random, shape, radius, material) {
-  const rocks = new T.InstancedMesh(new T.DodecahedronGeometry(1, 1), material, 28);
+  const rocks = new T.InstancedMesh(new T.DodecahedronGeometry(1, 0), material, 28);
   const dummy = new T.Object3D();
   let used = 0;
   for (let i = 0; i < 28; i++) {
@@ -329,82 +358,81 @@ function addLogAndRoots(group, x, z, shape, radius, materials, random) {
     new T.Vector3(length * 0.24, 0.006, 0.026),
     new T.Vector3(length * 0.5, -0.035, 0.012)
   ]);
-  const shell = new T.Mesh(new T.TubeGeometry(curve, 40, r, 14, false), materials.bark);
-  shell.castShadow = true;
-  shell.receiveShadow = true;
+  const shell = new T.Mesh(new T.TubeGeometry(curve,40,r,14,false),materials.bark);
+  shell.castShadow=true;shell.receiveShadow=true;
   log.add(shell);
 
-  // Longitudinal fissures and knots stop the fallen wood reading as a clean pipe.
-  for (let groove = 0; groove < 9; groove++) {
-    const angle = groove / 9 * Math.PI * 2;
-    const path = [];
-    for (let sample = 0; sample <= 20; sample++) {
-      const t = sample / 20;
-      const center = curve.getPointAt(t);
-      const tangent = curve.getTangentAt(t).normalize();
-      const reference = Math.abs(tangent.y) < 0.88
-        ? new T.Vector3(0, 1, 0) : new T.Vector3(0, 0, 1);
-      const axisA = new T.Vector3().crossVectors(tangent, reference).normalize();
-      const axisB = new T.Vector3().crossVectors(tangent, axisA).normalize();
-      const radial = 0.95 + Math.sin(t * 22 + groove * 1.7) * 0.025 +
-        Math.cos(t * 47 - groove) * 0.012;
-      const offset = axisA.clone().multiplyScalar(Math.cos(angle) * r * radial)
-        .addScaledVector(axisB, Math.sin(angle) * r * radial);
+  const darkGrooves=[],lightGrooves=[];
+  for(let groove=0;groove<9;groove++){
+    const angle=groove/9*Math.PI*2,path=[];
+    for(let sample=0;sample<=20;sample++){
+      const t=sample/20,center=curve.getPointAt(t),tangent=curve.getTangentAt(t).normalize();
+      const reference=Math.abs(tangent.y)<.88?new T.Vector3(0,1,0):new T.Vector3(0,0,1);
+      const axisA=new T.Vector3().crossVectors(tangent,reference).normalize();
+      const axisB=new T.Vector3().crossVectors(tangent,axisA).normalize();
+      const radial=.95+Math.sin(t*22+groove*1.7)*.025+Math.cos(t*47-groove)*.012;
+      const offset=axisA.clone().multiplyScalar(Math.cos(angle)*r*radial)
+        .addScaledVector(axisB,Math.sin(angle)*r*radial);
       path.push(center.clone().add(offset).toArray());
     }
-    addTube(log, path, groove % 3 === 0 ? 0.0048 : 0.0032,
-      groove % 3 === 0 ? materials.darkBark : materials.barkEdge, 9);
+    (groove%3===0?darkGrooves:lightGrooves).push(path);
   }
+  addMergedTubes(log,darkGrooves,.0048,materials.darkBark,20);
+  addMergedTubes(log,lightGrooves,.0032,materials.barkEdge,20);
 
-  // Exposed cut ends: dark heartwood, one lighter growth ring and rough bark edge.
-  for (const t of [0, 1]) {
-    const center = curve.getPointAt(t);
-    const tangent = curve.getTangentAt(t).normalize();
-    const disc = new T.Mesh(new T.CircleGeometry(r * 0.76, 24), materials.darkBark);
-    disc.position.copy(center).addScaledVector(tangent, t === 0 ? -0.001 : 0.001);
-    disc.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), tangent);
-    log.add(disc);
-    const ring = new T.Mesh(new T.RingGeometry(r * 0.56, r * 0.86, 24), materials.barkEdge);
-    ring.position.copy(disc.position).addScaledVector(tangent, t === 0 ? -0.001 : 0.001);
-    ring.quaternion.copy(disc.quaternion);
-    log.add(ring);
+  const endDiscs=new T.InstancedMesh(new T.CircleGeometry(r*.76,24),materials.darkBark,2);
+  const endRings=new T.InstancedMesh(new T.RingGeometry(r*.56,r*.86,24),materials.barkEdge,2);
+  for(let i=0;i<2;i++){
+    const t=i===0?0:1,center=curve.getPointAt(t),tangent=curve.getTangentAt(t).normalize();
+    const quaternion=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,0,1),tangent);
+    const pointA=center.clone().addScaledVector(tangent,i===0?-.001:.001);
+    const matrix=new T.Matrix4().compose(pointA,quaternion,new T.Vector3(1,1,1));
+    endDiscs.setMatrixAt(i,matrix);
+    endRings.setMatrixAt(i,matrix);
   }
-  log.position.set(x, y, z);
-  log.rotation.y = random() * 0.34 - 0.17;
-  log.rotation.z = (random() - 0.5) * 0.08;
+  endDiscs.instanceMatrix.needsUpdate=true;endRings.instanceMatrix.needsUpdate=true;
+  log.add(endDiscs,endRings);
+  log.position.set(x,y,z);
+  log.rotation.y=random()*.34-.17;
+  log.rotation.z=(random()-.5)*.08;
   group.add(log);
 
-  // Roots taper into the damp soil rather than stopping at the surface.
-  addTube(group, [
-    [x - 0.22, y - 0.08, z + 0.02],
-    [x - 0.37, y - 0.19, z + 0.12],
-    [x - 0.48, terrainHeightAt(x - 0.48, z + 0.22, shape, radius) + 0.012, z + 0.22]
-  ], 0.026, materials.barkEdge, 16);
-  addTube(group, [
-    [x + 0.16, y - 0.07, z - 0.03],
-    [x + 0.31, y - 0.18, z - 0.14],
-    [x + 0.46, terrainHeightAt(x + 0.46, z - 0.23, shape, radius) + 0.01, z - 0.23]
-  ], 0.021, materials.bark, 16);
+  const rootPaths=[
+    [[x-.22,y-.08,z+.02],[x-.37,y-.19,z+.12],[x-.48,terrainHeightAt(x-.48,z+.22,shape,radius)+.012,z+.22]],
+    [[x+.16,y-.07,z-.03],[x+.31,y-.18,z-.14],[x+.46,terrainHeightAt(x+.46,z-.23,shape,radius)+.01,z-.23]]
+  ];
+  addMergedTubes(group,rootPaths,.023,materials.barkEdge,18);
 
-  for (let i = 0; i < 7; i++) {
-    const t = 0.15 + i * 0.115;
-    const point = curve.getPointAt(t);
-    const tuft = new T.Mesh(new T.SphereGeometry(1, 8, 6), materials.moss);
-    tuft.position.set(x + point.x, y + point.y + r * 0.78, z + point.z);
-    tuft.scale.set(0.045 + random() * 0.035, 0.018, 0.035 + random() * 0.025);
-    tuft.rotation.y = random() * Math.PI;
-    log.add(tuft);
+  const lichen=new T.InstancedMesh(new T.SphereGeometry(1,8,6),materials.moss,7);
+  for(let i=0;i<7;i++){
+    const t=.15+i*.115,point=curve.getPointAt(t);
+    const size=.045+random()*.035;
+    const dummy=new T.Object3D();
+    dummy.position.set(point.x,point.y+r*.78,point.z);
+    dummy.scale.set(size,.018,size*.8);
+    dummy.rotation.y=random()*Math.PI;
+    dummy.updateMatrix();
+    lichen.setMatrixAt(i,dummy.matrix);
+    lichen.setColorAt(i,new T.Color([0x668448,0x7d9854,0x91a464][i%3]));
   }
+  lichen.instanceMatrix.needsUpdate=true;
+  if(lichen.instanceColor)lichen.instanceColor.needsUpdate=true;
+  log.add(lichen);
 }
 function addRootArch(group, x, z, shape, radius, materials) {
   if (!inside(x, z, shape, radius)) return;
   const y = terrainHeightAt(x, z, shape, radius);
-  const left = new T.Mesh(new T.DodecahedronGeometry(0.14, 1), materials.rock);
-  left.position.set(x - 0.21, y + 0.08, z);
-  left.scale.set(0.9, 1.15, 0.8);
-  const right = left.clone();
-  right.position.x = x + 0.22;
-  group.add(left, right);
+  const stones = new T.InstancedMesh(new T.DodecahedronGeometry(1, 0), materials.rock, 2);
+  const dummy = new T.Object3D();
+  for (let i = 0; i < 2; i++) {
+    dummy.position.set(x + (i === 0 ? -0.21 : 0.22), y + 0.08, z + (i === 0 ? 0 : -0.04));
+    dummy.rotation.set(.12, i * .7, .08);
+    dummy.scale.set(.126,.161,.112);
+    dummy.updateMatrix();
+    stones.setMatrixAt(i,dummy.matrix);
+  }
+  stones.instanceMatrix.needsUpdate=true;
+  group.add(stones);
   addTube(group, [
     [x - 0.24, y + 0.14, z], [x - 0.19, y + 0.36, z + 0.01],
     [x - 0.02, y + 0.44, z - 0.02], [x + 0.17, y + 0.34, z - 0.03],
@@ -413,40 +441,46 @@ function addRootArch(group, x, z, shape, radius, materials) {
 }
 
 function addMushrooms(group, x, z, shape, radius, random, materials) {
-  if (!inside(x, z, shape, radius)) return;
-  for (let i = 0; i < 3; i++) {
-    const dx = (i - 1) * 0.055;
-    const dz = (random() - 0.5) * 0.08;
-    const h = 0.08 + random() * 0.075;
-    const r = 0.035 + random() * 0.02;
-    const base = terrainHeightAt(x + dx, z + dz, shape, radius);
-    const stem = new T.Mesh(new T.CylinderGeometry(r * 0.7, r, h, 9), materials.mushroomStem);
-    stem.position.set(x + dx, base + h / 2, z + dz);
-    const gills = new T.Mesh(new T.SphereGeometry(1, 12, 8), materials.mushroomGills);
-    gills.scale.set(r * 1.5, h * 0.11, r * 1.5);
-    gills.position.set(x + dx, base + h, z + dz);
-    const cap = new T.Mesh(new T.SphereGeometry(1, 16, 10), materials.mushroomCap);
-    cap.scale.set(r * 2.1, h * 0.4, r * 2.1);
-    cap.position.set(x + dx, base + h + h * 0.1, z + dz);
-    group.add(stem, gills, cap);
-  }
-}
+  if(!inside(x,z,shape,radius))return;
+  const stems=new T.InstancedMesh(new T.CylinderGeometry(.72,1,1,9),materials.mushroomStem,3);
+  const gills=new T.InstancedMesh(new T.SphereGeometry(1,12,8),materials.mushroomGills,3);
+  const caps=new T.InstancedMesh(new T.SphereGeometry(1,16,10),materials.mushroomCap,3);
+  const dummy=new T.Object3D();
+  for(let i=0;i<3;i++){
+    const px=x+(i-1)*.055,pz=z+(random()-.5)*.08;
+    const height=.08+random()*.075,radius=.035+random()*.02;
+    const base=terrainHeightAt(px,pz,shape,radiusFor(shape,radius));
+    dummy.position.set(px,base+height/2,pz);
+    dummy.scale.set(radius,height,radius);
+    dummy.rotation.y=random()*Math.PI;
+    dummy.updateMatrix();stems.setMatrixAt(i,dummy.matrix);
 
+    dummy.position.set(px,base+height,pz);
+    dummy.scale.set(radius*1.5,height*.11,radius*1.5);
+    dummy.updateMatrix();gills.setMatrixAt(i,dummy.matrix);
+
+    dummy.position.set(px,base+height+height*.1,pz);
+    dummy.scale.set(radius*2.1,height*.4,radius*2.1);
+    dummy.updateMatrix();caps.setMatrixAt(i,dummy.matrix);
+  }
+  stems.instanceMatrix.needsUpdate=true;gills.instanceMatrix.needsUpdate=true;caps.instanceMatrix.needsUpdate=true;
+  group.add(stems,gills,caps);
+}
 function palette() {
   return {
     gravel: new T.MeshStandardMaterial({ color: 0x706b5a, roughness: 1, flatShading: true }),
     soil: new T.MeshStandardMaterial({ color: 0x8f704d, map: texture("soil", 31), roughness: 0.98 }),
     humus: new T.MeshStandardMaterial({ color: 0x513b29, roughness: 1 }),
     topsoil: new T.MeshStandardMaterial({ color: 0x987956, map: texture("soil", 57), roughness: 1, vertexColors: true }),
-    moss: new T.MeshStandardMaterial({ color: 0x73924f, map: texture("moss", 73), roughness: 1 }),
-    mossSprig: new T.MeshStandardMaterial({ color: 0x71944b, roughness: 0.94, side: T.DoubleSide }),
+    moss: new T.MeshStandardMaterial({ color: 0xf0f3db, map: texture("moss", 73), roughness: 1 }),
+    mossSprig: new T.MeshStandardMaterial({ color: 0x8eaa5e, roughness: 0.96, side: T.DoubleSide }),
     leaf: new T.MeshStandardMaterial({ color: 0xa28b61, roughness: 0.96, side: T.DoubleSide }),
-    groundcover: new T.MeshStandardMaterial({ color: 0x66864b, roughness: 0.97, side: T.DoubleSide }),
-    fern: new T.MeshStandardMaterial({ color: 0x6f914e, roughness: 0.92, side: T.DoubleSide }),
+    groundcover: new T.MeshStandardMaterial({ color: 0x78984d, roughness: 0.97, side: T.DoubleSide }),
+    fern: new T.MeshStandardMaterial({ color: 0x88a85b, roughness: 0.94, side: T.DoubleSide }),
     fernStem: new T.MeshStandardMaterial({ color: 0x3f6238, roughness: 0.96 }),
-    bark: new T.MeshStandardMaterial({ color: 0x8a603d, map: texture("bark", 19), roughness: 0.96 }),
+    bark: new T.MeshStandardMaterial({ color: 0xb38a5b, map: texture("bark", 19), roughness: 0.96 }),
     darkBark: new T.MeshStandardMaterial({ color: 0x251b15, roughness: 1, side: T.DoubleSide }),
-    barkEdge: new T.MeshStandardMaterial({ color: 0xb28a5d, roughness: 0.92 }),
+    barkEdge: new T.MeshStandardMaterial({ color: 0xc49c69, roughness: 0.94 }),
     rock: new T.MeshStandardMaterial({ color: 0x817966, roughness: 1, flatShading: true }),
     mushroomStem: new T.MeshStandardMaterial({ color: 0xe0d4b8, roughness: 0.98 }),
     mushroomGills: new T.MeshStandardMaterial({ color: 0xc8b68e, roughness: 1 }),
@@ -552,11 +586,11 @@ export function buildWoodlandInterior(shape, spec) {
   const leaves = leafGeometry();
   addSubstrate(group, shape, spec, materials);
 
-  const leafLitter = makeLeaves(random, leaves, materials.leaf, shape, radius, 140,
+  const leafLitter = makeLeaves(random, leaves, materials.leaf, shape, radius, 220,
     [0x6c5038, 0x856343, 0xa17c4f, 0x596542, 0xb18a58], "ground");
   leafLitter.name = "individual-forest-litter";
   group.add(leafLitter);
-  const cover = makeLeaves(random, leaves, materials.groundcover, shape, radius, 42,
+  const cover = makeLeaves(random, leaves, materials.groundcover, shape, radius, 64,
     [0x496b3b, 0x5d7d43, 0x759451], "ground");
   cover.name = "low-groundcover";
   group.add(cover);
@@ -588,7 +622,7 @@ export function buildWoodlandInterior(shape, spec) {
     }
   }
   group.userData.visualStats = {
-    version: "woodland-diorama-v3",
+    version: "woodland-diorama-v4",
     seed,
     leafInstances: leafLitter.count + cover.count,
     fernLeaves,
