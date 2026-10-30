@@ -328,6 +328,7 @@ try{
  await unsupportedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
  await unsupportedPage.getByRole("button",{name:/Nuevo terrario/}).click();
  await unsupportedPage.getByRole("button",{name:/Entrar al terrario/}).click();
+ await unsupportedPage.locator("#screen-modal").waitFor({state:"visible",timeout:15000});
  if(!await unsupportedPage.locator("#screen-modal").isVisible())throw new Error("La falta de WebGL no muestra un aviso recuperable");
  if(!(await unsupportedPage.locator("#modal-title").textContent()).includes("No se pudo iniciar"))throw new Error("El aviso WebGL no identifica el fallo");
  if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
