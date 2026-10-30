@@ -13,7 +13,7 @@ export const EXPEDITION_NODES=Object.freeze({
   }),
   "rotting-log":Object.freeze({
     id:"rotting-log",label:"Tronco podrido",description:"La corteza húmeda oculta pequeños caminos.",
-    travelCost:1,risk:"medium",links:["garden-entry","rotten-fruit","compost-bin","web-zone"],events:[["web",4],["mites",3]]
+    travelCost:1,risk:"medium",links:["garden-entry","rotten-fruit","compost-bin","mite-nest","web-zone"],events:[["web",4],["mites",3]]
   }),
   "rotten-fruit":Object.freeze({
     id:"rotten-fruit",label:"Fruta caída",description:"Pulpa fermentada y restos vegetales.",
@@ -33,7 +33,7 @@ export const EXPEDITION_NODES=Object.freeze({
     id:"mite-nest",label:"Nido de ácaros",description:"Una colonia se refugia entre fibras y restos de corteza.",
     travelCost:2,risk:"high",unlockDiscovery:"mite-colony",
     unlockHint:"Observá una colonia de ácaros antes de acercarte.",
-    links:["mossy-stone","web-zone"],events:[["mites",1]]
+    links:["mossy-stone","rotting-log","web-zone"],events:[["mites",1]]
   }),
   "web-zone":Object.freeze({
     id:"web-zone",label:"Zona de telarañas",description:"Varios hilos tensos conectan hojas, raíces y corteza.",
