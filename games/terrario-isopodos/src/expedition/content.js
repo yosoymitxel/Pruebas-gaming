@@ -10,24 +10,24 @@ export const EXPEDITION_NODES=Object.freeze({
 });
 export const EXPEDITION_EVENT_TYPES=Object.freeze({
   web:Object.freeze({id:"web",title:"Una telaraña corta el camino",description:"Los hilos tensos bloquean el paso bajo el tronco.",options:Object.freeze([
-    Object.freeze({id:"break",label:"Romper la telaraña",detail:"Consume 1 acción y 25 de energía.",actionCost:1,energyCost:25,rewards:{decomposedWood:1}}),
-    Object.freeze({id:"detour",label:"Rodear por las hojas",detail:"Consume 2 acciones y conserva energía.",actionCost:2,energyCost:0,rewards:{organicMatter:1}})
+    Object.freeze({id:"break",label:"Romper la telaraña",detail:"Abre el paso y recupera madera descompuesta.",actionCost:1,energyCost:25,rewards:{decomposedWood:1}}),
+    Object.freeze({id:"detour",label:"Rodear por las hojas",detail:"Conserva energía y recoge restos vegetales.",actionCost:2,energyCost:0,rewards:{organicMatter:1}})
   ])}),
   fruit:Object.freeze({id:"fruit",title:"Fruta en descomposición",description:"La pulpa blanda está llena de pequeños restos aprovechables.",options:Object.freeze([
-    Object.freeze({id:"collect",label:"Recolectar pulpa",detail:"Consume 1 acción.",actionCost:1,energyCost:0,rewards:{organicMatter:3}}),
-    Object.freeze({id:"investigate",label:"Investigar las esporas",detail:"Consume 1 acción y registra un descubrimiento.",actionCost:1,energyCost:0,rewards:{freshMoss:1},discoveries:["decaying-fruit"]})
+    Object.freeze({id:"collect",label:"Recolectar pulpa",detail:"Aumenta la reserva de materia orgánica.",actionCost:1,energyCost:0,rewards:{organicMatter:3}}),
+    Object.freeze({id:"investigate",label:"Investigar las esporas",detail:"Registra las esporas encontradas en la pulpa.",actionCost:1,energyCost:0,rewards:{freshMoss:1},discoveries:["decaying-fruit"]})
   ])}),
   mites:Object.freeze({id:"mites",title:"Colonia de ácaros",description:"Un grupo de ácaros se mueve entre las fibras del sustrato.",options:Object.freeze([
-    Object.freeze({id:"observe",label:"Observar la colonia",detail:"Consume 1 acción y registra un descubrimiento.",actionCost:1,energyCost:0,discoveries:["mite-colony"]}),
-    Object.freeze({id:"forage",label:"Buscar restos",detail:"Consume 1 acción y 10 de energía.",actionCost:1,energyCost:10,rewards:{organicMatter:2}})
+    Object.freeze({id:"observe",label:"Observar la colonia",detail:"Registra el movimiento de la colonia.",actionCost:1,energyCost:0,discoveries:["mite-colony"]}),
+    Object.freeze({id:"forage",label:"Buscar restos",detail:"Recupera nutrientes entre las fibras.",actionCost:1,energyCost:10,rewards:{organicMatter:2}})
   ])}),
   dew:Object.freeze({id:"dew",title:"Bolsillo de rocío",description:"Varias gotas permanecen atrapadas bajo el musgo.",options:Object.freeze([
-    Object.freeze({id:"collect",label:"Recoger gotas",detail:"Consume 1 acción.",actionCost:1,energyCost:0,rewards:{dewDrops:2}}),
-    Object.freeze({id:"inspect",label:"Inspeccionar el musgo",detail:"Consume 1 acción.",actionCost:1,energyCost:0,rewards:{freshMoss:1}})
+    Object.freeze({id:"collect",label:"Recoger gotas",detail:"Añade agua a la reserva de exploración.",actionCost:1,energyCost:0,rewards:{dewDrops:2}}),
+    Object.freeze({id:"inspect",label:"Inspeccionar el musgo",detail:"Recupera musgo fresco del borde húmedo.",actionCost:1,energyCost:0,rewards:{freshMoss:1}})
   ])}),
   compost:Object.freeze({id:"compost",title:"Compost maduro",description:"El material oscuro está listo para recuperarse.",options:Object.freeze([
-    Object.freeze({id:"collect",label:"Recoger materia orgánica",detail:"Consume 1 acción.",actionCost:1,energyCost:0,rewards:{organicMatter:4}}),
-    Object.freeze({id:"turn",label:"Remover el compost",detail:"Consume 2 acciones.",actionCost:2,energyCost:0,rewards:{organicMatter:2,dewDrops:1}})
+    Object.freeze({id:"collect",label:"Recoger materia orgánica",detail:"Añade materia orgánica al inventario.",actionCost:1,energyCost:0,rewards:{organicMatter:4}}),
+    Object.freeze({id:"turn",label:"Remover el compost",detail:"Recupera también una gota de rocío.",actionCost:2,energyCost:0,rewards:{organicMatter:2,dewDrops:1}})
   ])})
 });
 export const EXPEDITION_UPGRADES=Object.freeze({

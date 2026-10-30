@@ -333,6 +333,14 @@ try{
  await route.click();
  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nuevo nodo no generó su evento");
  await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
+ const expeditionNodeBoxes=await page.locator(".expedition-node:visible").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};}));
+ for(let i=0;i<expeditionNodeBoxes.length;i++)for(let j=i+1;j<expeditionNodeBoxes.length;j++){
+  const a=expeditionNodeBoxes[i],b=expeditionNodeBoxes[j];
+  const overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x);
+  const overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+  if(overlapX>1&&overlapY>1)throw new Error("Los nodos del mapa se solapan en móvil");
+ }
+ if(await page.locator("#expedition-close").isVisible())throw new Error("El botón de cabecera no debe aparecer durante un encuentro activo");
  if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#scene canvas")))throw new Error("La expedición reemplazó el canvas del renderer");
  await page.locator("#expedition-save").click();
  const activeRun=await page.evaluate(()=>{

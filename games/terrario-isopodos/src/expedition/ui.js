@@ -241,6 +241,7 @@ export function mountExpeditionScreen({
   }
 
   function render() {
+    $("#expedition-close").hidden = Boolean(state.expeditionProgress.active || settlement);
     $("#expedition-preparation").hidden = true;
     $("#expedition-session").hidden = true;
     $("#expedition-settlement").hidden = true;
