@@ -112,6 +112,7 @@ try{
  if(await page.locator('[data-setup-shape="cilindrico"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-setup-mode="voxel"]').getAttribute("aria-pressed")!=="true")throw new Error("Las opciones de configuración no actualizan aria-pressed");
  await page.getByRole("button",{name:/Entrar al terrario/}).click();
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
+ await page.waitForFunction(()=>Number(document.querySelector("#scene canvas")?.dataset.shelterModelLength)>1,{timeout:15000});
  const refugeBounds=await page.locator("#scene canvas").evaluate(canvas=>({
   length:Number(canvas.dataset.shelterModelLength),
   height:Number(canvas.dataset.shelterModelHeight),
@@ -641,7 +642,7 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await page.close();
+
 
  const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
  const unsupportedErrors=[];

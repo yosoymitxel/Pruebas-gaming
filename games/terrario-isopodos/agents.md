@@ -66,7 +66,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | En progreso · refugio ampliado, huella y alturas sincronizadas |
 | 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | En progreso · orientación 36°, huella compartida y migración de guardados; CI pendiente |
-| 10 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | En progreso · pose bajo «Tronco hueco»; test de simulación añadido |
+| 10 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | En progreso · pose inferior durante aproximación/descanso; corredor físico y salida pendientes |
 | 11 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista; prueba exacta PASS |
 | 12 | QA-01 | Validación integral y regresiones | Continuo | En progreso · CI completo PASS en c766; nueva revisión visual pendiente |
 
@@ -142,7 +142,8 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Validar el corredor inferior transitable y entrada/salida; corresponde a BIO-01.
 
 ### BIO-01 — Bajo el tronco
-- [ ] Distinguir volumen sólido superior de espacio inferior transitable.
+- [x] El isópodo se representa bajo el arco cuando busca específicamente Tronco hueco y también al excavar/descansar.
+- [ ] Distinguir el corredor transitable real de las paredes laterales y la tapa de madera.
 - [ ] Definir entradas/salidas y altura libre para los isópodos.
 - [ ] Integrar colliders con navegación, sin ocultar la malla como atajo.
 - [ ] Resolver profundidad/sombras/oclusiones para que la madera tape donde debe.
