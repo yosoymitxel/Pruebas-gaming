@@ -523,25 +523,6 @@ try{
  if(await page.locator("#pause").getAttribute("aria-pressed")!=="true")throw new Error("La recuperación no reanudó la simulación ecológica");
  if(errors.length)throw new Error("La ruta de recuperación produjo errores: "+errors.join(" | "));
  
- const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
- const unsupportedErrors=[];
- unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
- await unsupportedPage.addInitScript(()=>{
-  const original=HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext=function(type,...args){
-   if(typeof type==="string"&&["webgl2","webgl","experimental-webgl"].includes(type.toLowerCase()))return null;
-   return original.call(this,type,...args);
-  };
- });
- await unsupportedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
- await unsupportedPage.getByRole("button",{name:/Nuevo terrario/}).click();
- await unsupportedPage.getByRole("button",{name:/Entrar al terrario/}).click();
- await unsupportedPage.locator("#screen-modal").waitFor({state:"visible",timeout:15000});
- if(!await unsupportedPage.locator("#screen-modal").isVisible())throw new Error("La falta de WebGL no muestra un aviso recuperable");
- if(!(await unsupportedPage.locator("#modal-title").textContent()).includes("No se pudo iniciar"))throw new Error("El aviso WebGL no identifica el fallo");
- if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
- await unsupportedPage.close();
- 
  const renderMetrics=await page.locator("#scene canvas").evaluate(canvas=>({
   calls:Number(canvas.dataset.renderCalls),
   triangles:Number(canvas.dataset.renderTriangles),
@@ -562,6 +543,28 @@ try{
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
+ await page.close();
+
+ const unsupportedPage=await browser.newPage({viewport:{width:390,height:844}});
+ const unsupportedErrors=[];
+ unsupportedPage.on("pageerror",error=>unsupportedErrors.push(error.message));
+ await unsupportedPage.addInitScript(()=>{
+  const original=HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext=function(type,...args){
+   if(typeof type==="string"&&["webgl2","webgl","experimental-webgl"].includes(type.toLowerCase()))return null;
+   return original.call(this,type,...args);
+  };
+ });
+ await unsupportedPage.goto(url,{waitUntil:"networkidle",timeout:30000});
+ await unsupportedPage.getByRole("button",{name:/Nuevo terrario/}).click();
+ await unsupportedPage.getByRole("button",{name:/Entrar al terrario/}).click();
+ await unsupportedPage.locator("#screen-modal").waitFor({state:"visible",timeout:15000});
+ if(!await unsupportedPage.locator("#screen-modal").isVisible())throw new Error("La falta de WebGL no muestra un aviso recuperable");
+ if(!(await unsupportedPage.locator("#modal-title").textContent()).includes("No se pudo iniciar"))throw new Error("El aviso WebGL no identifica el fallo");
+ if(unsupportedErrors.length)throw new Error("El fallo WebGL provoca excepciones no capturadas: "+unsupportedErrors.join(" | "));
+ await unsupportedPage.close();
+ 
+
  await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
  console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
