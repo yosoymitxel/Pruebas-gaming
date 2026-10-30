@@ -23,3 +23,12 @@ Este repositorio mantiene el framework reutilizable de calidad para videojuegos 
 Cuando se incorpore o actualice una skill, revisa procedencia/licencia, ejecuta bash scripts/validate-skills.sh y bash scripts/index-skills.sh, actualiza el manifest con el estado real y revisa el diff. No actualices fuentes upstream a ciegas ni integres automáticamente contenido no revisado.
 
 Mantén cambios pequeños, reversibles y verificables. Build verde no significa juego funcional. Un mockup no prueba la implementación real.
+
+## Política de ramas por juego
+
+- `main` es la rama compartida de integración. Para cada juego se reutiliza **una sola rama de trabajo de larga vida**; antes de crear o cambiar de rama, inspecciona las ramas existentes y continúa en la ya asociada al juego.
+- No abrir ramas paralelas `fix/*`, `polish/*`, `validation/*` o `ci/*` para el mismo juego solo para dividir tareas. Las correcciones de código, pruebas y documentación van a su rama activa.
+- Las ramas antiguas no se fusionan por el mero hecho de existir. Comparar contra `main`, revisar sus diferencias reales y recuperar solo cambios únicos que sigan siendo correctos y útiles. No mezclar snapshots antiguos que reviertan comportamiento o UI actuales.
+- Las ramas inactivas se consideran obsoletas y se ignoran en el flujo normal; no borrarlas ni integrarlas de forma masiva sin petición explícita.
+- Mantener pocos commits revisables. Cuando varias correcciones forman una unidad validada, consolidarlas en un único commit lógico antes de abrir/actualizar la PR. Nunca reescribir un ref sin comprobar el HEAD esperado.
+- Tras integrar la PR, sincronizar la única rama de ese juego con el commit integrado de `main`; antes de reportar terminado, confirmar que la rama, el SHA, los checks y el deployment corresponden a los cambios finales.

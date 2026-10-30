@@ -4,7 +4,7 @@ Sandbox ecológico de navegador centrado inicialmente en *Armadillidium vulgare*
 
 ## Estado actual
 
-**Vertical jugable inicial implementada en código; validación de CI y navegador pendiente.** Incluye escena Three.js, recipientes rectangular/cilíndrico, dos representaciones 3D, cámara orbital táctil, simulación determinista mínima de necesidades/movimiento/recursos, controles ambientales, guardado local versionado y pruebas unitarias. No es todavía el MVP completo de la especificación.
+**Vertical jugable inicial implementada en código; validación de CI y navegador pendiente.** Incluye escena Three.js con recipientes rectangular/cilíndrico, representación orgánica Diorama y un sprite pixelado Voxel dentro de la escena 3D, cámara orbital/táctil, encuadre adaptable al viewport, niebla ajustada a la distancia de cámara, simulación determinista mínima, controles ambientales y guardado local versionado. Tests Node, build y smoke de Playwright pasan en el SHA de la revisión; el smoke comprueba guardados corruptos, cámara, paredes de ambos recipientes, persistencia y móvil. No es todavía el MVP completo de la especificación.
 
 ## Arranque
 

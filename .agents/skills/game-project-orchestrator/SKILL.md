@@ -13,7 +13,7 @@ description: Use at the start of a game project or substantial game task to insp
 ## Procedure
 1. Inspect repository instructions, README, engine/runtime, dependencies, asset folders, tests, current Git state, and recent relevant changes.
 2. Classify the task: gameplay/logic, art direction, UI, animation, voxel/3D scene, VFX, performance, accessibility, or release QA.
-3. Select the smallest relevant skill set using docs/SELECCION-DE-HERRAMIENTAS.md. Read the selected skills' full instructions before using them.
+3. Select the smallest relevant skill set using docs/DESCUBRIMIENTO-SKILLS.md. Read the selected skills' full instructions before using them.
 4. Check whether the project already has a system, asset, animation, component, or dependency that solves the problem. Prefer fixing/reusing it over creating a parallel implementation.
 5. Write a short plan with expected behavior, files likely to change, risks, and concrete tests.
 6. Implement in small increments; do not combine unrelated redesigns and gameplay changes.

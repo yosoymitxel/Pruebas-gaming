@@ -16,8 +16,10 @@ try{
  page.on("pageerror",e=>errors.push(e.message));
  page.on("console",m=>{if(m.type()==="error")errors.push(m.text());});
  page.on("requestfailed",r=>errors.push(`request failed: ${r.url()} ${r.failure()?.errorText??""}`));
+ await page.addInitScript(()=>{if(!sessionStorage.getItem("terrario-test-corrupt-save-injected")){localStorage.setItem("terrario-isopodos.save.v1","{");sessionStorage.setItem("terrario-test-corrupt-save-injected","1");}});
  await page.goto(url,{waitUntil:"networkidle",timeout:30000});
  if(!await page.locator("#screen-menu").isVisible())throw new Error("No aparece el menú de inicio");
+ if(!await page.locator("#continue-game").isDisabled())throw new Error("Un guardado corrupto no debe habilitar Continuar partida");
  const menuBg=await page.locator("#screen-menu").evaluate(el=>getComputedStyle(el).backgroundColor);
  if(!menuBg||menuBg==="rgba(0, 0, 0, 0)")throw new Error("El CSS del menú no está aplicado");
  const duplicateIds=await page.evaluate(()=>{const ids=[...document.querySelectorAll("[id]")].map(el=>el.id);return [...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];});
@@ -37,6 +39,7 @@ try{
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  const cameraCanvas=page.locator("#scene canvas");
  if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
+  if(await cameraCanvas.getAttribute("data-container-shape")!=="cilindrico"||await cameraCanvas.getAttribute("data-container-wall-count")!=="1")throw new Error("El terrario cilíndrico no construyó sus paredes verticales");
  await page.screenshot({path:"artifacts/visual/gameplay-voxel-1440x1000.png",fullPage:true});
  const initialDistance=Number(await cameraCanvas.getAttribute("data-camera-distance"));
  await cameraCanvas.evaluate(canvas=>{const fire=(type,pointerId,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:"touch",isPrimary:pointerId===11,button:0,clientX:x,clientY:y,bubbles:true}));fire("pointerdown",11,100,100);fire("pointerdown",12,200,100);fire("pointermove",12,240,100);fire("pointerup",12,240,100);fire("pointerup",11,100,100);});
@@ -108,6 +111,12 @@ try{
  if(await page.locator("#view-label").textContent()!=="VOXEL / 3D"||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
+ const cylinderDistance=Number(await page.locator("#scene canvas").getAttribute("data-camera-distance"));
+ const cylinderFit=Number(await page.locator("#scene canvas").getAttribute("data-camera-fit-distance"));
+ if(!Number.isFinite(cylinderDistance)||!Number.isFinite(cylinderFit)||cylinderDistance+.02<cylinderFit)throw new Error(`La cámara no encuadra el recipiente cilíndrico en móvil: distancia=${cylinderDistance}, mínimo=${cylinderFit}`);
+ const cylinderFogNear=Number(await page.locator("#scene canvas").getAttribute("data-fog-near"));
+ const cylinderFogFar=Number(await page.locator("#scene canvas").getAttribute("data-fog-far"));
+ if(!(cylinderFogNear>cylinderDistance&&cylinderFogFar>cylinderFit*2))throw new Error("La niebla oculta el recipiente cilíndrico al alejar la cámara en móvil");
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  if(overflow)throw new Error("Hay overflow horizontal en viewport móvil");
  if(!await page.locator("#panel-toggle").isVisible())throw new Error("No aparece la bandeja de controles en móvil");
@@ -124,8 +133,26 @@ try{
  if(!await page.locator("#save").isVisible())throw new Error("Guardar terrario no es accesible al final de los controles móviles");
  await page.locator("#panel-toggle").click();
  if(await page.locator("#panel-toggle").getAttribute("aria-expanded")!=="false")throw new Error("La bandeja móvil no se pliega");
+
+ // Segunda escena: comprobar las cuatro paredes del recipiente rectangular en el render real.
+ await page.getByRole("button",{name:"Menú"}).click();
+ await page.getByRole("button",{name:/Volver al menú principal/}).click();
+ await page.getByRole("button",{name:/Nuevo terrario/}).click();
+ await page.locator('[data-setup-shape="rectangular"]').click();
+ await page.locator('[data-setup-mode="diorama"]').click();
+ await page.getByRole("button",{name:/Entrar al terrario/}).click();
+ await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
+ await page.waitForTimeout(500); // deja completar el primer render tras reconstruir el hábitat
+ if(await page.locator("#scene canvas").getAttribute("data-container-shape")!=="rectangular"||await page.locator("#scene canvas").getAttribute("data-container-wall-count")!=="4")throw new Error("El terrario rectangular no construyó sus cuatro paredes verticales");
+ const rectangleDistance=Number(await page.locator("#scene canvas").getAttribute("data-camera-distance"));
+ const rectangleFit=Number(await page.locator("#scene canvas").getAttribute("data-camera-fit-distance"));
+ if(!Number.isFinite(rectangleDistance)||!Number.isFinite(rectangleFit)||rectangleDistance+.02<rectangleFit)throw new Error(`La cámara no encuadra el recipiente rectangular en móvil: distancia=${rectangleDistance}, mínimo=${rectangleFit}`);
+ const rectangleFogNear=Number(await page.locator("#scene canvas").getAttribute("data-fog-near"));
+ const rectangleFogFar=Number(await page.locator("#scene canvas").getAttribute("data-fog-far"));
+ if(!(rectangleFogNear>rectangleDistance&&rectangleFogFar>rectangleFit*2))throw new Error("La niebla oculta el recipiente rectangular al alejar la cámara en móvil");
+ await page.screenshot({path:"artifacts/visual/rectangular-walls-390x844.png",fullPage:true});
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,consoleErrors:errors}},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,consoleErrors:errors}},null,2));
  console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();server.kill("SIGTERM");}
