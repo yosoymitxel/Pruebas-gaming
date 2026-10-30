@@ -62,7 +62,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 3 | UI-03 | Barra móvil sin solapamiento; cuatro herramientas accesibles | Bajo | Completada · Playwright PASS, 390×844 |
 | 4 | INV-01 | Contadores de coste y recursos colocados | Bajo–medio | Completada · contadores, compra y guardado PASS |
 | 5 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | Completada · órbita, pinch y bloqueo de giro en Mano PASS |
-| 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · selección/arrastre PASS; contorno visual reforzado y pendiente captura |
+| 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · halo dorado sobre vegetación; captura real pendiente |
 | 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
 | 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
@@ -113,7 +113,8 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [x] Deseleccionar con espacio vacío/cambio de herramienta; limpiar selección al reconstruir malla/modelo.
 - [x] Highlight no modifica geometría fuente, collider ni reglas del dominio.
 - [x] Validar primer toque, segundo gesto, persistencia y selección de recursos con Playwright (SHA c76600e).
-- [ ] Confirmar que el nuevo halo ampliado se distingue en capturas reales de Diorama/Voxel.
+- [x] La primera captura de isopod-004 confirmó que la vegetación oculta el halo con depthTest activado; ahora se renderiza por encima sin modificar la profundidad del animal.
+- [ ] Confirmar el halo dorado en capturas reales de Diorama y Voxel.
 
 ### INV-02 — Tienda y economía
 - [ ] Catalogar artículos reales (hongos, plantas, musgo, piedras, tronco, refugios, comida y hojarasca).

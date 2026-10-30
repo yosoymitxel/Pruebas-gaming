@@ -807,8 +807,8 @@ export class TerrariumRenderer {
     outline.traverse(node=>{
       if(node.isMesh){
         const makeMaterial=()=>new T.MeshBasicMaterial({
-          color:0xe6f1b4,side:T.BackSide,transparent:true,opacity:1,
-          depthTest:true,depthWrite:false,toneMapped:false
+          color:0xffd76c,side:T.BackSide,transparent:false,opacity:1,
+          depthTest:false,depthWrite:false,toneMapped:false
         });
         node.material=Array.isArray(node.material)?node.material.map(makeMaterial):makeMaterial();
         node.castShadow=false;
@@ -823,6 +823,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.selectedTarget=kind+":"+id;
     this.renderer.domElement.dataset.selectionOutline="3d-inverted-hull";
     this.renderer.domElement.dataset.selectionOutlineScale="1.14";
+    this.renderer.domElement.dataset.selectionOutlineDepthTest="false";
     this.onSelectionChange?.({kind,id});
   }
 
