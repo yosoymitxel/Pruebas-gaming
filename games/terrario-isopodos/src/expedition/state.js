@@ -18,7 +18,12 @@ function normalizeRun(run,progress){
   if(!Number.isSafeInteger(run.energy)||run.energy<0||run.energy>100)throw new Error("La energía guardada no es válida");
   if(typeof run.currentNodeId!=="string"||!EXPEDITION_NODES[run.currentNodeId])throw new Error("La posición de expedición no es válida");
   if(!Array.isArray(run.visitedNodes)||run.visitedNodes[0]!==START_NODE_ID||!run.visitedNodes.every(id=>Boolean(EXPEDITION_NODES[id]))||new Set(run.visitedNodes).size!==run.visitedNodes.length||!run.visitedNodes.includes(run.currentNodeId))throw new Error("Los nodos visitados no son válidos");
-  for(let i=1;i<run.visitedNodes.length;i++)if(!EXPEDITION_NODES[run.visitedNodes[i-1]].links.includes(run.visitedNodes[i]))throw new Error("La ruta guardada contiene nodos desconectados");
+  const visitedSet=new Set(run.visitedNodes),reachable=new Set([START_NODE_ID]),queue=[START_NODE_ID];
+  while(queue.length){
+    const current=queue.shift();
+    for(const next of EXPEDITION_NODES[current].links)if(visitedSet.has(next)&&!reachable.has(next)){reachable.add(next);queue.push(next);}
+  }
+  if(reachable.size!==visitedSet.size)throw new Error("La lista de nodos contiene zonas aisladas");
   if(!Array.isArray(run.resolvedEventIds)||!run.resolvedEventIds.every(id=>typeof id==="string")||new Set(run.resolvedEventIds).size!==run.resolvedEventIds.length)throw new Error("El historial de eventos no es válido");
   if(!isRecord(run.loot))throw new Error("El botín guardado no es válido");
   const loot={organicMatter:0,decomposedWood:0,freshMoss:0,dewDrops:0};

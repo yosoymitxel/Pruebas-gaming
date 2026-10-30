@@ -1,14 +1,17 @@
 import { stepSimulation } from "../simulation.js";
 import { constrainToHabitat } from "../habitat.js";
-import { normalizeExpeditionProgress } from "./state.js";
+
 import { deriveSeed, weightedPick } from "./rng.js";
 import { ACTION_POINTS_PER_RUN, MIN_EXPLORER_ENERGY, START_NODE_ID, EXPEDITION_NODES, EXPEDITION_EVENT_TYPES, EXPEDITION_UPGRADES, INVENTORY_KEYS } from "./content.js";
 const clamp01=value=>Math.min(1,Math.max(0,value));
 const currentDay=state=>Math.floor(state.clockMinutes/1440)+1;
 function requireProgress(state){
   if(!state||typeof state!=="object"||!Array.isArray(state.entities)||!Array.isArray(state.resources)||!state.habitat)throw new TypeError("Se requiere un terrario válido");
-  state.expeditionProgress=normalizeExpeditionProgress(state.expeditionProgress);
-  return state.expeditionProgress;
+  const progress=state.expeditionProgress;
+  if(!progress||progress.version!==1||!Number.isSafeInteger(progress.worldSeed)||!Number.isSafeInteger(progress.expeditionCount)||
+     !Number.isSafeInteger(progress.lastExpeditionDay)||!progress.inventory||!Array.isArray(progress.upgrades)||!Array.isArray(progress.discoveries))
+    throw new TypeError("El progreso de expediciones no está inicializado");
+  return progress;
 }
 function requireRun(state){
   const progress=requireProgress(state);

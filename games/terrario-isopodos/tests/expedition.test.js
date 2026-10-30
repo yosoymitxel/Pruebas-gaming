@@ -5,11 +5,19 @@ import {serializeTerrarium,parseTerrarium} from "../src/persistence.js";
 import {createRng,deriveSeed,weightedPick} from "../src/expedition/rng.js";
 import {EXPEDITION_NODES,EXPEDITION_UPGRADES,START_NODE_ID} from "../src/expedition/content.js";
 import {isExpeditionGraphConnected,startExpedition,travelToNode,resolveExpeditionEvent,returnFromExpedition,buyExpeditionUpgrade} from "../src/expedition/system.js";
-function fresh(){return createTerrariumState({seed:0x12345678});}
+function fresh(seed=0x12345678){return createTerrariumState({seed});}
+function startAtEventType(type){
+  for(let seed=1;seed<10000;seed++){
+    const state=fresh(seed);startExpedition(state,"isopod-001");resolveFirst(state);travelToNode(state,"rotting-log");
+    if(state.expeditionProgress.active.pendingEvent.type===type)return state;
+  }
+  throw new Error("No se encontró una semilla de prueba para el evento "+type);
+}
 function resolveFirst(state){return resolveExpeditionEvent(state,state.expeditionProgress.active.pendingEvent.options[0].id);}
 
 test("PRNG propio y semillas derivadas reproducen la secuencia y separan contextos",()=>{
   const a=createRng(987654321),b=createRng(987654321),sequence=Array.from({length:5},()=>a());
+  assert.deepEqual(sequence,[0.9514403040520847,0.13489632960408926,0.01530607370659709,0.9139348547905684,0.6291038701310754]);
   assert.deepEqual(sequence,Array.from({length:5},()=>b()));assert.ok(sequence.every(v=>v>=0&&v<1));
   assert.notEqual(deriveSeed(12,"garden-entry",0),deriveSeed(12,"garden-entry",1));
   assert.notEqual(deriveSeed(12,"garden-entry",0),deriveSeed(12,"rotting-log",0));
@@ -40,7 +48,7 @@ test("viajar valida conexiones, cobra acciones y genera un evento al descubrir n
   run.actionPoints=0;assert.throws(()=>travelToNode(state,"compost-bin"),/No quedan acciones/);
   assert.throws(()=>travelToNode(state,"not-a-node"),/no existe/);
 });
-test("cada nodo entrega un solo evento por expedición y no regenera botín al revisit arlo",()=>{
+test("cada nodo entrega un solo evento por expedición y no regenera botín al revisitarlo",()=>{
   const state=fresh(),run=startExpedition(state,"isopod-001");resolveFirst(state);
   travelToNode(state,"mossy-stone");const eventId=run.pendingEvent.id;resolveFirst(state);
   travelToNode(state,"garden-entry");const actions=run.actionPoints;
@@ -48,16 +56,14 @@ test("cada nodo entrega un solo evento por expedición y no regenera botín al r
   assert.equal(visit.event,null);assert.equal(run.pendingEvent,null);assert.ok(run.actionPoints<actions);assert.ok(run.resolvedEventIds.includes(eventId));
 });
 test("las elecciones pagan puntos y energía antes de aplicar recompensa",()=>{
-  const state=fresh(),run=startExpedition(state,"isopod-001");
-  run.pendingEvent={id:"forced-test",type:"mites",nodeId:"garden-entry",title:"Colonia de ácaros",description:"Test",options:[{id:"forage",label:"Buscar restos",actionCost:1,energyCost:10,rewards:{organicMatter:2}}]};
+  const state=startAtEventType("mites"),run=state.expeditionProgress.active;
   const before=run.energy,actions=run.actionPoints,result=resolveExpeditionEvent(state,"forage");
   assert.equal(run.energy,before-10);assert.equal(run.actionPoints,actions-1);assert.equal(result.rewards.organicMatter,2);
   assert.throws(()=>resolveExpeditionEvent(state,"forage"),/No hay un evento pendiente/);
 });
 test("la elección con energía insuficiente no consume acción ni cambia el botín",()=>{
-  const state=fresh(),run=startExpedition(state,"isopod-001"),costly={id:"break",actionCost:1,energyCost:25};
-  run.energy=0;run.pendingEvent={id:"forced-test",type:"web",nodeId:"garden-entry",title:"Telaraña",description:"Test",options:[costly]};
-  const actions=run.actionPoints,loot=structuredClone(run.loot);
+  const state=startAtEventType("web"),run=state.expeditionProgress.active;
+  run.energy=0;const actions=run.actionPoints,loot=structuredClone(run.loot);
   assert.throws(()=>resolveExpeditionEvent(state,"break"),/energía suficiente/);
   assert.equal(run.actionPoints,actions);assert.deepEqual(run.loot,loot);
 });
@@ -111,4 +117,13 @@ test("la compra de mejora es atómica cuando faltan materiales o hay una run act
 test("retirada desde un encuentro sin resolver no liquida recompensa",()=>{
   const state=fresh();startExpedition(state,"isopod-001");
   const result=returnFromExpedition(state);assert.equal(result.inventory.organicMatter,0);assert.equal(state.expeditionProgress.active,null);
+});
+
+test("guardar una ruta que vuelve atrás y descubre una rama conectada conserva el run",()=>{
+  const state=fresh();startExpedition(state,"isopod-001");resolveFirst(state);
+  travelToNode(state,"mossy-stone");resolveFirst(state);
+  travelToNode(state,"garden-entry");
+  travelToNode(state,"rotting-log");
+  const restored=parseTerrarium(serializeTerrarium(state));
+  assert.deepEqual(restored.expeditionProgress.active,state.expeditionProgress.active);
 });
