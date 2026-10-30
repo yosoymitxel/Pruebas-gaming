@@ -37,6 +37,22 @@ test("el kit compartido expone piezas locales y biomas reutilizables",()=>{
   kit.dispose();
 });
 
+test("el mismo kit soporta la altura del suelo de expedición y del hábitat principal",()=>{
+  const expeditionKit=createDioramaKit({shape:"esferico",radius:2.5,seed:12});
+  const habitatKit=createDioramaKit({shape:"esferico",radius:1.48,seed:12,surfaceOffset:.19});
+  assert.equal(expeditionKit.surfaceOffset,.078);
+  assert.equal(habitatKit.surfaceOffset,.19);
+  assert.ok(Math.abs(expeditionKit.surfaceHeightAt(0,0)-.078)<1e-9);
+  assert.ok(Math.abs(habitatKit.surfaceHeightAt(0,0)-.19)<1e-9);
+  const parent=new THREE.Group();
+  const shelter=habitatKit.addAsset(parent,"bark-shelter",{position:[0,0,0]});
+  const localBase=habitatKit.surfaceHeightAt(0,0);
+  assert.ok(Math.abs(shelter.position.y+localBase-.19)<1e-9,
+    "los recursos se apoyan en el suelo real del terrario sin quedar enterrados");
+  expeditionKit.dispose();
+  habitatKit.dispose();
+});
+
 test("la base es un suelo orgánico con relieve y estratos, no un disco plano",()=>{
   const kit=createDioramaKit({shape:"esferico",radius:2.5,seed:77});
   const base=kit.createBase(2.5);
