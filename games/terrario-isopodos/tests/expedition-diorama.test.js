@@ -4,6 +4,7 @@ import * as THREE from "three";
 import {buildExpeditionMapDiorama,buildExpeditionLevelDiorama} from "../src/expedition/diorama.js";
 import {createDioramaKit,DIORAMA_BIOMES} from "../src/diorama-kit.js";
 import {EXPEDITION_NODES,EXPEDITION_EVENT_TYPES} from "../src/expedition/content.js";
+import {terrainHeightAt} from "../src/terrarium-art.js";
 
 function collect(group,property){
   const values=[];
@@ -46,7 +47,7 @@ test("el mismo kit soporta la altura del suelo de expedición y del hábitat pri
   assert.ok(Math.abs(habitatKit.surfaceHeightAt(0,0)-.19)<1e-9);
   const parent=new THREE.Group();
   const shelter=habitatKit.addAsset(parent,"bark-shelter",{position:[0,0,0]});
-  const localBase=habitatKit.surfaceHeightAt(0,0);
+  const localBase=terrainHeightAt(0,0,"esferico",1.48);
   assert.ok(Math.abs(shelter.position.y+localBase-.19)<1e-9,
     "los recursos se apoyan en el suelo real del terrario sin quedar enterrados");
   expeditionKit.dispose();
