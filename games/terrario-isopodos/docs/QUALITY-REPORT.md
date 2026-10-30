@@ -74,17 +74,20 @@ La integración se realizó como avance funcional bajo la petición de merge; **
 2. Definir fuente única de verdad: comandos de dominio, preferencias persistentes y estado de presentación/UI separados; eliminar mutaciones directas desde `main.js`.
 
 ### P1
-3. Observación: selección por ID estable y ficha del isópodo; después reproducción/nacimientos y catálogo de descubrimientos.
-4. Persistencia integral: autosave, múltiples slots, renombrado/borrado, backup del último guardado válido, migraciones y export/import atómico.
-5. Pulido del diorama: rellenar los vacíos del mapa con cobertura natural escalonada, dar escala legible a refugios/rocas/setas y mejorar la separación entre caminos, hotspots y vegetación. Mantener clics libres y presupuesto móvil.
-6. Revisar la decisión Voxel contra la especificación: el renderer actual usa geometría volumétrica por bloques instanciados; no es un sprite plano/Canvas. Mantener esta arquitectura solo con evidencia visual y de rendimiento suficiente.
-7. Validar navegación del isópodo frente a colisionadores del dressing procedural, no solo obstáculos de recursos.
+3. Vite está fijado en `6.4.4`; `npm audit` detecta una vulnerabilidad moderada [GHSA-8g5g-mxqh-grgj](https://github.com/advisories/GHSA-8g5g-mxqh-grgj) relacionada con el bypass de `server.fs.deny`. El workflow pasa porque usa `--audit-level=high`; no equivale a un árbol sin vulnerabilidades. El log del run 41089329251 señala fix en 6.4.5 fuera del rango declarado: revisar compatibilidad, actualizar Vite y exigir auditoría sin ese hallazgo.
+4. El build minificado advierte un chunk de más de 500 kB. Perfilar el bundle y separar Three.js/render u otras rutas diferibles sin aumentar el umbral para esconder el aviso.
+5. Observación: selección por ID estable y ficha del isópodo; después reproducción/nacimientos y catálogo de descubrimientos.
+6. Persistencia integral: autosave, múltiples slots, renombrado/borrado, backup del último guardado válido, migraciones y export/import atómico.
+7. Pulido del diorama: rellenar los vacíos del mapa con cobertura natural escalonada, dar escala legible a refugios/rocas/setas y mejorar la separación entre caminos, hotspots y vegetación. Mantener clics libres y presupuesto móvil.
+8. Revisar la decisión Voxel contra la especificación: el renderer actual usa geometría volumétrica por bloques instanciados; no es un sprite plano/Canvas. Mantener esta arquitectura solo con evidencia visual y de rendimiento suficiente.
+9. Validar navegación del isópodo frente a colisionadores del dressing procedural, no solo obstáculos de recursos.
 
 ### P2
-8. Respetar `prefers-reduced-motion` en la cámara y todas las animaciones continuas.
-9. Teclado, foco, contraste, safe areas y pruebas en dispositivos reales.
-10. Recuperación tras pérdida de contexto WebGL, más allá de simular que WebGL no está disponible al arranque.
-11. Revisar recursos adquiridos/colocados y su ciclo completo de persistencia.
+10. Respetar `prefers-reduced-motion` en la cámara y todas las animaciones continuas.
+11. Teclado, foco, contraste, safe areas y pruebas en dispositivos reales.
+12. Recuperación tras pérdida de contexto WebGL, más allá de simular que WebGL no está disponible al arranque.
+13. Revisar recursos adquiridos/colocados y su ciclo completo de persistencia.
+14. Actualizar actions/checkout@v4, setup-node@v4 y upload-artifact@v4 al runtime recomendado cuando haya versiones compatibles; investigar avisos DEP0040/DEP0169 de dependencias del pipeline.
 
 ## Skills y fuentes
 

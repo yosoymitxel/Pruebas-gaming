@@ -231,6 +231,8 @@ Para el commit integrado `c09945d6e5e683e96eb9a96655ee748a8b009d89`, el build de
 |---|---|---|
 | P0 | Lockfile reproducible | Versionar `package-lock.json`, sustituir `npm install` por `npm ci` en CI/Pages y probar checkout limpio. |
 | P0 | Fuente única de verdad | Dominio solo cambia mediante comandos validados; preferencias, sesión y estado UI separados. Añadir tests de invariantes. |
+| P1 | Vite con vulnerabilidad moderada | `package.json` fija Vite 6.4.4; npm audit detecta GHSA-8g5g-mxqh-grgj. Revisar compatibilidad y subir a versión corregida; quitar la tolerancia al nivel high tras limpiar el árbol. |
+| P1 | Chunk principal >500 kB | Build informa un chunk minificado sobre 500 kB; analizar bundle y aplicar code splitting real sin elevar el límite como atajo. |
 | P1 | Pulido del mapa de expedición | Más cobertura orgánica irregular, escala de props y hotspots legible; HUD no debe restar lectura al diorama. Capturas comparativas. |
 | P1 | Ficha y selección de isópodo | Selección por ID estable y ficha coherente en ambos renderers. |
 | P1 | Ciclo vital / descubrimientos | Reglas deterministas de nacimientos/reproducción y catálogo de descubrimientos con persistencia. |
@@ -238,7 +240,9 @@ Para el commit integrado `c09945d6e5e683e96eb9a96655ee748a8b009d89`, el build de
 | P1 | Navegación ecológica | Colisionadores del dressing procedural integrados en la navegación sin acoplar reglas al renderer. |
 | P2 | Accesibilidad y motion | Teclado/foco, contraste, safe areas y `prefers-reduced-motion` para la cámara y animaciones. |
 | P2 | WebGL | Probar recuperación real ante pérdida de contexto, además del caso de contexto no disponible al inicio. |
+| P2 | Movimiento reducido y accesibilidad | La animación de clima/actor consulta `prefers-reduced-motion`, pero la auto-rotación de cámara aún incrementa el ángulo sin comprobarlo. Añadir una prueba Playwright y ampliar teclado/foco/contraste. |
 | P2 | Dispositivos físicos | Safari/iOS y Android, orientación, zoom, scroll y restauración de pestaña. |
+| P2 | Toolchain CI | Avisos Node 20 en acciones de GitHub y deprecaciones `punycode`/`url.parse`; actualizar cuando las acciones/dependencias compatibles estén disponibles. |
 
 ### Decisión Voxel aclarada
 
