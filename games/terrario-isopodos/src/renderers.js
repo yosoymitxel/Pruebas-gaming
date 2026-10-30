@@ -67,33 +67,47 @@ function segmentMatrix(start,end){
   return new T.Matrix4().compose(a.add(b).multiplyScalar(.5),quaternion,new T.Vector3(1,length,1));
 }
 
-function shellPlateGeometry(){
-  const positions=[],uvs=[],indices=[];
-  const lengthSegments=7,widthSegments=18,stride=widthSegments+1;
-  for(let xStep=0;xStep<=lengthSegments;xStep++){
-    const t=xStep/lengthSegments;
-    const x=(t-.5)*.11;
-    const edgeSoftening=.96+.04*Math.sin(Math.PI*t);
+function dorsalCarapaceGeometry(){
+  const positions=[],colors=[],uvs=[],indices=[];
+  const lengthSegments=56,widthSegments=24,stride=widthSegments+1;
+  const halfLength=.225,halfWidth=.145,height=.104;
+  const plateTones=[0xc9c3a7,0xc4c0a6,0xcac4a8,0xc3bea2,0xc8c2a6,0xc0bb9f,0xc6c0a5].map(hex=>new T.Color(hex));
+  for(let i=0;i<=lengthSegments;i++){
+    const t=i/lengthSegments;
+    const x=(t-.5)*halfLength*2;
+    const longitudinal=Math.max(0,1-((x/halfLength)**2));
+    const taper=Math.pow(longitudinal,.34);
+    const platePosition=t*7;
+    const plateIndex=Math.min(6,Math.floor(Math.min(platePosition,6.999999)));
+    const local=platePosition-plateIndex;
+    const seamDistance=Math.min(local,1-local);
+    const groove=Math.exp(-((seamDistance/.043)**2));
     for(let j=0;j<=widthSegments;j++){
       const angle=(j/widthSegments*2-1)*1.28;
-      const z=Math.sin(angle)*.125*edgeSoftening;
-      const y=.013+Math.cos(angle)*.105*edgeSoftening;
+      const z=Math.sin(angle)*halfWidth*taper;
+      const dome=Math.cos(angle)*height*taper;
+      const y=.025+dome-groove*.0025*taper;
       positions.push(x,y,z);
       uvs.push(t,j/widthSegments);
-      if(xStep<lengthSegments&&j<widthSegments){
-        const a=xStep*stride+j,b=a+1,c=a+stride,d=c+1;
+      const tone=plateTones[plateIndex].clone().multiplyScalar(1-groove*.12);
+      const flank=1-Math.abs(Math.sin(angle))*.045;
+      tone.multiplyScalar(flank);
+      colors.push(tone.r,tone.g,tone.b);
+      if(i<lengthSegments&&j<widthSegments){
+        const a=i*stride+j,b=a+1,c=a+stride,d=c+1;
         indices.push(a,b,c,b,d,c);
       }
     }
   }
   const geometry=new T.BufferGeometry();
   geometry.setAttribute("position",new T.Float32BufferAttribute(positions,3));
+  geometry.setAttribute("color",new T.Float32BufferAttribute(colors,3));
   geometry.setAttribute("uv",new T.Float32BufferAttribute(uvs,2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
   return geometry;
 }
-
 let isopodShellTexture=null;
 function getIsopodShellTexture(){
   if(isopodShellTexture)return isopodShellTexture;
@@ -130,7 +144,7 @@ function getIsopodShellTexture(){
 function isopod(voxel){
   const root=new T.Group();
   root.userData.isVoxel=voxel;
-  root.userData.baseScale=voxel?.92:.86;
+  root.userData.baseScale=voxel?.92:.92;
   if(voxel){
     const sprite=new T.Sprite(getVoxelMaterial());
     sprite.position.y=.23;
@@ -141,47 +155,36 @@ function isopod(voxel){
 
   const shellTexture=getIsopodShellTexture();
   const shellMaterial=new T.MeshStandardMaterial({
-    color:0xf7f1df,map:shellTexture,roughness:.84,metalness:.008
+    color:0xf7f1df,map:shellTexture,vertexColors:true,roughness:.82,metalness:.008
   });
-  const undersideMaterial=mat(0x343d39,.92);
-  const edgeMaterial=mat(0x59645d,.76);
-  const legMaterial=mat(0x414b44,.82);
-  const jointMaterial=mat(0x68736a,.78);
+  const undersideMaterial=mat(0x343d39,.94);
+  const edgeMaterial=mat(0x59645d,.84);
+  const legMaterial=mat(0x414b44,.86);
+  const jointMaterial=mat(0x68736a,.82);
   const eyeMaterial=mat(0x101817,.42);
-  const antennaMaterial=mat(0x879184,.72);
-  const bumpMaterial=mat(0x6d725e,.92);
+  const antennaMaterial=mat(0x879184,.76);
+  const bumpMaterial=mat(0x77745f,.92);
 
-  const abdomen=mesh(new T.SphereGeometry(1,22,14),undersideMaterial,[0,.078,0]);
-  abdomen.scale.set(.255,.063,.106);
+  // One continuous domed shell; seven sutures and subtle plate tints describe
+  // the seven dorsal tergites without turning the animal into a stack of tubes.
+  const carapace=mesh(dorsalCarapaceGeometry(),shellMaterial,[0,0,0]);
+  carapace.name="continuous-seven-tergite-carapace";
+  root.add(carapace);
+
+  const abdomen=mesh(new T.SphereGeometry(1,22,14),undersideMaterial,[0,.045,0]);
+  abdomen.scale.set(.205,.047,.112);
   root.add(abdomen);
 
-  const plates=new T.InstancedMesh(shellPlateGeometry(),shellMaterial,7);
-  plates.name="seven-overlapping-tergites";
-  plates.instanceMatrix.setUsage(T.DynamicDrawUsage);
-  const plateColors=[0xc8c2a5,0xbab9a1,0xb0ae98,0xd1c9ab,0xb8b59b,0xa9a992,0xbab79d];
-  const dummy=new T.Object3D();
-  for(let i=0;i<7;i++){
-    const x=.18-i*.066;
-    dummy.position.set(x,.105,0);
-    dummy.rotation.set(0,0,(i-3)*-.012);
-    dummy.scale.set(1,1,1-i*.027);
-    dummy.updateMatrix();
-    plates.setMatrixAt(i,dummy.matrix);
-    plates.setColorAt(i,new T.Color(plateColors[i]));
-  }
-  plates.instanceMatrix.needsUpdate=true;
-  if(plates.instanceColor)plates.instanceColor.needsUpdate=true;
-  root.add(plates);
-
   const head=new T.Group();
-  head.position.set(.252,.112,0);
-  const cephalon=mesh(new T.SphereGeometry(1,20,14),shellMaterial,[0,0,0]);
-  cephalon.scale.set(.095,.062,.102);
+  head.position.set(.205,.078,0);
+  const cephalon=mesh(new T.SphereGeometry(1,20,14),shellMaterial,[.012,.012,0]);
+  cephalon.scale.set(.077,.052,.094);
   head.add(cephalon);
   const eyes=new T.InstancedMesh(new T.SphereGeometry(1,10,8),eyeMaterial,2);
+  const dummy=new T.Object3D();
   for(let i=0;i<2;i++){
-    dummy.position.set(.056,.012,(i===0?-1:1)*.073);
-    dummy.scale.set(.018,.018,.018);
+    dummy.position.set(.054,.018,(i===0?-1:1)*.068);
+    dummy.scale.set(.014,.014,.014);
     dummy.updateMatrix();
     eyes.setMatrixAt(i,dummy.matrix);
   }
@@ -191,14 +194,14 @@ function isopod(voxel){
   const antennae=[];
   for(const side of [-1,1]){
     const pivot=new T.Group();
-    pivot.position.set(.055,.018,side*.045);
+    pivot.position.set(.055,.018,side*.043);
     const curve=new T.CatmullRomCurve3([
       new T.Vector3(0,0,0),
-      new T.Vector3(.055,.018,side*.012),
-      new T.Vector3(.11,.047,side*.026),
-      new T.Vector3(.16,.061,side*.048)
+      new T.Vector3(.045,.02,side*.013),
+      new T.Vector3(.105,.05,side*.03),
+      new T.Vector3(.155,.065,side*.052)
     ]);
-    const feeler=new T.Mesh(new T.TubeGeometry(curve,14,.0045,5,false),antennaMaterial);
+    const feeler=new T.Mesh(new T.TubeGeometry(curve,14,.0042,5,false),antennaMaterial);
     pivot.add(feeler);
     head.add(pivot);
     antennae.push({pivot,side});
@@ -207,22 +210,22 @@ function isopod(voxel){
   root.userData.headRig=head;
   root.userData.antennae=antennae;
 
-  const tail=mesh(new T.SphereGeometry(1,16,10),edgeMaterial,[-.258,.075,0]);
-  tail.scale.set(.075,.036,.078);
+  const tail=mesh(new T.SphereGeometry(1,16,10),edgeMaterial,[-.218,.052,0]);
+  tail.scale.set(.062,.031,.071);
   root.add(tail);
-  const uropods=new T.InstancedMesh(new T.ConeGeometry(.008,.075,6),jointMaterial,2);
+  const uropods=new T.InstancedMesh(new T.ConeGeometry(.007,.068,6),jointMaterial,2);
   for(let i=0;i<2;i++){
     const side=i===0?-1:1;
     uropods.setMatrixAt(i,segmentMatrix(
-      [-.285,.075,side*.045],
-      [-.355,.045,side*.095]
+      [-.244,.052,side*.043],
+      [-.311,.028,side*.084]
     ));
   }
   uropods.instanceMatrix.needsUpdate=true;
   root.add(uropods);
 
-  const legUpper=new T.InstancedMesh(new T.CylinderGeometry(.006,.010,1,6),legMaterial,14);
-  const legLower=new T.InstancedMesh(new T.CylinderGeometry(.004,.007,1,6),jointMaterial,14);
+  const legUpper=new T.InstancedMesh(new T.CylinderGeometry(.008,.012,1,7),legMaterial,14);
+  const legLower=new T.InstancedMesh(new T.CylinderGeometry(.005,.008,1,7),jointMaterial,14);
   legUpper.name="fourteen-pereopod-coxae";
   legLower.name="fourteen-pereopod-tibiae";
   legUpper.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -231,8 +234,8 @@ function isopod(voxel){
   const legPairs=[];
   for(let i=0;i<7;i++){
     for(const side of [-1,1]){
-      const index=i*2+(side===1?1:0),x=.17-i*.066;
-      const hip=[x,.097,side*.087],knee=[x,.061,side*.128],toe=[x,.035,side*.168];
+      const index=i*2+(side===1?1:0),x=.135-i*.045;
+      const hip=[x,.071,side*.094],knee=[x,.045,side*.137],toe=[x,.024,side*.176];
       legUpper.setMatrixAt(index,segmentMatrix(hip,knee));
       legLower.setMatrixAt(index,segmentMatrix(knee,toe));
       legPairs.push({index,x,side});
@@ -242,20 +245,18 @@ function isopod(voxel){
   legLower.instanceMatrix.needsUpdate=true;
   root.add(legUpper,legLower);
 
-  const granules=new T.InstancedMesh(
-    new T.SphereGeometry(1,7,5),bumpMaterial,28
-  );
+  const granules=new T.InstancedMesh(new T.SphereGeometry(1,7,5),bumpMaterial,14);
   let bumpIndex=0;
   for(let i=0;i<7;i++){
-    const centerX=.18-i*.066;
-    for(const z of [-.072,0,.072]){
-      const px=centerX+((i%2)*.011-.005);
-      const pz=z;
-      const topY=.105+.013+.105*Math.sqrt(Math.max(0,1-(pz/.125)**2));
-      dummy.position.set(px,topY,pz);
-      const size=.0027+(bumpIndex%4)*.00045;
-      dummy.scale.set(size,size*.7,size);
-      dummy.rotation.y=(i+bumpIndex)*.4;
+    const t=(i+.5)/7,x=(t-.5)*.45;
+    const taper=Math.pow(Math.max(0,1-(x/.225)**2),.34);
+    for(const side of [-1,1]){
+      const z=side*.075*taper;
+      const y=.025+.104*Math.sqrt(Math.max(0,1-(z/(.145*taper))**2))*taper+.0015;
+      dummy.position.set(x,y,z);
+      const size=.0024+(i%3)*.00025;
+      dummy.scale.set(size,size*.65,size);
+      dummy.rotation.y=(i+bumpIndex)*.42;
       dummy.updateMatrix();
       granules.setMatrixAt(bumpIndex,dummy.matrix);
       bumpIndex++;
@@ -265,29 +266,21 @@ function isopod(voxel){
   granules.instanceMatrix.needsUpdate=true;
   root.add(granules);
 
-  root.userData.shellPlates=plates;
+  root.userData.carapace=carapace;
+  root.userData.dorsalPlateCount=7;
   root.userData.legUpper=legUpper;
   root.userData.legLower=legLower;
   root.userData.legPairs=legPairs;
-  root.userData.baseScale=.86;
-  root.scale.setScalar(.86);
+  root.userData.baseScale=.92;
+  root.scale.setScalar(.92);
   root.traverse(object=>{if(object.isMesh){object.castShadow=true;object.receiveShadow=true;}});
   return root;
 }
-
 function updateIsopodRig(object,phase,moving,curled){
-  const plates=object.userData.shellPlates;
-  if(plates){
-    const dummy=new T.Object3D();
-    for(let i=0;i<7;i++){
-      const compression=curled?.82:1;
-      dummy.position.set((.18-i*.066)*compression,.105+(curled?.008:0),0);
-      dummy.rotation.z=(i-3)* (curled?.045:-.012);
-      dummy.scale.set(curled?.9:1,curled?1.04:1,1-i*.027);
-      dummy.updateMatrix();
-      plates.setMatrixAt(i,dummy.matrix);
-    }
-    plates.instanceMatrix.needsUpdate=true;
+  const carapace=object.userData.carapace;
+  if(carapace){
+    carapace.scale.set(curled?.93:1,curled?1.025:1,curled?.97:1);
+    carapace.position.y=.025+(curled?.004:0);
   }
 
   const upper=object.userData.legUpper,lower=object.userData.legLower;
@@ -297,16 +290,16 @@ function updateIsopodRig(object,phase,moving,curled){
       const {index,x,side}=leg;
       const wave=moving?Math.sin(phase*2.1-index*.76+side*Math.PI):Math.sin(phase*.32+index)*.05;
       const tuck=curled?1:0;
-      const hip=[x,.097,side*.087];
+      const hip=[x,.071,side*.094];
       const knee=[
-        x+wave*.024,
-        .061+(tuck*.028),
-        side*(.128-tuck*.018)
+        x+wave*.022,
+        .045+(tuck*.025),
+        side*(.137-tuck*.018)
       ];
       const toe=[
-        x+wave*.045+(moving?Math.cos(phase*2.1-index*.76+side)*.009:0),
-        .035+(tuck*.027),
-        side*(.168-tuck*.038)
+        x+wave*.042+(moving?Math.cos(phase*2.1-index*.76+side)*.009:0),
+        .024+(tuck*.024),
+        side*(.176-tuck*.036)
       ];
       upper.setMatrixAt(index,segmentMatrix(hip,knee));
       lower.setMatrixAt(index,segmentMatrix(knee,toe));
@@ -318,9 +311,11 @@ function updateIsopodRig(object,phase,moving,curled){
     antenna.pivot.rotation.z=Math.sin(phase*.31+antenna.side)*.055;
     antenna.pivot.rotation.y=Math.sin(phase*.22+antenna.side)*.045;
   }
-  if(object.userData.headRig)object.userData.headRig.rotation.z=curled?-.14:Math.sin(phase*.2)*.008;
+  if(object.userData.headRig){
+    object.userData.headRig.position.x=curled?.182:.205;
+    object.userData.headRig.rotation.z=curled?-.14:Math.sin(phase*.2)*.008;
+  }
 }
-
 export class TerrariumRenderer {
   constructor(el,state){
     this.interpolationAlpha=1;
@@ -684,8 +679,9 @@ export class TerrariumRenderer {
 
   setMode(mode){
     this.renderer.domElement.dataset.renderMode=mode;
-    this.renderer.domElement.dataset.isopodModel=mode==="voxel"?"voxel-sprite":"seven-tergites-fourteen-pereopods";
+    this.renderer.domElement.dataset.isopodModel=mode==="voxel"?"voxel-sprite":"continuous-carapace-seven-tergites-fourteen-pereopods";
     this.renderer.domElement.dataset.isopodDorsalPlates=mode==="voxel"?"sprite":"7";
+    this.renderer.domElement.dataset.isopodShellProfile=mode==="voxel"?"sprite":"continuous-domed-carapace";
     this.renderer.domElement.dataset.isopodWalkingLegs=mode==="voxel"?"sprite":"14";
     this.renderer.domElement.dataset.isopodAntennae=mode==="voxel"?"sprite":"2";
     this.clear(this.life);
