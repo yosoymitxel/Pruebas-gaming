@@ -114,6 +114,12 @@ try{
  await page.locator("#scene canvas").waitFor({state:"visible",timeout:10000});
  await page.waitForFunction(()=>{const c=document.querySelector("#scene canvas");return c&&c.width>1&&c.height>1;});
  const cameraCanvas=page.locator("#scene canvas");
+ if(await page.getByRole("button",{name:"Abrir menú de pausa"}).count()!==1)throw new Error("La pausa debe conservar un nombre accesible aunque solo muestre el icono");
+ if(await page.locator("#view-label").count()!==0)throw new Error("La cabecera aún repite el modo visual junto al selector de representación");
+ const exploreButton=page.locator("#open-expedition");
+ if(!await exploreButton.isVisible()||(await exploreButton.innerText()).trim()!=="Explorar")throw new Error("Explorar debe estar visible desde el terrario");
+ const exploreBounds=await exploreButton.boundingBox();
+ if(!exploreBounds||exploreBounds.height<44||exploreBounds.width<90)throw new Error("Explorar no tiene jerarquía táctil suficiente");
  if(await cameraCanvas.getAttribute("data-render-mode")!=="voxel")throw new Error("La selección Voxel inicial no se aplicó al renderizador real");
  if(await cameraCanvas.getAttribute("data-isopod-model")!=="voxel-isopod-mesh")throw new Error("No se aplicó el modelo voxel de la especie");
   if(await cameraCanvas.getAttribute("data-isopod-voxel-palette")!=="forest-floor-olive-v1")throw new Error("El caparazón voxel no usa la paleta naturalista del suelo del bosque");
@@ -181,7 +187,7 @@ try{
  await page.waitForFunction(()=>document.activeElement?.id==="open-game-menu");
  await page.emulateMedia({reducedMotion:"reduce"}); // elimina transiciones del UI para capturas de estado deterministas
  await page.getByRole("button",{name:/Diorama/}).click();
- if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
+ if(await page.locator("#view-label").count()!==0||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
  if(await page.locator('[data-mode="diorama"]').getAttribute("aria-pressed")!=="true"||await page.locator('[data-mode="voxel"]').getAttribute("aria-pressed")!=="false")throw new Error("La selección accesible no coincide con el modo Diorama visible");
  const dioramaVisual=await page.locator('[data-mode="diorama"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));
  const voxelVisual=await page.locator('[data-mode="voxel"]').evaluate(el=>({active:el.classList.contains("active"),background:getComputedStyle(el).backgroundColor}));

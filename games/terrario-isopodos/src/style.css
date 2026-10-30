@@ -488,6 +488,8 @@ a{color:inherit}
   letter-spacing:.03em;
 }
 .shell .brand{white-space:nowrap}
+.menu-in-game{width:44px;height:44px;min-height:44px;padding:0}
+.menu-in-game svg{display:block;width:18px;height:18px;flex:none}
 .shell .brand:hover,.menu-in-game:hover{background:rgba(61,91,53,.68);border-color:rgba(221,234,204,.55)}
 .shell .top-note,.shell .top small{
   color:#d1dac7;
@@ -559,7 +561,6 @@ a{color:inherit}
   box-shadow:0 0 0 3px rgba(173,198,122,.15);
 }
 .view-title b{font-variant-numeric:tabular-nums;color:#f2f2e5}
-#view-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#d6e6a6}
 .clockbox{
   position:absolute;
   left:18px;
@@ -830,7 +831,7 @@ footer{display:none}
   .shell .top-note,.shell .top small{display:none}
   .top-actions{margin-left:auto;gap:6px}
   .top-actions .top-utility{display:none}
-  .menu-in-game{min-height:44px;padding:9px 13px;font-size:11px}
+  .menu-in-game{width:44px;height:44px;min-height:44px;padding:0}
   .workspace{
     inset:calc(56px + env(safe-area-inset-top,0px)) 0 0;
     display:block;
@@ -838,7 +839,6 @@ footer{display:none}
   .view{position:absolute;inset:0}
   .viewhead{top:9px;left:9px;right:9px;padding:10px 11px}
   .view-title{font-size:11px}
-  #view-label{font-size:9px}
   .clockbox{
     left:10px;
     bottom:calc(145px + env(safe-area-inset-bottom,0px));
@@ -1262,7 +1262,9 @@ footer{display:none}
 }
 
 /* Expedición: el diorama es la escena; los mandos comparten una sola bandeja estable. */
-.expedition-trigger{display:inline-flex;align-items:center;gap:7px;flex-shrink:0;min-height:40px;padding:8px 12px;border:1px solid rgba(226,235,214,.35);border-radius:5px;color:#f1f0e3;background:rgba(18,33,21,.78);font-size:11px;font-weight:750;letter-spacing:.03em}
+.expedition-trigger{display:inline-flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;min-height:48px;padding:11px 18px;border:1px solid rgba(226,235,214,.62);border-radius:7px;color:#f7f5e9;background:linear-gradient(180deg,rgba(45,67,42,.98),rgba(25,45,29,.98));font-size:13px;font-weight:800;letter-spacing:.015em;box-shadow:0 5px 18px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .16s ease,border-color .16s ease,background-color .16s ease}
+.viewhead .expedition-trigger:hover{transform:translateY(-1px);border-color:#d6e2b4;background:linear-gradient(180deg,#405b3c,#29442f)}
+.viewhead .expedition-trigger:focus-visible,.menu-in-game:focus-visible{outline:3px solid #dce8ae;outline-offset:3px}
 .expedition-trigger svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .expedition-screen{position:fixed;inset:0;z-index:80;display:block;padding:0;overflow:hidden;color:#f0f1e4;background:#1c2a1e;overscroll-behavior:contain}
 .expedition-screen[hidden],.expedition-stage [hidden]{display:none!important}
@@ -1623,3 +1625,5 @@ footer{display:none}
 @media(max-width:760px){
   .expedition-screen.is-level .expedition-decision-panel{grid-template-rows:auto minmax(0,1fr)}
 }
+
+@media(max-width:760px){.viewhead .expedition-trigger{min-height:44px;padding:9px 13px;gap:7px;font-size:11px}.viewhead .expedition-trigger svg{width:17px;height:17px}}
