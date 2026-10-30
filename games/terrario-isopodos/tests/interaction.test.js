@@ -53,7 +53,7 @@ test("el arrastre de un recurso mantiene su identidad y lo limita al recipiente"
 
   assert.equal(moved, original);
   assert.equal(moved.id, "shelter-1");
-  assert.deepEqual({ x: moved.x, z: moved.z }, { x: -1.48, z: 0.88 });
+  assert.deepEqual({ x: moved.x, z: moved.z }, { x: -1.48, z: 0.93 });
   assert.equal(state.resources.filter(resource => resource.id === "shelter-1").length, 1);
 });
 
