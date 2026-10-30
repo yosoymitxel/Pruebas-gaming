@@ -1,6 +1,5 @@
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const BASE_Y = 0.19;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
