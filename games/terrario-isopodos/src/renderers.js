@@ -518,11 +518,16 @@ export class TerrariumRenderer {
       const rect=c.getBoundingClientRect();
       pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
       raycaster.setFromCamera(pointer,this.camera);
-      for(const hit of raycaster.intersectObjects(this.expeditionGroup.children,true)){
-        let node=hit.object;
-        while(node&&!node.userData?.expeditionNodeId&&!node.userData?.expeditionChoiceId)node=node.parent;
-        if(node?.userData?.expeditionNodeId)return {kind:"node",id:node.userData.expeditionNodeId};
-        if(node?.userData?.expeditionChoiceId)return {kind:"choice",id:node.userData.expeditionChoiceId};
+      // Solo las hitboxes explícitas reciben interacción. La geometría decorativa
+      // del bioma no debe interceptar el rayo ni seleccionar otro nodo por delante.
+      const targets=[];
+      this.expeditionGroup.traverse(object=>{
+        if(object.isMesh&&(object.userData?.expeditionNodeId||object.userData?.expeditionChoiceId))targets.push(object);
+      });
+      for(const hit of raycaster.intersectObjects(targets,false)){
+        const target=hit.object.userData;
+        if(target.expeditionNodeId)return {kind:"node",id:target.expeditionNodeId};
+        if(target.expeditionChoiceId)return {kind:"choice",id:target.expeditionChoiceId};
       }
       return null;
     };

@@ -398,7 +398,8 @@ try{
    view:document.querySelector("#expedition-diorama canvas")?.dataset.expeditionView??"no-view",
    message:document.querySelector("#expedition-session-message")?.textContent??""
   }));
-  if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nodo físico no abrió su nivel: "+JSON.stringify(physicalNodeResult));
+  if(physicalNodeResult.hit!=="node:mossy-stone"||physicalNodeResult.activated!=="node:mossy-stone")throw new Error("El raycast 3D no respetó la hitbox del nodo pulsado: "+JSON.stringify(physicalNodeResult));
+ if(!await page.locator("#expedition-event-title").isVisible())throw new Error("El nodo físico no abrió su nivel: "+JSON.stringify(physicalNodeResult));
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="level")throw new Error("Tocar un lugar del diorama no abrió su nivel");
  await page.screenshot({path:"artifacts/visual/expedition-level-moss-390x844.png",fullPage:true});
  await page.locator("#expedition-map-back").click();
