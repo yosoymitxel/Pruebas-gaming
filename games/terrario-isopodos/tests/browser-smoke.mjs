@@ -243,7 +243,10 @@ try{
  savedClock=await page.locator("#clock").textContent();
  await page.getByRole("button",{name:/Salir al menú/}).click();
  await page.reload({waitUntil:"networkidle"});
+ const menuClockBeforeContinue=await page.locator("#clock").textContent();
  await page.getByRole("button",{name:/Continuar partida/}).click();
+ await page.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await page.waitForFunction(previous=>document.querySelector("#clock")?.textContent!==previous,menuClockBeforeContinue,{timeout:15000});
  const restoredClock=await page.locator("#clock").textContent();const savedMatch=savedClock.match(/(\d{2}):(\d{2})$/),restoredMatch=restoredClock.match(/(\d{2}):(\d{2})$/);const savedMinutes=savedMatch?Number(savedMatch[1])*60+Number(savedMatch[2]):-1,restoredMinutes=restoredMatch?Number(restoredMatch[1])*60+Number(restoredMatch[2]):-1;if(restoredMinutes<savedMinutes||restoredMinutes>savedMinutes+1)throw new Error(`El reloj restaurado está fuera de tolerancia: guardado=${savedClock}, restaurado=${restoredClock}`);
  if(await page.locator("#humidity").textContent()!=="40")throw new Error("El guardado no restauró la humedad tras recarga");
  if(await page.locator("#count").textContent()!=="05")throw new Error("La colonia cambió al restaurar");
