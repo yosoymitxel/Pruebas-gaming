@@ -46,6 +46,54 @@ try{
  const duplicateIds=await page.evaluate(()=>{const ids=[...document.querySelectorAll("[id]")].map(el=>el.id);return [...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];});
  if(duplicateIds.length)throw new Error("Hay IDs duplicados: "+duplicateIds.join(", "));
  await page.screenshot({path:"artifacts/visual/menu-1440x1000.png",fullPage:true});
+
+ // Flujo real por tacto en un teléfono compacto: menú, opciones y creación de partida.
+ const mobileMenuPage=await browser.newPage({viewport:{width:360,height:640},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const mobileMenuErrors=[];
+ mobileMenuPage.on("pageerror",e=>mobileMenuErrors.push(e.message));
+ mobileMenuPage.on("console",m=>{if(m.type()==="error")mobileMenuErrors.push(m.text());});
+ mobileMenuPage.on("requestfailed",r=>mobileMenuErrors.push(`request failed: ${r.url()} ${r.failure()?.errorText??""}`));
+ await mobileMenuPage.goto(url,{waitUntil:"networkidle",timeout:30000});
+ const mobileTap=async selector=>{
+   const target=mobileMenuPage.locator(selector);
+   const bounds=await target.boundingBox();
+   if(!bounds)throw new Error(`El control móvil no está visible: ${selector}`);
+   if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>360||bounds.y+bounds.height>640)
+     throw new Error(`El control móvil queda fuera del viewport 360x640: ${selector} ${JSON.stringify(bounds)}`);
+   await mobileMenuPage.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+ };
+ for(const selector of ["#new-game","#open-settings","#open-help"]){
+   const bounds=await mobileMenuPage.locator(selector).boundingBox();
+   if(!bounds||bounds.y<0||bounds.y+bounds.height>640)
+     throw new Error(`La opción principal no cabe en 360x640: ${selector} ${JSON.stringify(bounds)}`);
+ }
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-menu-360x640.png",fullPage:true});
+ await mobileTap("#open-settings");
+ if(!await mobileMenuPage.locator("#screen-modal").isVisible()||await mobileMenuPage.locator("#modal-title").textContent()!=="Ajustes")
+   throw new Error("Ajustes del menú principal no responde al tacto móvil");
+ await mobileTap("#close-modal");
+ if(await mobileMenuPage.locator("#screen-modal").isVisible())throw new Error("No se pudo cerrar Ajustes del menú móvil");
+ await mobileTap("#open-help");
+ if(!await mobileMenuPage.locator("#screen-modal").isVisible()||await mobileMenuPage.locator("#modal-title").textContent()!=="Cómo se juega")
+   throw new Error("Ayuda del menú principal no responde al tacto móvil");
+ await mobileTap("#close-modal");
+ await mobileTap("#new-game");
+ if(!await mobileMenuPage.locator("#screen-setup").isVisible())throw new Error("Nuevo terrario no abre configuración en móvil");
+ const setupButtonBounds=await mobileMenuPage.locator("#start-game").boundingBox();
+ if(!setupButtonBounds||setupButtonBounds.y<0||setupButtonBounds.y+setupButtonBounds.height>640)
+   throw new Error(`El botón Entrar al terrario no queda accesible en 360x640: ${JSON.stringify(setupButtonBounds)}`);
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-setup-360x640.png",fullPage:true});
+ await mobileTap("#start-game");
+ await mobileMenuPage.locator("#scene canvas").waitFor({state:"visible",timeout:15000});
+ await mobileMenuPage.waitForFunction(()=>{
+   const canvas=document.querySelector("#scene canvas");
+   return !document.querySelector(".shell").hidden&&canvas&&canvas.width>1&&canvas.height>1&&canvas.dataset.renderMode==="diorama";
+ },{timeout:15000});
+ if(await mobileMenuPage.locator("#count").textContent()!=="05")throw new Error("Nueva partida móvil no crea la colonia inicial completa");
+ if(mobileMenuErrors.length)throw new Error("Errores en el flujo táctil móvil: "+mobileMenuErrors.join(" | "));
+ await mobileMenuPage.screenshot({path:"artifacts/visual/mobile-new-game-360x640.png",fullPage:true});
+ await mobileMenuPage.close();
+
  await page.keyboard.press("Tab");
  if(await page.evaluate(()=>document.activeElement?.id)!=="new-game")throw new Error("El foco inicial del teclado no llega a Nuevo terrario");
  await page.getByRole("button",{name:/Nuevo terrario/}).click();
@@ -267,7 +315,7 @@ try{
  if(renderMetrics.geometries>200)throw new Error(`La escena móvil supera 200 geometrías: ${renderMetrics.geometries}`);
  if(renderMetrics.triangles>300000)throw new Error(`La escena móvil supera 300k triángulos: ${renderMetrics.triangles}`);
  if(errors.length)throw new Error(`Errores de consola/red: ${errors.join(" | ")}`);
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844"],screenshots:["menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
- console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",rendererMetrics:renderMetrics,errors},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
+ console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}
