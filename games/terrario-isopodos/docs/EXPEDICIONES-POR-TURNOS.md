@@ -42,7 +42,7 @@ TERRARIO / DÍA N
          |
          +--> Liquidar el botín una sola vez
          +--> Aplicar descanso al explorador
-         +--> Ejecutar una vez stepSimulation(terrar io, 1440)
+         +--> Ejecutar una vez stepSimulation(state, 1440)
          +--> El reloj entra en DÍA N+1
          |
          v

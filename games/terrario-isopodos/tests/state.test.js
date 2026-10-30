@@ -120,7 +120,7 @@ test("formatea día y hora",()=>{
 
 test("el guardado rechaza versiones futuras y entidades duplicadas",()=>{
   const valid=JSON.parse(serializeTerrarium(createTerrariumState()));
-  const future=structuredClone(valid);future.schemaVersion=3;
+  const future=structuredClone(valid);future.schemaVersion=4;
   assert.throws(()=>parseTerrarium(JSON.stringify(future)),/versión más reciente/);
   const duplicate=structuredClone(valid);duplicate.state.entities[1].id=duplicate.state.entities[0].id;
   assert.throws(()=>parseTerrarium(JSON.stringify(duplicate)),/valores inválidos|IDs duplicados|esquema compatible/);
@@ -174,7 +174,7 @@ test("los guardados de esquema 1 migran el clima como despejado",()=>{
   const restored=parseTerrarium(JSON.stringify(old));
   assert.equal(restored.habitat.weather,"clear");
   const current=JSON.parse(serializeTerrarium(createTerrariumState()));
-  assert.equal(current.schemaVersion,2);
+  assert.equal(current.schemaVersion,3);
   current.state.habitat.weather="rain";
   assert.equal(parseTerrarium(JSON.stringify(current)).habitat.weather,"rain");
 });
@@ -215,7 +215,7 @@ test("solo considera continuable un guardado que se puede restaurar",()=>{
   const valid=serializeTerrarium(createTerrariumState());
   storage.setItem(SAVE_KEY,valid);
   assert.equal(hasValidTerrariumSave(storage),true);
-  const future=JSON.parse(valid);future.schemaVersion=3;
+  const future=JSON.parse(valid);future.schemaVersion=4;
   storage.setItem(SAVE_KEY,JSON.stringify(future));
   assert.equal(hasValidTerrariumSave(storage),false);
 });
@@ -363,4 +363,11 @@ test("el globo esférico tiene base plana coherente con el diámetro del suelo",
   const capHeight=outerRadius+Math.sqrt(outerRadius**2-floorRadius**2);
   assert.ok(Math.abs(capHeight-wallHeight)<.025,"la altura de la cúpula debe coincidir con el corte de su base");
   assert.ok(wallHeight>1.6 && wallHeight<2.0,"el globo no debe recuperar el exceso de cámara vacía");
+});
+
+test("el dominio inicializa y conserva progreso de expedición dentro de la fuente única de verdad",()=>{
+  const a=createTerrariumState({seed:12345}),b=createTerrariumState({seed:12345});
+  assert.deepEqual(a.expeditionProgress,b.expeditionProgress);
+  assert.equal(a.expeditionProgress.worldSeed,12345);
+  assert.deepEqual(JSON.parse(snapshotDomain(a)).expeditionProgress,a.expeditionProgress);
 });

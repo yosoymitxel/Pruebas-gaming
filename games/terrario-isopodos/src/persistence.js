@@ -1,3 +1,4 @@
+import { createExpeditionProgress, normalizeExpeditionProgress } from "./expedition/state.js";
 const VALID_SHAPES=new Set(["rectangular","cilindrico","esferico"]);
 const VALID_MODES=new Set(["diorama","voxel"]);
 const VALID_WEATHER=new Set(["clear","mist","rain"]);
@@ -75,12 +76,13 @@ function validateStateShape(state){
     habitat,
     entities,
     resources,
-    coins:Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0
+    coins:Number.isSafeInteger(state.coins)&&state.coins>=0?state.coins:0,
+    expeditionProgress:normalizeExpeditionProgress(state.expeditionProgress)
   };
 }
 
 export const SAVE_KEY="terrario-isopodos.save.v1";
-const SCHEMA_VERSION=2;
+const SCHEMA_VERSION=3;
 
 export function serializeTerrarium(state){
   const validated=validateStateShape(state);
@@ -102,10 +104,10 @@ export function parseTerrarium(raw){
   try{data=JSON.parse(raw);}catch{throw new Error("El guardado no es JSON válido");}
   if(data?.schemaVersion>SCHEMA_VERSION)throw new Error("El guardado pertenece a una versión más reciente del juego");
   const s=data?.state;
-  if(![1,SCHEMA_VERSION].includes(data?.schemaVersion)||(data?.gameId&&data.gameId!=="terrario-isopodos")||!s||s.version!==1||
+  if(![1,2,SCHEMA_VERSION].includes(data?.schemaVersion)||(data?.gameId&&data.gameId!=="terrario-isopodos")||!s||s.version!==1||
      !Number.isFinite(s.clockMinutes)||s.clockMinutes<0||!Number.isFinite(s.speed)||s.speed<1||s.speed>4||
      !s.habitat||!Array.isArray(s.entities)||!Array.isArray(s.resources))
-    throw new Error("El guardado no coincide con un esquema compatible (1 o 2)");
+    throw new Error("El guardado no coincide con un esquema compatible (1, 2 o 3)");
 
   const sanitized=validateStateShape(s);
   return {
