@@ -822,6 +822,32 @@ footer{display:none}
   .shell .top-note{display:none}
 }
 @media(max-width:760px){
+  .action-tools{
+    left:8px;
+    right:64px;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    display:flex;
+    flex-wrap:nowrap;
+    gap:4px;
+    min-width:0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:0 3px 3px 0;
+    scrollbar-width:none;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x;
+  }
+  .action-tools::-webkit-scrollbar{display:none}
+  .action-tools button{
+    flex:0 0 auto;
+    min-height:44px;
+    padding:7px 8px;
+  }
+  .camera-rail{
+    right:10px;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  }
   .shell>.top{
     min-height:calc(56px + env(safe-area-inset-top,0px));
     padding:env(safe-area-inset-top,0px) 10px 0;

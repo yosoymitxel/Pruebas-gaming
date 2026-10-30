@@ -277,6 +277,7 @@ try{
     if(await cameraCanvas.getAttribute("data-selection-outline")!=="3d-inverted-hull")throw new Error("La selección no dibujó un contorno 3D sobre la silueta real");
     const savedAfterSelection=await page.evaluate(()=>localStorage.getItem("terrario-isopodos.save.v1"));
     if(savedAfterSelection!==savedBeforeSelection)throw new Error("El primer toque modificó el estado persistido antes de iniciar el arrastre");
+    await page.screenshot({path:`artifacts/visual/selection-${kind}-1440x1000.png`,fullPage:true});
     await page.mouse.move(px,py);await page.mouse.down();await page.mouse.move(px+32,py+18,{steps:2});await page.mouse.up();
     const after=await page.locator("#resource-note").textContent();
     if(after!==""&&accept(after))result=after;
@@ -321,6 +322,26 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  if(await page.locator("#view-label").count()!==0||await page.locator("#scene canvas").getAttribute("data-render-mode")!=="voxel")throw new Error("Guardar/cargar no restauró el modo visual real elegido");
  await page.screenshot({path:"artifacts/visual/desktop-1440x1000.png",fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);
+ const toolbarAudit=await page.locator("#action-tools").evaluate(toolbar=>{
+  const camera=document.querySelector("#camera-toggle");
+  const bar=toolbar.getBoundingClientRect(),rail=camera.getBoundingClientRect();
+  return {
+   overlapsCamera:bar.right>rail.left-5,
+   scrollWidth:toolbar.scrollWidth,
+   clientWidth:toolbar.clientWidth,
+   actionCount:toolbar.querySelectorAll("button").length
+  };
+ });
+ if(toolbarAudit.overlapsCamera)throw new Error("La barra de herramientas móvil invade el botón flotante de cámara: "+JSON.stringify(toolbarAudit));
+ if(toolbarAudit.actionCount!==4||toolbarAudit.scrollWidth<=toolbarAudit.clientWidth)throw new Error("La barra móvil debe conservar las cuatro acciones y permitir desplazamiento horizontal: "+JSON.stringify(toolbarAudit));
+ await page.locator("#tool-shelter").evaluate(el=>el.scrollIntoView({block:"nearest",inline:"nearest"}));
+ const shelterReachable=await page.locator("#tool-shelter").evaluate(el=>{
+  const button=el.getBoundingClientRect(),bar=document.querySelector("#action-tools").getBoundingClientRect();
+  return button.left>=bar.left-1&&button.right<=bar.right+1;
+ });
+ if(!shelterReachable)throw new Error("El botón Refugio no se puede alcanzar desplazando la barra móvil");
+ await page.locator("#tool-camera").evaluate(el=>el.scrollIntoView({block:"nearest",inline:"start"}));
+ await page.locator("#action-tools").evaluate(el=>{el.scrollLeft=0;});
  const cylinderDistance=Number(await page.locator("#scene canvas").getAttribute("data-camera-distance"));
  const cylinderFit=Number(await page.locator("#scene canvas").getAttribute("data-camera-fit-distance"));
  if(!Number.isFinite(cylinderDistance)||!Number.isFinite(cylinderFit)||cylinderDistance+.02<cylinderFit)throw new Error(`La cámara no encuadra el recipiente cilíndrico en móvil: distancia=${cylinderDistance}, mínimo=${cylinderFit}`);
@@ -627,7 +648,7 @@ const draggedIsopodNote=await dragAcrossCanvas("entity",note=>note.includes("Is�
  await unsupportedPage.close();
  
 
- await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
+ await writeFile("artifacts/visual/evidence.json",JSON.stringify({repository:"yosoymitxel/Pruebas-gaming",branch:process.env.GITHUB_HEAD_REF||process.env.GITHUB_REF||"local",sha:process.env.GITHUB_SHA||"local-unavailable",origin:url,capturedAt:new Date().toISOString(),browser:browser.version(),viewports:["1440x1000","390x844","360x640"],screenshots:["mobile-menu-360x640.png","mobile-setup-360x640.png","mobile-new-game-360x640.png","mobile-loading-360x640.png","menu-1440x1000.png","setup-1440x1000.png","gameplay-voxel-1440x1000.png","gameplay-diorama-1440x1000.png","selection-entity-1440x1000.png","selection-resource-1440x1000.png","desktop-1440x1000.png","mobile-390x844.png","mobile-controls-390x844.png","rectangular-walls-390x844.png","spherical-orb-390x844.png","expedition-map-390x844.png","expedition-level-garden-390x844.png","expedition-level-moss-390x844.png","expedition-map-360x640.png","expedition-map-1440x1000.png","expedition-settlement-390x844.png"],checks:{selectThenDrag:"PASS",threeDOutline:"PASS",firstTouchDoesNotMutateState:"PASS",mobileToolbarNoOverlap:"PASS",mobileToolbarScroll:"PASS",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",loadingTheme:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",modalEscapeAndFocus:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",touchPinch:"PASS",saveReload:"PASS",mobileDrawer:"PASS",horizontalOverflow:false,webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",consoleErrors:errors},rendererMetrics:renderMetrics},null,2));
  console.log(JSON.stringify({result:"PASS",url,desktop:"1440x1000",mobile:"390x844",menuFocus:"PASS",mobileMenuTouch:"PASS",newGamePlayable:"PASS",duplicateIds:"PASS",setupAriaPressed:"PASS",gameSettings:"PASS",gameHelp:"PASS",rendererSwitch:"PASS",cameraRail:"PASS",weatherEffects:"PASS",pauseMenu:"PASS",loadingTheme:"PASS",manualClockStep:"PASS",fiveStableEntities:"PASS",saveReload:"PASS",mobileDrawer:"PASS",mobileHorizontalOverflow:false,sphericalContainer:"PASS",webglUnavailableRecovery:"PASS",woodlandInterior:"PASS",expeditionFlow:"PASS",rendererIdentity:"PASS",expeditionMapDiorama:"PASS",expeditionLevelDiorama:"PASS",expedition3dNodePicking:"PASS",activeRunRestore:"PASS",daySettlement:"PASS",rendererMetrics:renderMetrics,errors},null,2));
 }catch(error){console.error(error);if(errors.length)console.error("Browser errors:",errors);process.exitCode=1;}
 finally{await browser?.close();await new Promise(resolveClose=>server.close(resolveClose));}

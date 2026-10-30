@@ -59,10 +59,11 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 |---:|---|---|---|---|
 | 1 | UI-01 | Quitar textos redundantes de cabecera y pausa | Bajo | En progreso · pendiente Playwright actualizado |
 | 2 | UI-02 | Dar más jerarquía a Explorar | Bajo | En progreso · pendiente Playwright actualizado |
-| 3 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
-| 4 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | En progreso · pendiente CI |
-| 5 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · picking real y outline 3D enviados a CI |
-| 6 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
+| 3 | UI-03 | Barra móvil sin solapamiento; cuatro herramientas accesibles | Bajo | En progreso · pruebas Playwright añadidas |
+| 4 | INV-01 | Corregir contadores y separar stock de colocados | Bajo–medio | En progreso · pendiente CI |
+| 5 | INPUT-01 | Separar herramienta Cámara de Mano | Medio | En progreso · pendiente CI |
+| 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · picking real y outline 3D enviados a CI |
+| 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 7 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
 | 8 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
 | 9 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | Pendiente |
@@ -81,6 +82,12 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [x] Elevar tamaño táctil, contraste, borde, tipografía y profundidad visual.
 - [x] Reutilizar el botón y callback existentes; no duplicar navegación.
 - [ ] Verificar dimensiones, accesibilidad, responsive y captura real.
+
+### UI-03 — Herramientas móviles
+- [x] Reservar espacio para el botón de cámara sin tapar Refugio.
+- [x] Mantener Cámara, Mano, Hojarasca y Refugio accesibles mediante desplazamiento horizontal.
+- [x] Mantener objetivos táctiles de al menos 44 px.
+- [ ] Validar 390×844 y 360×640 con Playwright y capturas reales.
 
 ### INV-01 — Contadores
 - [x] Auditar `SHOP_ITEMS`, `purchaseItem`, `resources`, monedas y guardado.
