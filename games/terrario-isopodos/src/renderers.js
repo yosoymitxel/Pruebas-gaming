@@ -683,6 +683,10 @@ export class TerrariumRenderer {
 
   setMode(mode){
     this.renderer.domElement.dataset.renderMode=mode;
+    this.renderer.domElement.dataset.isopodModel=mode==="voxel"?"voxel-sprite":"seven-tergites-fourteen-pereopods";
+    this.renderer.domElement.dataset.isopodDorsalPlates=mode==="voxel"?"sprite":"7";
+    this.renderer.domElement.dataset.isopodWalkingLegs=mode==="voxel"?"sprite":"14";
+    this.renderer.domElement.dataset.isopodAntennae=mode==="voxel"?"sprite":"2";
     this.clear(this.life);
     for(const e of this.state.entities){
       const o=isopod(mode === "voxel");
