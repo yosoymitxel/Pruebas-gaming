@@ -5,7 +5,8 @@ import {
   moveIsopod,
   moveResource,
   startleIsopod,
-  stepSimulation
+  stepSimulation,
+  BIOLOGY_RULES
 } from "../src/simulation.js";
 import { parseTerrarium, serializeTerrarium } from "../src/persistence.js";
 
@@ -22,6 +23,38 @@ test("tocar un isópodo lo asusta y activa la defensa sin eliminarlo", () => {
   assert.equal(entity.stress, 1);
   assert.equal(entity.defensiveTicks, 0);
   assert.equal(entity.targetResourceId, null);
+});
+
+test("la separación evita solapamientos incluso con dos isópodos en la misma coordenada",()=>{
+  const createOverlappingState=()=>{
+    const state=createTerrariumState();
+    state.resources=[];
+    const positions=[[0,0],[0,0],[-.8,-.6],[.8,-.6],[0,.8]];
+    state.entities.forEach((entity,index)=>{
+      [entity.x,entity.z]=positions[index];
+      entity.previousX=entity.x;
+      entity.previousZ=entity.z;
+      entity.energy=.9;
+      entity.hydration=.9;
+      entity.stress=0;
+      entity.behavior="exploring";
+    });
+    return state;
+  };
+  const first=createOverlappingState(),second=createOverlappingState();
+  stepSimulation(first,1);
+  stepSimulation(second,1);
+  assert.deepEqual(first.entities,second.entities,"La separación debe ser determinista");
+  for(let i=0;i<first.entities.length;i++){
+    for(let j=i+1;j<first.entities.length;j++){
+      const a=first.entities[i],b=first.entities[j];
+      const distance=Math.hypot(a.x-b.x,a.z-b.z);
+      assert.ok(
+        distance>=BIOLOGY_RULES.minimumCollisionDistance-1e-6,
+        `${a.id} y ${b.id} siguen solapados: ${distance.toFixed(4)} < ${BIOLOGY_RULES.minimumCollisionDistance}`
+      );
+    }
+  }
 });
 
 test("el gesto de mover un isópodo conserva su ID y limita el punto al terrario rectangular", () => {

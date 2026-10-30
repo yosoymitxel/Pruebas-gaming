@@ -67,7 +67,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 7 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
 | 8 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
 | 9 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | Pendiente |
-| 10 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | Pendiente |
+| 10 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista enviada a CI |
 | 11 | QA-01 | Validación integral y regresiones | Continuo | Pendiente |
 
 ## Especificaciones de ejecución
@@ -141,12 +141,12 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Probar entrar, girar, permanecer y salir con varios individuos.
 
 ### BIO-02 — Colisiones de isópodos
-- [ ] Revisar escala visual, radio físico y unidades.
-- [ ] Auditar distancias y resolución de penetración en `src/simulation.js`.
-- [ ] Eliminar solapamientos persistentes, vibración, expulsiones bruscas y atascos.
-- [ ] Mantener locomoción orgánica y navegación a alimento/refugio.
-- [ ] Probar pares, grupos densos, entradas estrechas, vidrio, tronco y recursos.
-- [ ] Medir coste de CPU en población objetivo.
+- [x] Comparar dimensiones del modelo 3D con la distancia de separación; 0,09 era menor que el radio visual aproximado.
+- [x] Aumentar distancia mínima a 0,205 y resolver cada pareja por mitades al final del tick.
+- [x] Resolver coincidencias exactas con una dirección derivada de IDs, sin azar.
+- [x] Aplicar límites del recipiente después de separar.
+- [ ] Validar pares, grupos densos, bordes y recursos en CI.
+- [ ] Medir estabilidad y coste de CPU en población objetivo.
 
 ## Puertas de aceptación
 | Puerta | Criterios |
