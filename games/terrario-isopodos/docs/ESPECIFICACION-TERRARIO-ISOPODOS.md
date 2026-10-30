@@ -296,3 +296,10 @@ La dirección visual prioritaria es un **microhábitat naturalista de escala min
 - **Persistencia local:** explicar que los datos son propios de ese navegador/perfil y pueden perderse si se borran sus datos.
 - **No se bloquea por audio ni por multijugador:** no son requisitos del MVP.
 - **No se declara completo el MVP** mientras el cambio de renderer, la estabilidad de estado o los sprites voxelizados móviles no cumplan los criterios verificables correspondientes. Las brechas están enumeradas en el plan de recuperación.
+
+
+## Módulo opcional: expediciones por turnos
+
+El sandbox ecológico sigue siendo la experiencia principal y no tiene campaña obligatoria. Se añade un modo opcional de expedición que conecta jornadas del terrario con exploración por nodos, elecciones ambientales y recompensas. Su contrato de reglas, estado, determinismo, economía y aceptación está en [EXPEDICIONES-POR-TURNOS.md](EXPEDICIONES-POR-TURNOS.md).
+
+El módulo debe consumir y escribir el mismo `TerrariumState`, conservar el renderer al cambiar de pantalla y usar la simulación ecológica existente solo en el retorno de una expedición, cuando pasa una jornada de juego. No se permite un bucle biológico paralelo ni un renderer separado.
