@@ -9,13 +9,21 @@ function rng(seed) {
 }
 
 export function terrainHeightAt(x, z, shape = "rectangular", radius = 1.48) {
-  const broad = Math.sin(x * 3.1 + z * 2.2) * 0.014;
-  const cross = Math.cos(z * 4.7 - x * 1.9) * 0.009;
-  const fine = Math.sin((x + z) * 9.1) * 0.0025;
   const edge = shape === "rectangular"
-    ? clamp(1 - Math.max(Math.abs(x) / 1.58, Math.abs(z) / 1.02), 0, 1)
-    : clamp((radius - Math.hypot(x, z)) / 0.24, 0, 1);
-  return BASE_Y + (broad + cross + fine) * edge - (1 - edge) * 0.012;
+    ? 1 - smooth((Math.max(Math.abs(x) / 1.58, Math.abs(z) / 1.02) - 0.79) / 0.21)
+    : smooth((radius - Math.hypot(x, z)) / 0.24);
+  const mound = (cx, cz, sx, sz, amplitude) =>
+    amplitude * Math.exp(-(((x - cx) / sx) ** 2 + ((z - cz) / sz) ** 2) * 1.1);
+  const hills =
+    mound(-0.68, -0.34, 0.5, 0.46, 0.22) +
+    mound(0.64, 0.43, 0.38, 0.34, 0.16) +
+    mound(0.92, -0.48, 0.32, 0.29, 0.11) +
+    mound(-0.96, 0.55, 0.34, 0.28, 0.075);
+  const grain =
+    Math.sin(x * 8.1 + z * 3.7) * 0.008 +
+    Math.cos(z * 10.3 - x * 2.4) * 0.006 +
+    Math.sin((x - z) * 17.0) * 0.002;
+  return BASE_Y + (hills + grain) * edge - (1 - edge) * 0.012;
 }
 
 function texture(kind, seed) {
