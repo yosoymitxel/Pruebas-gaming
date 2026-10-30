@@ -59,80 +59,306 @@ function getVoxelMaterial(){
   return voxelMaterial;
 }
 
-function segmentBetween(a,b,r,m){
-  const start=new T.Vector3(...a),end=new T.Vector3(...b),direction=end.clone().sub(start);
-  const part=mesh(new T.CylinderGeometry(r*.72,r,direction.length(),7),m,start.clone().add(end).multiplyScalar(.5).toArray());
-  part.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());
-  return part;
+function segmentMatrix(start,end){
+  const a=new T.Vector3(...start),b=new T.Vector3(...end);
+  const direction=b.clone().sub(a);
+  const length=direction.length();
+  const quaternion=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),direction.normalize());
+  return new T.Matrix4().compose(a.add(b).multiplyScalar(.5),quaternion,new T.Vector3(1,length,1));
 }
-function isopod(voxel){
-  const root=new T.Group(),dark=mat(0x39392e),shell=mat(0x756c57),light=mat(0xb2a17d),seam=mat(0x4d4a3a);
-  root.userData.legs=[];root.userData.antennae=[];root.userData.shellSegments=[];
-  if(voxel){
-    const sprite=new T.Sprite(getVoxelMaterial());sprite.position.y=.28;sprite.scale.set(.88,.48,1);root.add(sprite);
-  }else{
-    const abdomen=mesh(new T.SphereGeometry(1,24,16),dark,[0,.19,0]);abdomen.scale.set(.29,.15,.19);root.add(abdomen);
-    for(let i=0;i<7;i++){
-      const x=.23-i*.065,taper=.82+Math.sin((i+1)/8*Math.PI)*.18;
-      const plate=mesh(new T.SphereGeometry(1,18,12),i%2?light:shell,[x,.285,0]);
-      plate.scale.set(.082,.105*taper,.172*taper);plate.rotation.z=(i-3)*-.018;root.add(plate);
-      root.userData.shellSegments.push(plate);
-      for(const side of [-1,1]){
-        const pivot=new T.Group();pivot.position.set(x,.155,side*.115);
-        pivot.add(segmentBetween([0,0,0],[.006,-.043,side*.055],.012,dark));
-        pivot.add(segmentBetween([.006,-.043,side*.055],[.018,-.09,side*.105],.009,seam));
-        root.add(pivot);root.userData.legs.push({pivot,index:i,side});
+
+function shellPlateGeometry(){
+  const positions=[],uvs=[],indices=[];
+  const lengthSegments=7,widthSegments=18,stride=widthSegments+1;
+  for(let xStep=0;xStep<=lengthSegments;xStep++){
+    const t=xStep/lengthSegments;
+    const x=(t-.5)*.11;
+    const edgeSoftening=.96+.04*Math.sin(Math.PI*t);
+    for(let j=0;j<=widthSegments;j++){
+      const angle=(j/widthSegments*2-1)*1.28;
+      const z=Math.sin(angle)*.125*edgeSoftening;
+      const y=.013+Math.cos(angle)*.105*edgeSoftening;
+      positions.push(x,y,z);
+      uvs.push(t,j/widthSegments);
+      if(xStep<lengthSegments&&j<widthSegments){
+        const a=xStep*stride+j,b=a+1,c=a+stride,d=c+1;
+        indices.push(a,b,c,b,d,c);
       }
     }
-    const head=new T.Group();head.position.set(.335,.255,0);
-    const cephalon=mesh(new T.SphereGeometry(1,18,12),shell,[0,0,0]);cephalon.scale.set(.12,.105,.145);head.add(cephalon);
-    for(const side of [-1,1]){
-      head.add(mesh(new T.SphereGeometry(.025,9,7),dark,[.055,.018,side*.09]));
-      const antenna=new T.Group();antenna.position.set(.09,.025,side*.045);
-      antenna.add(segmentBetween([0,0,0],[.105,.055,side*.022],.008,light));
-      antenna.add(segmentBetween([.105,.055,side*.022],[.165,.095,side*.045],.006,light));
-      head.add(antenna);root.userData.antennae.push({pivot:antenna,side});
-    }
-    root.add(head);
   }
-  root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-  root.scale.setScalar(voxel?.92:.72);root.userData.baseScale=voxel?.92:.72;
+  const geometry=new T.BufferGeometry();
+  geometry.setAttribute("position",new T.Float32BufferAttribute(positions,3));
+  geometry.setAttribute("uv",new T.Float32BufferAttribute(uvs,2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+let isopodShellTexture=null;
+function getIsopodShellTexture(){
+  if(isopodShellTexture)return isopodShellTexture;
+  const canvas=document.createElement("canvas");
+  canvas.width=256;canvas.height=128;
+  const context=canvas.getContext("2d");
+  if(!context)return null;
+  const image=context.createImageData(canvas.width,canvas.height);
+  let seed=0x51a7c3;
+  const random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+  for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
+    const i=(y*canvas.width+x)*4;
+    const broad=Math.sin(x*.073+Math.sin(y*.041)*1.4)*4+Math.cos(y*.13-x*.017)*3;
+    const grain=(random()-.5)*22;
+    const mottling=Math.sin(x*.33+Math.sin(y*.19)*2.2)*Math.cos(y*.27)*3;
+    image.data[i]=Math.max(0,Math.min(255,82+broad+grain+mottling));
+    image.data[i+1]=Math.max(0,Math.min(255,91+broad*.9+grain*.92+mottling));
+    image.data[i+2]=Math.max(0,Math.min(255,84+broad*.72+grain*.78+mottling*.8));
+    image.data[i+3]=255;
+  }
+  context.putImageData(image,0,0);
+  for(let i=0;i<950;i++){
+    const x=random()*canvas.width,y=random()*canvas.height,r=.35+random()*1.2;
+    context.fillStyle=random()>.5?"rgba(194,201,183,.2)":"rgba(24,34,29,.19)";
+    context.beginPath();context.ellipse(x,y,r,r*.55,random()*Math.PI,0,Math.PI*2);context.fill();
+  }
+  isopodShellTexture=new T.CanvasTexture(canvas);
+  isopodShellTexture.colorSpace=T.SRGBColorSpace;
+  isopodShellTexture.wrapS=T.RepeatWrapping;
+  isopodShellTexture.wrapT=T.ClampToEdgeWrapping;
+  isopodShellTexture.anisotropy=4;
+  return isopodShellTexture;
+}
+
+function isopod(voxel){
+  const root=new T.Group();
+  root.userData.isVoxel=voxel;
+  root.userData.baseScale=voxel?.92:.86;
+  if(voxel){
+    const sprite=new T.Sprite(getVoxelMaterial());
+    sprite.position.y=.23;
+    sprite.scale.set(.88,.48,1);
+    root.add(sprite);
+    return root;
+  }
+
+  const shellTexture=getIsopodShellTexture();
+  const shellMaterial=new T.MeshStandardMaterial({
+    color:0xd0d6cb,map:shellTexture,roughness:.72,metalness:.018
+  });
+  const undersideMaterial=mat(0x343d39,.92);
+  const edgeMaterial=mat(0x59645d,.76);
+  const legMaterial=mat(0x414b44,.82);
+  const jointMaterial=mat(0x68736a,.78);
+  const eyeMaterial=mat(0x101817,.42);
+  const antennaMaterial=mat(0x879184,.72);
+  const bumpMaterial=mat(0x9da89a,.76);
+
+  const abdomen=mesh(new T.SphereGeometry(1,22,14),undersideMaterial,[0,.078,0]);
+  abdomen.scale.set(.255,.063,.106);
+  root.add(abdomen);
+
+  const plates=new T.InstancedMesh(shellPlateGeometry(),shellMaterial,7);
+  plates.name="seven-overlapping-tergites";
+  plates.instanceMatrix.setUsage(T.DynamicDrawUsage);
+  const plateColors=[0x87928a,0x7b877f,0x6f7b74,0x90998d,0x78837b,0x6e7971,0x78837b];
+  const dummy=new T.Object3D();
+  for(let i=0;i<7;i++){
+    const x=.18-i*.066;
+    dummy.position.set(x,.105,0);
+    dummy.rotation.set(0,0,(i-3)*-.012);
+    dummy.scale.set(1,1,1-i*.027);
+    dummy.updateMatrix();
+    plates.setMatrixAt(i,dummy.matrix);
+    plates.setColorAt(i,new T.Color(plateColors[i]));
+  }
+  plates.instanceMatrix.needsUpdate=true;
+  if(plates.instanceColor)plates.instanceColor.needsUpdate=true;
+  root.add(plates);
+
+  const head=new T.Group();
+  head.position.set(.252,.112,0);
+  const cephalon=mesh(new T.SphereGeometry(1,20,14),shellMaterial,[0,0,0]);
+  cephalon.scale.set(.095,.062,.102);
+  head.add(cephalon);
+  const eyes=new T.InstancedMesh(new T.SphereGeometry(1,10,8),eyeMaterial,2);
+  for(let i=0;i<2;i++){
+    dummy.position.set(.056,.012,(i===0?-1:1)*.073);
+    dummy.scale.set(.018,.018,.018);
+    dummy.updateMatrix();
+    eyes.setMatrixAt(i,dummy.matrix);
+  }
+  eyes.instanceMatrix.needsUpdate=true;
+  head.add(eyes);
+
+  const antennae=[];
+  for(const side of [-1,1]){
+    const pivot=new T.Group();
+    pivot.position.set(.055,.018,side*.045);
+    const curve=new T.CatmullRomCurve3([
+      new T.Vector3(0,0,0),
+      new T.Vector3(.055,.018,side*.012),
+      new T.Vector3(.11,.047,side*.026),
+      new T.Vector3(.16,.061,side*.048)
+    ]);
+    const feeler=new T.Mesh(new T.TubeGeometry(curve,14,.0045,5,false),antennaMaterial);
+    pivot.add(feeler);
+    head.add(pivot);
+    antennae.push({pivot,side});
+  }
+  root.add(head);
+  root.userData.headRig=head;
+  root.userData.antennae=antennae;
+
+  const tail=mesh(new T.SphereGeometry(1,16,10),edgeMaterial,[-.258,.075,0]);
+  tail.scale.set(.075,.036,.078);
+  root.add(tail);
+  const uropods=new T.InstancedMesh(new T.ConeGeometry(.008,.075,6),jointMaterial,2);
+  for(let i=0;i<2;i++){
+    const side=i===0?-1:1;
+    uropods.setMatrixAt(i,segmentMatrix(
+      [-.285,.075,side*.045],
+      [-.355,.045,side*.095]
+    ));
+  }
+  uropods.instanceMatrix.needsUpdate=true;
+  root.add(uropods);
+
+  const legUpper=new T.InstancedMesh(new T.CylinderGeometry(.006,.010,1,6),legMaterial,14);
+  const legLower=new T.InstancedMesh(new T.CylinderGeometry(.004,.007,1,6),jointMaterial,14);
+  legUpper.name="fourteen-pereopod-coxae";
+  legLower.name="fourteen-pereopod-tibiae";
+  legUpper.instanceMatrix.setUsage(T.DynamicDrawUsage);
+  legLower.instanceMatrix.setUsage(T.DynamicDrawUsage);
+
+  const legPairs=[];
+  for(let i=0;i<7;i++){
+    for(const side of [-1,1]){
+      const index=i*2+(side===1?1:0),x=.17-i*.066;
+      const hip=[x,.097,side*.087],knee=[x,.061,side*.128],toe=[x,.035,side*.168];
+      legUpper.setMatrixAt(index,segmentMatrix(hip,knee));
+      legLower.setMatrixAt(index,segmentMatrix(knee,toe));
+      legPairs.push({index,x,side});
+    }
+  }
+  legUpper.instanceMatrix.needsUpdate=true;
+  legLower.instanceMatrix.needsUpdate=true;
+  root.add(legUpper,legLower);
+
+  const granules=new T.InstancedMesh(
+    new T.SphereGeometry(1,7,5),bumpMaterial,28
+  );
+  let bumpIndex=0;
+  for(let i=0;i<7;i++){
+    const centerX=.18-i*.066;
+    for(const z of [-.072,0,.072]){
+      const px=centerX+((i%2)*.011-.005);
+      const pz=z;
+      const topY=.105+.013+.105*Math.sqrt(Math.max(0,1-(pz/.125)**2));
+      dummy.position.set(px,topY,pz);
+      const size=.0045+(bumpIndex%4)*.0008;
+      dummy.scale.set(size,size*.7,size);
+      dummy.rotation.y=(i+bumpIndex)*.4;
+      dummy.updateMatrix();
+      granules.setMatrixAt(bumpIndex,dummy.matrix);
+      bumpIndex++;
+    }
+  }
+  granules.count=bumpIndex;
+  granules.instanceMatrix.needsUpdate=true;
+  root.add(granules);
+
+  root.userData.shellPlates=plates;
+  root.userData.legUpper=legUpper;
+  root.userData.legLower=legLower;
+  root.userData.legPairs=legPairs;
+  root.userData.baseScale=.86;
+  root.scale.setScalar(.86);
+  root.traverse(object=>{if(object.isMesh){object.castShadow=true;object.receiveShadow=true;}});
   return root;
 }
+
+function updateIsopodRig(object,phase,moving,curled){
+  const plates=object.userData.shellPlates;
+  if(plates){
+    const dummy=new T.Object3D();
+    for(let i=0;i<7;i++){
+      const compression=curled?.82:1;
+      dummy.position.set((.18-i*.066)*compression,.105+(curled?.008:0),0);
+      dummy.rotation.z=(i-3)* (curled?.045:-.012);
+      dummy.scale.set(curled?.9:1,curled?1.04:1,1-i*.027);
+      dummy.updateMatrix();
+      plates.setMatrixAt(i,dummy.matrix);
+    }
+    plates.instanceMatrix.needsUpdate=true;
+  }
+
+  const upper=object.userData.legUpper,lower=object.userData.legLower;
+  if(upper&&lower){
+    const pairs=object.userData.legPairs??[];
+    for(const leg of pairs){
+      const {index,x,side}=leg;
+      const wave=moving?Math.sin(phase*2.1-index*.76+side*Math.PI):Math.sin(phase*.32+index)*.05;
+      const tuck=curled?1:0;
+      const hip=[x,.097,side*.087];
+      const knee=[
+        x+wave*.024,
+        .061+(tuck*.028),
+        side*(.128-tuck*.018)
+      ];
+      const toe=[
+        x+wave*.045+(moving?Math.cos(phase*2.1-index*.76+side)*.009:0),
+        .035+(tuck*.027),
+        side*(.168-tuck*.038)
+      ];
+      upper.setMatrixAt(index,segmentMatrix(hip,knee));
+      lower.setMatrixAt(index,segmentMatrix(knee,toe));
+    }
+    upper.instanceMatrix.needsUpdate=true;
+    lower.instanceMatrix.needsUpdate=true;
+  }
+  for(const antenna of object.userData.antennae??[]){
+    antenna.pivot.rotation.z=Math.sin(phase*.31+antenna.side)*.055;
+    antenna.pivot.rotation.y=Math.sin(phase*.22+antenna.side)*.045;
+  }
+  if(object.userData.headRig)object.userData.headRig.rotation.z=curled?-.14:Math.sin(phase*.2)*.008;
+}
+
 export class TerrariumRenderer {
   constructor(el,state){
     this.interpolationAlpha=1;
     this.el=el;
     this.state=state;
     this.scene=new T.Scene();
-    this.scene.background=new T.Color(0x31483a);
-    this.scene.fog=new T.Fog(0x31483a,8,17);
-    const ambientLight=new T.HemisphereLight(0xe6ead1,0x493a2a,1.85);
+    this.scene.background=new T.Color(0x536a4c);
+    this.scene.fog=new T.Fog(0x536a4c,12,26);
+    const ambientLight=new T.HemisphereLight(0xeaf0d7,0x62503b,2.15);
     this.scene.add(ambientLight);
-    const keyLight=new T.DirectionalLight(0xffe2b2,2.2);
+    const keyLight=new T.DirectionalLight(0xffe6be,2.65);
     keyLight.position.set(-3.5,7,4.5);
     keyLight.castShadow=true;
     keyLight.shadow.mapSize.set(1024,1024);
     this.scene.add(keyLight);
-    const fillLight=new T.DirectionalLight(0xb2d1aa,.8);
+    const fillLight=new T.DirectionalLight(0xc3d7b3,1.05);
     fillLight.position.set(4,3,-4);
     this.scene.add(fillLight);
+    const rimLight=new T.DirectionalLight(0xf2e7c9,.62);
+    rimLight.position.set(2.5,4,-5.5);
+    this.scene.add(rimLight);
     this.camera=new T.PerspectiveCamera(33,1,.1,100);
     this.renderer=new T.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.65));
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=T.PCFSoftShadowMap;
-    this.renderer.setClearColor(0x31483a,1);
+    this.renderer.setClearColor(0x536a4c,1);
     this.renderer.outputColorSpace=T.SRGBColorSpace;
     this.renderer.toneMapping=T.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure=1.12;
+    this.renderer.toneMappingExposure=1.22;
     this.renderer.domElement.style.touchAction="none";
     el.appendChild(this.renderer.domElement);
     this.world=new T.Group();
     this.habitat=new T.Group();
     this.life=new T.Group();
     this.resourcesGroup=new T.Group();
-    this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x2d3c2d, roughness:1}));
+    this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x4a6042, roughness:1}));
     this.ground.rotation.x=-Math.PI/2;
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life);
@@ -283,7 +509,7 @@ export class TerrariumRenderer {
             if(material===voxelMaterial)continue;
             materials.add(material);
             for(const value of Object.values(material)){
-              if(value?.isTexture)textures.add(value);
+              if(value?.isTexture&&value!==isopodShellTexture)textures.add(value);
             }
           }
         }
@@ -470,28 +696,26 @@ export class TerrariumRenderer {
     const byId=new Map(this.state.entities.map(e=>[e.id,e]));
     const simTime=this.state.clockMinutes+(this.interpolationAlpha??1);
     const alpha=T.MathUtils.clamp(this.interpolationAlpha??1,0,1);
-    for(const o of this.life.children){
-      const e=byId.get(o.userData.entityId);
-      if(!e){ o.visible=false; continue; }
-      o.visible=e.alive !== false;
-      const px=Number.isFinite(e.previousX)?e.previousX:e.x,pz=Number.isFinite(e.previousZ)?e.previousZ:e.z;
-      const x=T.MathUtils.lerp(px,e.x,alpha),z=T.MathUtils.lerp(pz,e.z,alpha);
-      const phase=simTime*.72+Number((e.id||"0").slice(-2))*.37;
-      const moving=["exploring","seeking-food","seeking-shelter"].includes(e.behavior);
+    for(const object of this.life.children){
+      const entity=byId.get(object.userData.entityId);
+      if(!entity){object.visible=false;continue;}
+      object.visible=entity.alive!==false;
+      const previousX=Number.isFinite(entity.previousX)?entity.previousX:entity.x;
+      const previousZ=Number.isFinite(entity.previousZ)?entity.previousZ:entity.z;
+      const x=T.MathUtils.lerp(previousX,entity.x,alpha);
+      const z=T.MathUtils.lerp(previousZ,entity.z,alpha);
+      const phase=simTime*.72+Number((entity.id||"0").slice(-2))*.37;
+      const moving=["exploring","seeking-food","seeking-shelter"].includes(entity.behavior);
+      const curled=entity.behavior==="defensive-curl";
       const shape=this.state.habitat.shape;
       const floorY=terrainHeightAt(x,z,shape,HABITAT_GEOMETRY[shape].floorRadius);
-      o.position.set(x,floorY-.047-(e.behavior==="burrowing"?.085:0),z);o.rotation.y=e.heading??0;
-      const base=o.userData.baseScale??1;o.scale.setScalar(base*(e.behavior==="defensive-curl"?1.12:1));
-      for(const leg of o.userData.legs??[]){
-        const gait=moving?Math.sin(phase-leg.index*.72+leg.side*Math.PI):Math.sin(phase*.28+leg.index)*.025;
-        leg.pivot.rotation.y=moving?gait*.38:0;leg.pivot.rotation.x=leg.side*(moving?.12+Math.abs(gait)*.12:.08);
-      }
-      for(const antenna of o.userData.antennae??[]){
-        antenna.pivot.rotation.z=Math.sin(phase*.24+antenna.side)*.085;
-        antenna.pivot.rotation.y=Math.sin(phase*.19+antenna.side)*.045;
-      }
-      for(let i=0;i<(o.userData.shellSegments??[]).length;i++){
-        o.userData.shellSegments[i].rotation.z=e.behavior==="defensive-curl"?(i-3)*.04:(i-3)*-.018;
+      object.position.set(x,floorY-(object.userData.isVoxel?.047:.02)-(entity.behavior==="burrowing"?.07:0),z);
+      object.rotation.y=entity.heading??0;
+      if(object.userData.isVoxel){
+        object.scale.setScalar(object.userData.baseScale*(curled?1.08:1));
+      }else{
+        object.scale.setScalar(object.userData.baseScale);
+        updateIsopodRig(object,phase,moving,curled);
       }
     }
   }
@@ -572,6 +796,7 @@ export class TerrariumRenderer {
     this.resizeObserver?.disconnect();
     this.clear(this.world);
     this.renderer.dispose();
+    isopodShellTexture?.dispose();isopodShellTexture=null;
     if(voxelMaterial){voxelMaterial.map?.dispose();voxelMaterial.dispose();voxelMaterial=null;}
     this.renderer.domElement.remove();
   }
