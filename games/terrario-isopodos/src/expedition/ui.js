@@ -186,6 +186,7 @@ export function mountExpeditionScreen({
     const neighbors=new Set(current?.links??[]);
     const hasPending=Boolean(run?.pendingEvent);
     root.classList.toggle("has-active-expedition",Boolean(run));
+    root.classList.toggle("has-pending-event",hasPending);
     root.classList.remove("is-level","is-settlement");
     $("#expedition-map-layer").classList.toggle("is-running",Boolean(run));
     renderer().setExpeditionView("map",{
@@ -234,7 +235,7 @@ export function mountExpeditionScreen({
     const run=activeRun(),event=run?.pendingEvent;
     if(!run||!event){renderMap();return;}
     root.classList.add("has-active-expedition","is-level");
-    root.classList.remove("is-settlement","is-exhausted");
+    root.classList.remove("is-settlement","is-exhausted","has-pending-event");
     $("#expedition-map-layer").classList.add("is-running");
     const node=EXPEDITION_NODES[event.nodeId];
     renderer().setExpeditionView("level",{nodeId:event.nodeId,event,seed:run.seed});
@@ -270,7 +271,7 @@ export function mountExpeditionScreen({
   }
   function renderSettlement(){
     if(!settlement)return;
-    root.classList.remove("has-active-expedition","is-level","is-exhausted");
+    root.classList.remove("has-active-expedition","is-level","is-exhausted","has-pending-event");
     root.classList.add("is-settlement");
     renderer().setExpeditionView("map",{nodes:EXPEDITION_NODES,visitedNodes:[START_NODE_ID],currentNodeId:START_NODE_ID,seed:state.expeditionProgress.worldSeed});
     $("#expedition-map-layer").hidden=true;

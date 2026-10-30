@@ -355,6 +355,7 @@ try{
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="map")throw new Error("Explorar no abrió el diorama del mapa");
  if(Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==5)throw new Error("El mapa 3D no tiene cinco lugares seleccionables");
  await page.screenshot({path:"artifacts/visual/expedition-map-390x844.png",fullPage:true});
+ if(!await page.locator("#expedition-readiness").isVisible())throw new Error("Falta la explicación de disponibilidad antes de iniciar");
  if(await page.locator("#expedition-start").isDisabled())throw new Error("El CTA de recuperación debe permanecer disponible");
  if(await page.locator("#expedition-start").textContent()!=="Comenzar en Jardín húmedo")throw new Error("El CTA no identifica el punto real de inicio");
  const previewNode=page.locator('[data-node-id="rotten-fruit"]');
@@ -437,8 +438,12 @@ try{
  await page.screenshot({path:"artifacts/visual/expedition-map-360x640.png",fullPage:true});
  const compactPanel=await page.locator("#expedition-map-layer").boundingBox();
  const compactScene=await page.locator("#expedition-diorama").boundingBox();
- if(!compactPanel||!compactScene||compactScene.height<200||compactPanel.height>330||compactScene.y+compactScene.height>compactPanel.y+2)throw new Error("A 360x640 no queda una zona 3D suficiente y separada del panel");
- if(!await page.locator("#expedition-readiness").isVisible())throw new Error("Falta el estado de disponibilidad del explorador");
+ if(!compactPanel||!compactScene||compactScene.height<200||compactPanel.height>330||compactScene.y+compactScene.height>compactPanel.y+2)throw new Error("A 360x640 no queda una zona 3D suficiente y separada del panel: "+JSON.stringify({panel:compactPanel,scene:compactScene}));
+ const resumeBox=await page.locator("#expedition-resume-event").boundingBox();
+ const runActionsBox=await page.locator("#expedition-run-actions").boundingBox();
+ if(!resumeBox||!runActionsBox)throw new Error("El mapa debe ofrecer Retomar, Guardar y Retirarse cuando hay un encuentro pendiente");
+ const resumeActionsOverlap=Math.min(resumeBox.x+resumeBox.width,runActionsBox.x+runActionsBox.width)-Math.max(resumeBox.x,runActionsBox.x)>1&&Math.min(resumeBox.y+resumeBox.height,runActionsBox.y+runActionsBox.height)-Math.max(resumeBox.y,runActionsBox.y)>1;
+ if(resumeActionsOverlap)throw new Error("Retomar el encuentro se solapa con Guardar/Retirarse a 360x640");
  await page.setViewportSize({width:1440,height:1000});
  await page.waitForTimeout(120);
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1))throw new Error("El diorama del mapa genera overflow a 1440x1000");
