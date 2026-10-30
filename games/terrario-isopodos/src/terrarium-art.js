@@ -191,50 +191,42 @@ function makeLeaves(random, geometry, material, shape, radius, count, palette, k
   let used = 0;
   for (let i = 0; i < count; i++) {
     let p;
-    if (kind === "groundcover" || kind === "ground") {
-      const sites = kind === "ground"
-        ? [[-0.98, -0.28], [-0.72, 0.43], [0.7, 0.34], [0.96, -0.46], [-0.12, -0.78]]
-        : [[-0.86, -0.22], [0.72, 0.24], [-0.12, -0.76], [0.98, -0.46]];
-      const site = sites[i % sites.length];
-      const spread = kind === "ground" ? 0.42 : 0.28;
-      p = {x:site[0] + (random() - 0.5) * spread,z:site[1] + (random() - 0.5) * spread * 0.72};
-      if (!inside(p.x, p.z, shape, radius)) p = point(random, shape, radius, 0.12);
-    } else {
-      p = point(random, shape, radius, 0.06);
-    }
-    const angle = random() * Math.PI * 2;
-    const length = kind === "sprig"
-      ? 0.045 + random() * 0.075
-      : kind === "groundcover"
-        ? 0.055 + random() * 0.09
-        : 0.085 + random() * 0.15;
-    const width = length * (kind === "sprig" ? 0.34 : kind === "groundcover" ? 0.48 : 0.31);
-    const direction = new T.Vector3(Math.cos(angle), 0, Math.sin(angle));
-    const up = new T.Vector3(0, 1, 0);
-    if (kind === "sprig") {
-      direction.y = -0.18 - random() * 0.25;
-      direction.normalize();
-    }
-    const normal = new T.Vector3().crossVectors(direction, up).normalize();
-    const vertical = new T.Vector3().crossVectors(normal, direction).normalize();
-    const basis = new T.Matrix4().makeBasis(direction, vertical, normal);
-    dummy.position.set(p.x, terrainHeightAt(p.x, p.z, shape, radius) + (kind === "sprig" ? 0.035 : 0.006), p.z);
+    if(kind==="local-litter")p={x:(random()-.5)*.34,z:(random()-.5)*.24};
+    else if(kind==="groundcover-random"||kind==="random")p=point(random,shape,radius,kind==="random" ? 0.08 : 0.1);
+    else if(kind==="groundcover"||kind==="ground"){
+      const sites=kind==="ground"
+        ?[[-.98,-.28],[-.72,.43],[.7,.34],[.96,-.46],[-.12,-.78]]
+        :[[-.86,-.22],[.72,.24],[-.12,-.76],[.98,-.46]];
+      const site=sites[i%sites.length],spread=kind==="ground" ? 0.42 : 0.28;
+      p={x:site[0]+(random()-.5)*spread,z:site[1]+(random()-.5)*spread*.72};
+      if(!inside(p.x,p.z,shape,radius))p=point(random,shape,radius,.12);
+    }else p=point(random,shape,radius,.06);
+    const angle=random()*Math.PI*2;
+    const length=kind==="sprig" ? 0.045+random()*0.075
+      :kind==="groundcover"||kind==="groundcover-random" ? 0.045+random()*0.068
+      :kind==="local-litter" ? 0.048+random()*0.065
+      :.085+random()*.15;
+    const width=length*(kind==="sprig" ? 0.34 : kind==="groundcover"||kind==="groundcover-random" ? 0.48 : 0.31);
+    const direction=new T.Vector3(Math.cos(angle),0,Math.sin(angle));
+    const up=new T.Vector3(0,1,0);
+    if(kind==="sprig"){direction.y=-.18-random()*.25;direction.normalize();}
+    const normal=new T.Vector3().crossVectors(direction,up).normalize();
+    const vertical=new T.Vector3().crossVectors(normal,direction).normalize();
+    const basis=new T.Matrix4().makeBasis(direction,vertical,normal);
+    dummy.position.set(p.x,terrainHeightAt(p.x,p.z,shape,radius)+(kind==="sprig" ? 0.035 : 0.006),p.z);
     dummy.quaternion.setFromRotationMatrix(basis);
-    dummy.rotateX(kind === "ground" ? -0.16 : 0);
-    dummy.scale.set(length, 1, width);
+    dummy.rotateX(kind==="ground"||kind==="local-litter"?-.16:0);
+    dummy.scale.set(length,1,width);
     dummy.updateMatrix();
-    mesh.setMatrixAt(used, dummy.matrix);
-    mesh.setColorAt(used, new T.Color(palette[Math.floor(random() * palette.length)]));
+    mesh.setMatrixAt(used,dummy.matrix);
+    mesh.setColorAt(used,new T.Color(palette[Math.floor(random()*palette.length)]));
     used++;
   }
-  mesh.count = used;
-  mesh.instanceMatrix.needsUpdate = true;
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  mesh.castShadow = false;
-  mesh.receiveShadow = true;
+  mesh.count=used;mesh.instanceMatrix.needsUpdate=true;
+  if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+  mesh.castShadow=false;mesh.receiveShadow=true;
   return mesh;
 }
-
 function terrainGeometry(shape, radius) {
   const positions = [], uvs = [], colors = [], indices = [];
   const add = (x, z) => {
@@ -314,8 +306,10 @@ function addSubstrate(group, shape, spec, materials) {
 
 function addFerns(group, random, shape, radius, materials, leafGeo, options = {}) {
   const density=clamp(Number(options.density??1),0.15,2);
-  const seeds = shape === "esferico"
-    ? [
+  const seeds = options.local
+    ? [{x:0,z:0,size:Number(options.size??.36),fronds:Number(options.fronds??4),phase:random()*Math.PI*2}]
+    : shape === "esferico"
+      ? [
         {x:-.72,z:-.55,size:.68,fronds:5,phase:.18},
         {x:.66,z:-.48,size:.62,fronds:4,phase:1.12},
         {x:-.94,z:.14,size:.4,fronds:4,phase:2.28},
@@ -331,8 +325,9 @@ function addFerns(group, random, shape, radius, materials, leafGeo, options = {}
         {x:-.12,z:.68,size:.34,fronds:4,phase:1.82},
         {x:.14,z:-.98,size:.3,fronds:3,phase:2.74}
       ];
-  const leaves = new T.InstancedMesh(leafGeo, materials.fern, Math.ceil(1800*density));
-  const stems = new T.InstancedMesh(new T.CylinderGeometry(.006,.012,1,6), materials.fernStem, Math.ceil(1050*density));
+  const maxFronds=seeds.reduce((sum,plant)=>sum+Math.max(1,Math.round((plant.fronds+1)*density)),0);
+  const leaves = new T.InstancedMesh(leafGeo, materials.fern, Math.max(1,maxFronds*24));
+  const stems = new T.InstancedMesh(new T.CylinderGeometry(.006,.012,1,6), materials.fernStem, Math.max(1,maxFronds*5));
   const dummy = new T.Object3D();
   const greens=[0x496e39,0x638447,0x779651,0x8ca85e,0x5a7941];
   let used=0,stemCount=0;
@@ -416,17 +411,19 @@ function addFerns(group, random, shape, radius, materials, leafGeo, options = {}
 
 function addForestRosettes(group,random,shape,radius,materials,leafGeo,options={}){
   const density=clamp(Number(options.density??1),0.15,2);
-  const sites=shape==="esferico"
-    ? [[-.22,-.86,.76],[.62,.48,.68],[-.86,.34,.59],[.08,.64,.48],[.92,-.08,.43]]
-    : [[-.18,-.82,1.02],[.62,.55,.9],[-.88,.38,.72],[.08,.64,.56],[.92,-.08,.52]];
-  const leaves=new T.InstancedMesh(leafGeo,materials.groundcover,Math.ceil(88*density));
+  const sites=options.local
+    ? [[0,0,Number(options.size??.42)]]
+    : shape==="esferico"
+      ? [[-.22,-.86,.76],[.62,.48,.68],[-.86,.34,.59],[.08,.64,.48],[.92,-.08,.43]]
+      : [[-.18,-.82,1.02],[.62,.55,.9],[-.88,.38,.72],[.08,.64,.56],[.92,-.08,.52]];
+  const leaves=new T.InstancedMesh(leafGeo,materials.groundcover,Math.ceil((options.local?16:88)*density));
   const dummy=new T.Object3D();
   const palette=[0x496b3b,0x5b7c43,0x78944f,0x8ca45d];
   let used=0;
   for(const [x,z,size] of sites){
     if(!inside(x,z,shape,radius))continue;
     const base=terrainHeightAt(x,z,shape,radius);
-    const count=Math.max(1,Math.round((7+Math.floor(random()*3))*density));
+    const count=Math.max(1,Math.round((options.local?5:7+Math.floor(random()*3))*density));
     const phase=random()*Math.PI*2;
     for(let i=0;i<count;i++){
       const angle=phase+i/count*Math.PI*2+(random()-.5)*.32;
@@ -454,7 +451,7 @@ function addForestRosettes(group,random,shape,radius,materials,leafGeo,options={
 
 function addMoss(group, random, shape, radius, materials, leafGeo, options = {}) {
   const density=clamp(Number(options.density??1),0.12,2);
-  const patchCount=Math.max(1,Math.round(32*density));
+  const patchCount=Math.max(options.local?3:1,Math.round((options.local?5:32)*density));
   const cushionGeometry = new T.IcosahedronGeometry(1, 2);
   const cushionPosition = cushionGeometry.attributes.position;
   for (let i = 0; i < cushionPosition.count; i++) {
@@ -464,19 +461,21 @@ function addMoss(group, random, shape, radius, materials, leafGeo, options = {})
   }
   cushionGeometry.computeVertexNormals();
   const cushions = new T.InstancedMesh(cushionGeometry, materials.moss, patchCount);
-  const leaflets = new T.InstancedMesh(leafGeo, materials.mossSprig, Math.ceil(2100*density));
+  const leaflets = new T.InstancedMesh(leafGeo, materials.mossSprig, Math.ceil((options.local?420:2100)*density));
   const dummy = new T.Object3D();
   const tones = [0x405d36, 0x527341, 0x65834a, 0x789655, 0x8aa45d];
   let cushionCount = 0, leafletCount = 0;
 
-  const mossSites = shape==="esferico"
-    ? [[-.82,-.18],[.78,.22],[-.12,-.78],[.96,-.45],[-.9,.48],[.18,.88],[-.42,.76]]
-    : [[-0.82, -0.18], [0.78, 0.22], [-0.12, -0.78], [0.96, -0.45], [-1.02, 0.55], [0.18, 0.88], [-0.42, 0.76]];
+  const mossSites = options.local
+    ? [[0,0]]
+    : shape==="esferico"
+      ? [[-.82,-.18],[.78,.22],[-.12,-.78],[.96,-.45],[-.9,.48],[.18,.88],[-.42,.76]]
+      : [[-.82,-.18],[.78,.22],[-.12,-.78],[.96,-.45],[-1.02,.55],[.18,.88],[-.42,.76]];
   for (let patch = 0; patch < patchCount; patch++) {
     const site = mossSites[patch % mossSites.length];
     const center = {
-      x:site[0] + (random() - 0.5) * 0.22,
-      z:site[1] + (random() - 0.5) * 0.18
+      x:site[0] + (random() - 0.5) * (options.local ? 0.13 : 0.22),
+      z:site[1] + (random() - 0.5) * (options.local ? 0.11 : 0.18)
     };
     if (!inside(center.x, center.z, shape, radius)) continue;
     const ground = terrainHeightAt(center.x, center.z, shape, radius);
@@ -534,7 +533,8 @@ function addMoss(group, random, shape, radius, materials, leafGeo, options = {})
 }
 
 function addRocks(group, random, shape, radius, material, options = {}) {
-  const count=Math.max(1,Math.ceil(9*clamp(Number(options.density??1),0.12,2)));
+  const density=clamp(Number(options.density??1),0.12,2);
+  const count=Math.max(options.local?3:1,Math.ceil((options.local?4:9)*density));
   const geometry = new T.IcosahedronGeometry(1, 1);
   const position = geometry.attributes.position;
   for (let i = 0; i < position.count; i++) {
@@ -545,15 +545,18 @@ function addRocks(group, random, shape, radius, material, options = {}) {
   geometry.computeVertexNormals();
   const rocks = new T.InstancedMesh(geometry, material, count);
   const dummy = new T.Object3D();
-  const sites = shape==="esferico"
-    ? [[-.96,.4],[-.82,.55],[.82,-.36],[.92,-.45],[.22,.82]]
-    : [[-1.02, 0.43], [-0.86, 0.54], [0.84, -0.36], [0.98, -0.48], [0.22, 0.82]];
+  const sites = options.local
+    ? [[0,0]]
+    : shape==="esferico"
+      ? [[-.96,.4],[-.82,.55],[.82,-.36],[.92,-.45],[.22,.82]]
+      : [[-1.02,.43],[-.86,.54],[.84,-.36],[.98,-.48],[.22,.82]];
   const tones = [0x505b53, 0x626b5f, 0x48564e, 0x747667, 0x56615b];
   let used = 0;
   for (let i = 0; i < count; i++) {
     const site = sites[i % sites.length];
-    let x = site[0] + (random() - 0.5) * 0.16;
-    let z = site[1] + (random() - 0.5) * 0.14;
+    const spread=options.local ? 0.18 : 0.16;
+    let x=site[0]+(random()-.5)*spread;
+    let z=site[1]+(random()-.5)*spread*.85;
     if (!inside(x, z, shape, radius)) {
       const p = point(random, shape, radius, 0.22);
       x = p.x; z = p.z;

@@ -25,6 +25,15 @@ function createNodeEvent(run,nodeId,slot){
   const template=EXPEDITION_EVENT_TYPES[type];
   return {id:`${run.id}:${nodeId}:${slot}:${type}`,type,nodeId,title:template.title,description:template.description,options:template.options.map(option=>structuredClone(option))};
 }
+export function isExpeditionNodeUnlocked(state,nodeId){
+  const node=EXPEDITION_NODES[nodeId];
+  const progress=state?.expeditionProgress;
+  if(!node||!progress)return false;
+  const discovery=node.unlockDiscovery;
+  if(!discovery)return true;
+  return Boolean(progress.discoveries?.includes(discovery)||progress.active?.loot?.discoveries?.includes(discovery));
+}
+
 export function listReachableNodes(nodeId){const node=EXPEDITION_NODES[nodeId];return node?[...node.links]:[];}
 export function isExpeditionGraphConnected(){
   const visited=new Set([START_NODE_ID]),queue=[START_NODE_ID];
@@ -54,6 +63,7 @@ export function travelToNode(state,nodeId){
   if(!destination)throw new Error("El lugar seleccionado no existe");
   const current=EXPEDITION_NODES[run.currentNodeId];
   if(!current?.links.includes(nodeId))throw new Error("Ese lugar no está conectado con tu posición actual");
+  if(!isExpeditionNodeUnlocked(state,nodeId))throw new Error("Lugar bloqueado: "+(destination.unlockHint??"todavía falta descubrir el acceso"));
   if(run.actionPoints<destination.travelCost)throw new Error("No quedan acciones suficientes para llegar a ese lugar");
   if(run.visitedNodes.includes(nodeId)){run.actionPoints-=destination.travelCost;run.currentNodeId=nodeId;return {nodeId,event:null,actionPoints:run.actionPoints};}
   run.actionPoints-=destination.travelCost;run.currentNodeId=nodeId;run.visitedNodes.push(nodeId);

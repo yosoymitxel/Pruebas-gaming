@@ -1,6 +1,8 @@
 import * as T from "three";
 import { HABITAT_GEOMETRY } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
+import { createDioramaKit } from "./diorama-kit.js";
+import { resolveIsopodRefugePose } from "./isopod-placement.js";
 import { buildExpeditionMapDiorama, buildExpeditionLevelDiorama } from "./expedition/diorama.js";
 
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
@@ -464,7 +466,10 @@ export class TerrariumRenderer {
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life,this.weatherGroup);
     this.scene.add(this.world,this.expeditionGroup);
-    this.tool="hand";
+    this.tool="camera";
+    this.selectedTarget=null;
+    this.selectionOutline=null;
+    this.onSelectionChange=null;
     this.onInteractionStart=null;
     this.onInteractionMove=null;
     this.onInteractionEnd=null;
@@ -503,14 +508,18 @@ export class TerrariumRenderer {
       const point=new T.Vector3();
       return raycaster.ray.intersectPlane(groundPlane,point)?point:null;
     };
-    const entityAt=e=>{
+    const targetAt=e=>{
       const rect=c.getBoundingClientRect();
       pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
       raycaster.setFromCamera(pointer,this.camera);
-      for(const hit of raycaster.intersectObjects(this.life.children,true)){
+      const roots=[...this.life.children,...this.resourcesGroup.children];
+      for(const hit of raycaster.intersectObjects(roots,true)){
         let node=hit.object;
-        while(node&&!node.userData?.entityId)node=node.parent;
-        if(node?.userData?.entityId)return node.userData.entityId;
+        while(node){
+          if(node.userData?.entityId)return {kind:"entity",id:node.userData.entityId,object:node};
+          if(node.userData?.resourceId)return {kind:"resource",id:node.userData.resourceId,object:node};
+          node=node.parent;
+        }
       }
       return null;
     };
@@ -531,17 +540,6 @@ export class TerrariumRenderer {
       }
       return null;
     };
-    const resourceAt=point=>{
-      if(!point)return null;
-      let closest=null,distance=Infinity;
-      for(const resource of this.state.resources){
-        const next=Math.hypot(resource.x-point.x,resource.z-point.z);
-        const radius=(resource.type==="shelter"||resource.type==="bark")?.48:.19;
-        if(next<radius&&next<distance){closest=resource;distance=next;}
-      }
-      return closest?.id??null;
-    };
-
     const zoomBy=delta=>{
       this.distance=T.MathUtils.clamp(this.distance+delta,3.1,24);
       this.userAdjustedCamera=true;
@@ -569,18 +567,34 @@ export class TerrariumRenderer {
         e.preventDefault();
         return;
       }
-      if(this.tool==="hand"&&!e.shiftKey){
-        const entityId=entityAt(e);
-        const point=projectGround(e);
-        const resourceId=entityId?null:resourceAt(point);
-        if(entityId||resourceId){
-          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId,startX:point?.x,startZ:point?.z,moved:false};
-          c.setPointerCapture?.(e.pointerId);
-          if(entityId)this.onInteractionStart?.(interaction);
+      if(this.tool==="hand"){
+        if(e.shiftKey)return;
+        const target=targetAt(e);
+        if(!target){
+          this.clearSelection();
+          return;
+        }
+        const alreadySelected=this.selectedTarget?.kind===target.kind&&this.selectedTarget?.id===target.id;
+        if(!alreadySelected){
+          this.selectTarget(target.object,target.kind,target.id);
           e.preventDefault();
           return;
         }
+        const point=projectGround(e);
+        interaction={
+          pointerId:e.pointerId,
+          kind:target.kind,
+          id:target.id,
+          startX:point?.x,
+          startZ:point?.z,
+          moved:false
+        };
+        c.setPointerCapture?.(e.pointerId);
+        if(target.kind==="entity")this.onInteractionStart?.(interaction);
+        e.preventDefault();
+        return;
       }
+      if(this.tool!=="camera")return;
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
       if(pointers.size===1){
         drag={x:e.clientX,y:e.clientY,id:e.pointerId};
@@ -671,7 +685,7 @@ export class TerrariumRenderer {
   setExpeditionView(kind,data={}){
     if(kind!=="map"&&kind!=="level")throw new Error("Vista de expedición desconocida: "+kind);
     if(!this.expeditionMode){
-      this.expeditionCameraSnapshot={angle:this.angle,elevation:this.elevation,distance:this.distance,userAdjustedCamera:this.userAdjustedCamera,background:this.scene.background.clone(),fog:this.scene.fog.color.clone(),fogNear:this.scene.fog.near,fogFar:this.scene.fog.far,keyIntensity:this.keyLight.intensity};
+      this.expeditionCameraSnapshot={angle:this.angle,elevation:this.elevation,distance:this.distance,fov:this.camera.fov,userAdjustedCamera:this.userAdjustedCamera,background:this.scene.background.clone(),fog:this.scene.fog.color.clone(),fogNear:this.scene.fog.near,fogFar:this.scene.fog.far,keyIntensity:this.keyLight.intensity};
       this.world.visible=false;
       this.expeditionGroup.visible=true;
       this.expeditionMode=true;
@@ -685,9 +699,11 @@ export class TerrariumRenderer {
     this.expeditionGroup.add(scene);
     this.expeditionViewKind=kind;
     this.expeditionActor=scene.getObjectByName("expedition-isopod");
+    this.camera.fov=54;
+    this.camera.updateProjectionMatrix();
     this.angle=portrait?0:(kind==="map"?.58:.68);
     this.elevation=portrait?(kind==="map"?1.05:1.0):(kind==="map"?.78:.72);
-    this.distance=kind==="map"?7.7:5.7;
+    this.distance=Math.max(this.fitDistance(),kind==="map"?4.45:3.35);
     this.userAdjustedCamera=false;
     this.scene.background.setHex(kind==="map"?0x293c2c:0x344330);
     this.scene.fog.color.setHex(kind==="map"?0x293c2c:0x344330);
@@ -698,6 +714,13 @@ export class TerrariumRenderer {
     canvas.dataset.expeditionMapPositions=JSON.stringify(scene.userData.mapPositions??{});
     canvas.dataset.expeditionView=kind;
     canvas.dataset.expeditionPortrait=String(this.isExpeditionPortrait());
+    canvas.dataset.expeditionSurface=scene.userData.surfaceType??"unknown";
+    canvas.dataset.expeditionTrailCount=String(scene.userData.expeditionTrailCount??0);
+    canvas.dataset.expeditionLandmarkCount=String(scene.userData.landmarkCount??0);
+    canvas.dataset.expeditionLockedNodeCount=String(scene.userData.lockedNodeCount??0);
+    canvas.dataset.expeditionUnlockedNodeCount=String((scene.userData.landmarkCount??0)-(scene.userData.lockedNodeCount??0));
+    canvas.dataset.expeditionActorScale=String(this.expeditionActor?.scale.x??0);
+    canvas.dataset.expeditionFov=this.camera.fov.toFixed(2);
     canvas.dataset.expeditionNodeCount=String(Object.keys(data.nodes??{}).length);
     canvas.dataset.expeditionInteractionTargets=String(scene.userData.expeditionScene==="level"?scene.children.filter(child=>child.userData?.expeditionChoiceId).length:scene.children.filter(child=>child.userData?.expeditionNodeId).length);
     this.cameraUpdate();
@@ -737,7 +760,7 @@ export class TerrariumRenderer {
     this.expeditionHandler=null;
     const snapshot=this.expeditionCameraSnapshot;
     if(snapshot){
-      this.angle=snapshot.angle;this.elevation=snapshot.elevation;this.distance=snapshot.distance;this.userAdjustedCamera=snapshot.userAdjustedCamera;
+      this.angle=snapshot.angle;this.elevation=snapshot.elevation;this.distance=snapshot.distance;this.camera.fov=snapshot.fov??33;this.camera.updateProjectionMatrix();this.userAdjustedCamera=snapshot.userAdjustedCamera;
       this.scene.background.copy(snapshot.background);this.scene.fog.color.copy(snapshot.fog);
       this.scene.fog.near=snapshot.fogNear;this.scene.fog.far=snapshot.fogFar;this.keyLight.intensity=snapshot.keyIntensity;
     }
@@ -748,9 +771,60 @@ export class TerrariumRenderer {
   }
 
   setTool(tool){
-    if(!new Set(["hand","leaf-litter","shelter"]).has(tool))throw new Error("Herramienta desconocida: "+tool);
+    if(!new Set(["camera","hand","leaf-litter","shelter"]).has(tool))throw new Error("Herramienta desconocida: "+tool);
+    if(tool!=="hand")this.clearSelection();
     this.tool=tool;
     this.renderer.domElement.dataset.activeTool=tool;
+  }
+
+  clearSelection(){
+    const selected=this.selectedTarget,outline=this.selectionOutline;
+    if(outline){
+      selected?.object?.remove(outline);
+      outline.traverse(node=>{
+        if(node.isMesh&&node.material){
+          for(const material of (Array.isArray(node.material)?node.material:[node.material]))material.dispose?.();
+        }
+      });
+    }
+    this.selectedTarget=null;
+    this.selectionOutline=null;
+    this.renderer.domElement.dataset.selectedTarget="none";
+    this.renderer.domElement.dataset.selectionOutline="none";
+    this.onSelectionChange?.(null);
+  }
+
+  selectTarget(object,kind,id){
+    if(this.selectedTarget?.kind===kind&&this.selectedTarget?.id===id)return;
+    this.clearSelection();
+    const outline=object.clone(true);
+    outline.name="selection-outline-"+kind+"-"+id;
+    outline.position.set(0,0,0);
+    outline.rotation.set(0,0,0);
+    // Expand the actual 3D silhouette enough to remain visible at default camera distance.
+    outline.scale.setScalar(1.14);
+    outline.userData.selectionOutline=true;
+    outline.traverse(node=>{
+      if(node.isMesh){
+        const makeMaterial=()=>new T.MeshBasicMaterial({
+          color:0xffd76c,side:T.BackSide,transparent:false,opacity:1,
+          depthTest:false,depthWrite:false,toneMapped:false
+        });
+        node.material=Array.isArray(node.material)?node.material.map(makeMaterial):makeMaterial();
+        node.castShadow=false;
+        node.receiveShadow=false;
+        node.renderOrder=1000;
+      }
+      node.raycast=()=>{};
+    });
+    object.add(outline);
+    this.selectedTarget={kind,id,object};
+    this.selectionOutline=outline;
+    this.renderer.domElement.dataset.selectedTarget=kind+":"+id;
+    this.renderer.domElement.dataset.selectionOutline="3d-inverted-hull";
+    this.renderer.domElement.dataset.selectionOutlineScale="1.14";
+    this.renderer.domElement.dataset.selectionOutlineDepthTest="false";
+    this.onSelectionChange?.({kind,id});
   }
 
   setWeather(weather){
@@ -820,11 +894,11 @@ export class TerrariumRenderer {
   fitDistance(){
     if(this.expeditionMode){
       const portrait=this.isExpeditionPortrait();
-      const halfWidth=this.expeditionViewKind==="map"?(portrait?1.62:2.95):(portrait?1.52:2.15);
-      const halfHeight=this.expeditionViewKind==="map"?(portrait?2.75:2.05):(portrait?2.35:1.55);
+      const halfWidth=this.expeditionViewKind==="map"?(portrait?1.62:2.85):(portrait?1.42:1.95);
+      const halfHeight=this.expeditionViewKind==="map"?(portrait?2.62:2.05):(portrait?1.8:1.42);
       const verticalFov=T.MathUtils.degToRad(this.camera.fov);
       const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*Math.max(this.camera.aspect,.1));
-      return Math.max(4.3,halfWidth/Math.tan(horizontalFov/2),halfHeight/Math.tan(verticalFov/2))*1.12;
+      return Math.max(3.05,halfWidth/Math.tan(horizontalFov/2),halfHeight/Math.tan(verticalFov/2))*1.045;
     }
     const shape=this.state.habitat.shape;
     const spec=HABITAT_GEOMETRY[shape];
@@ -864,6 +938,7 @@ export class TerrariumRenderer {
       Math.cos(this.angle)*horizontal
     );
     this.camera.lookAt(target);
+    this.renderer.domElement.dataset.cameraFov=this.camera.fov.toFixed(2);
     // El fit móvil puede alejar la cámara más allá de la niebla fija original (8–17).
     // Escalar el rango evita que un recipiente bien encuadrado desaparezca en el fondo.
     this.scene.fog.near=Math.max(8,this.distance*1.2);
@@ -871,6 +946,7 @@ export class TerrariumRenderer {
     this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);
     this.renderer.domElement.dataset.cameraFitDistance=this.fitDistance().toFixed(2);
     this.renderer.domElement.dataset.cameraElevation=this.elevation.toFixed(2);
+    this.renderer.domElement.dataset.cameraAngle=this.angle.toFixed(4);
     this.renderer.domElement.dataset.fogNear=this.scene.fog.near.toFixed(2);
     this.renderer.domElement.dataset.fogFar=this.scene.fog.far.toFixed(2);
   }
@@ -887,7 +963,7 @@ export class TerrariumRenderer {
       this.angle=portrait?0:(this.expeditionViewKind==="map"?.58:.68);
       this.elevation=portrait?1.05:(this.expeditionViewKind==="map"?.78:.72);
       this.userAdjustedCamera=false;
-      this.distance=Math.max(this.expeditionViewKind==="map"?7.7:5.7,this.fitDistance());
+      this.distance=Math.max(this.expeditionViewKind==="map"?4.45:3.35,this.fitDistance());
       this.cameraUpdate();
       return;
     }
@@ -900,9 +976,18 @@ export class TerrariumRenderer {
 
   clear(group){
     const geometries=new Set(),materials=new Set(),textures=new Set();
+    const disposeKit=node=>{
+      const dispose=node?.userData?.dioramaKitDispose;
+      if(typeof dispose==="function"){
+        delete node.userData.dioramaKitDispose;
+        dispose();
+      }
+    };
+    disposeKit(group);
     for(const child of [...group.children]){
       group.remove(child);
       child.traverse(object=>{
+        disposeKit(object);
         if(object.geometry)geometries.add(object.geometry);
         if(object.material){
           const list=Array.isArray(object.material)?object.material:[object.material];
@@ -1142,6 +1227,7 @@ export class TerrariumRenderer {
   }
 
   setMode(mode){
+    this.clearSelection();
     this.renderer.domElement.dataset.renderMode=mode;
     this.renderer.domElement.dataset.isopodModel=mode==="voxel"?"voxel-isopod-mesh":"continuous-carapace-seven-tergites-fourteen-pereopods";
     this.renderer.domElement.dataset.isopodVoxelPalette=mode==="voxel"?"forest-floor-olive-v1":"not-applicable";
@@ -1167,6 +1253,7 @@ export class TerrariumRenderer {
     const byId=new Map(this.state.entities.map(e=>[e.id,e]));
     const simTime=this.state.clockMinutes+(this.interpolationAlpha??1);
     const alpha=T.MathUtils.clamp(this.interpolationAlpha??1,0,1);
+    let underCoverCount=0,perchedCount=0;
     for(const object of this.life.children){
       const entity=byId.get(object.userData.entityId);
       if(!entity){object.visible=false;continue;}
@@ -1185,9 +1272,10 @@ export class TerrariumRenderer {
         .filter(resource=>resource.type==="shelter"||resource.type==="bark")
         .map(resource=>({resource,distance:Math.hypot(resource.x-x,resource.z-z)}))
         .sort((a,b)=>a.distance-b.distance)[0];
-      const perched=refuge&&refuge.distance<.43;
-      const refugeTop=perched?(refuge.resource.type==="shelter"?.43:.28):0;
-      object.position.set(x,floorY+refugeTop+(object.userData.isVoxel?.035:.006)-(entity.behavior==="burrowing"&&!perched?.045:0)+gaitBob,z);
+      const refugePose=resolveIsopodRefugePose(entity,refuge);
+      if(refugePose.underCover)underCoverCount++;
+      if(refugePose.perched)perchedCount++;
+      object.position.set(x,floorY+(object.userData.isVoxel?.035:.006)+refugePose.heightOffset+gaitBob,z);
       // Both animal models are authored nose-forward along local +X;
       // simulation headings use +Z at zero (x=sin(h), z=cos(h)).
       object.rotation.y=(entity.heading??0)-Math.PI/2;
@@ -1198,116 +1286,58 @@ export class TerrariumRenderer {
         updateIsopodRig(object,phase,moving,curled);
       }
     }
+    this.renderer.domElement.dataset.isopodsUnderCover=String(underCoverCount);
+    this.renderer.domElement.dataset.isopodsPerched=String(perchedCount);
   }
 
   syncResources(){
-    const sig=JSON.stringify(this.state.resources.map(r=>[r.id,r.type,Math.round((r.amount??1)*10)/10,r.x,r.z]));
-    if(sig===this.resourceSignature)return;
-    this.resourceSignature=sig;
+    const signature=JSON.stringify(this.state.resources.map(resource=>[
+      resource.id,resource.type,Math.round((resource.amount??1)*10)/10,resource.x,resource.z
+    ]));
+    if(signature===this.resourceSignature)return;
+    this.resourceSignature=signature;
+    if(this.selectedTarget?.kind==="resource")this.clearSelection();
     this.clear(this.resourcesGroup);
     const shape=this.state.habitat.shape;
     const radius=HABITAT_GEOMETRY[shape].floorRadius;
-    const makeLeaf=()=>{
-      const positions=[-.09,0,0,-.045,.018,-.026,0,.026,0,.045,.018,.026,.09,0,0];
-      const geometry=new T.BufferGeometry();
-      geometry.setAttribute("position",new T.Float32BufferAttribute(positions,3));
-      geometry.setIndex([0,1,2,2,1,3,2,3,4]);
-      geometry.computeVertexNormals();
-      return geometry;
+    const kit=createDioramaKit({
+      shape,
+      radius,
+      seed:(0x49534f+this.state.resources.length*97)>>>0,
+      surfaceOffset:.19
+    });
+    const profiles={
+      "leaf-litter":{asset:"leaf-litter",options:{count:24,kind:"local-litter",scale:1.18}},
+      shelter:{asset:"bark-shelter",options:{length:1.04,thickness:.275,scale:1.04}},
+      bark:{asset:"bark-shelter",options:{length:.78,thickness:.18,scale:1.02}},
+      fern:{asset:"fern-bed",options:{local:true,size:.4,fronds:5,density:.95,scale:1.08}},
+      mushroom:{asset:"mushroom-cluster",options:{density:1.05,scale:1.08}},
+      stone:{asset:"rock-scatter",options:{local:true,density:1.02,scale:1.02}},
+      moss:{asset:"moss-bed",options:{local:true,size:.46,density:1.08,scale:1.12}}
     };
     for(const resource of this.state.resources){
-      const floor=terrainHeightAt(resource.x,resource.z,shape,radius);
-      if(resource.type==="leaf-litter"){
-        const leafMaterial=mat(0x806342,.98,{side:T.DoubleSide});
-        const geometry=makeLeaf();
-        for(let i=0;i<3;i++){
-          const leaf=mesh(geometry,leafMaterial,[resource.x+(i-1)*.035,floor+.014+i*.002,resource.z+(i%2)*.025]);
-          leaf.rotation.y=i*.92;
-          leaf.scale.setScalar(.75+i*.12);
-          this.resourcesGroup.add(leaf);
-        }
-      }else if(resource.type==="shelter"||resource.type==="bark"){
-        const length=resource.type==="shelter"?.88:.62;
-        const thickness=resource.type==="shelter"?.23:.15;
-        const barkMaterial=mat(0x634832,.98,{side:T.DoubleSide,flatShading:true});
-        const archGeometry=new T.CylinderGeometry(thickness,thickness*.92,length,20,5,true,0,Math.PI);
-        const position=archGeometry.attributes.position;
-        for(let i=0;i<position.count;i++){
-          const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
-          const ripple=1+Math.sin(x*63+z*28)*.035+Math.cos(y*41-z*17)*.022;
-          position.setXYZ(i,x*ripple,y*ripple,z*ripple);
-        }
-        archGeometry.computeVertexNormals();
-        const arch=mesh(archGeometry,barkMaterial,[resource.x,floor+thickness*.72,resource.z]);
-        arch.userData.resourceId=resource.id;
-        arch.rotation.z=Math.PI/2;
-        arch.rotation.x=.06;
-        this.resourcesGroup.add(arch);
-        const entrance=mesh(new T.CircleGeometry(thickness*.82,18),mat(0x241f18,1),
-          [resource.x+length*.47,floor+thickness*.12,resource.z]);
-        entrance.userData.resourceId=resource.id;
-        entrance.rotation.y=Math.PI/2;
-        entrance.rotation.z=.08;
-        this.resourcesGroup.add(entrance);
-      }else if(resource.type==="fern"){
-        const plant=new T.Group();
-        const stemMaterial=mat(0x49653a,.98);
-        const leafMaterial=mat(0x66834a,.96,{side:T.DoubleSide});
-        for(let frond=0;frond<5;frond++){
-          const angle=frond/5*Math.PI*2;
-          const tip=new T.Vector3(Math.cos(angle)*.12,.2,Math.sin(angle)*.12);
-          const curve=new T.CatmullRomCurve3([
-            new T.Vector3(0,.012,0),new T.Vector3(tip.x*.42,.11,tip.z*.42),tip
-          ]);
-          plant.add(new T.Mesh(new T.TubeGeometry(curve,12,.004,5,false),stemMaterial));
-          for(let leaf=1;leaf<=5;leaf++){
-            const t=leaf/6,point=curve.getPoint(t);
-            const blade=mesh(new T.SphereGeometry(1,8,6),leafMaterial,[point.x,point.y,point.z]);
-            blade.scale.set(.035,.009,.012);
-            blade.rotation.y=angle+(leaf%2?-.55:.55);
-            plant.add(blade);
-          }
-        }
-        plant.position.set(resource.x,floor,resource.z);
-        this.resourcesGroup.add(plant);
-      }else if(resource.type==="mushroom"){
-        const stem=mesh(new T.CylinderGeometry(.018,.024,.075,9),mat(0xd2c6aa,.98),
-          [resource.x,floor+.038,resource.z]);
-        const cap=mesh(new T.SphereGeometry(1,14,9),mat(0x8a6345,.96),
-          [resource.x,floor+.082,resource.z]);
-        cap.scale.set(.052,.025,.052);
-        this.resourcesGroup.add(stem,cap);
-      }else if(resource.type==="stone"){
-        const geometry=new T.IcosahedronGeometry(.075,1);
-        const p=geometry.attributes.position;
-        for(let i=0;i<p.count;i++){
-          const scale=.88+Math.sin(i*2.17)*.1;
-          p.setXYZ(i,p.getX(i)*scale,p.getY(i)*(.7+Math.cos(i*1.9)*.12),p.getZ(i)*scale);
-        }
-        geometry.computeVertexNormals();
-        const stone=mesh(geometry,mat(0x76776d,.99,{flatShading:true}),
-          [resource.x,floor+.026,resource.z]);
-        stone.rotation.y=resource.x*2.3;
-        this.resourcesGroup.add(stone);
-      }else if(resource.type==="moss"){
-        const patch=new T.Group();
-        for(let i=0;i<18;i++){
-          const angle=i*2.399963229728653;
-          const distance=.045*Math.sqrt((i+.5)/18);
-          const tuft=mesh(new T.IcosahedronGeometry(.014+(i%3)*.002,0),
-            mat([0x4e6942,0x627d48,0x7d9253][i%3],.99,{flatShading:true}),
-            [Math.cos(angle)*distance,.012,Math.sin(angle)*distance]);
-          tuft.scale.y=1.2;
-          patch.add(tuft);
-        }
-        patch.position.set(resource.x,floor,resource.z);
-        this.resourcesGroup.add(patch);
-      }
+      const profile=profiles[resource.type];
+      if(!profile)continue;
+      const groundY=kit.surfaceHeightAt(resource.x,resource.z);
+      const amount=Math.max(.4,Math.min(1.2,Number(resource.amount??1)));
+      const object=kit.addAsset(this.resourcesGroup,profile.asset,{
+        ...profile.options,
+        position:[resource.x,0,resource.z],
+        groundY,
+        scale:Number(profile.options.scale??1)*amount,
+        density:Number(profile.options.density??1)*amount
+      });
+      object.name="resource-diorama-"+resource.type+"-"+resource.id;
+      object.userData.resourceId=resource.id;
+      object.userData.resourceType=resource.type;
     }
+    this.resourceKit=kit;
+    this.resourcesGroup.userData.dioramaKitDispose=kit.dispose;
     const canvas=this.renderer.domElement;
     canvas.dataset.resourceCount=String(this.state.resources.length);
     canvas.dataset.shelterCount=String(this.state.resources.filter(r=>r.type==="shelter").length);
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
+    canvas.dataset.resourceArt="shared-diorama-kit";
   }
 
   isExpeditionPortrait(){

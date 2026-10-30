@@ -31,6 +31,11 @@ function normalizeRun(run,progress){
   const discoveries=run.loot.discoveries??[];
   if(!Array.isArray(discoveries)||!discoveries.every(id=>typeof id==="string"&&id.length>0))throw new Error("Los descubrimientos del botín no son válidos");
   loot.discoveries=[...new Set(discoveries)];
+  const knownDiscoveries=new Set([...(progress.discoveries??[]),...loot.discoveries]);
+  for(const nodeId of run.visitedNodes){
+    const requirement=EXPEDITION_NODES[nodeId].unlockDiscovery;
+    if(requirement&&!knownDiscoveries.has(requirement))throw new Error("La ruta guardada incluye un lugar aún bloqueado");
+  }
   let pendingEvent=null;
   if(run.pendingEvent!==null&&run.pendingEvent!==undefined){
     const event=run.pendingEvent,slot=run.visitedNodes.indexOf(event?.nodeId),template=EXPEDITION_EVENT_TYPES[event?.type];

@@ -15,7 +15,7 @@ export const BIOLOGY_RULES=Object.freeze({
   defensiveRecoveryExposedPerMinute:0.006,
   foodEnergyGainPerMinute:0.014,
   shelterHydrationGainPerMinute:0.008,
-  minimumCollisionDistance:0.09
+  minimumCollisionDistance:0.205
 });
 
 const RESOURCE_COVER=Object.freeze({
@@ -148,15 +148,37 @@ function steerEntity(entity,target,resources,speed,phase,neighbors=[]){
   entity.z+=vz*step+Math.sin(phase)*wander;
 }
 
-function applySocialSeparation(entity,living){
-  for(const other of living){
-    if(other===entity||other.alive===false)continue;
-    const dx=entity.x-other.x,dz=entity.z-other.z,d=Math.hypot(dx,dz);
-    if(d<=1e-4||d>=BIOLOGY_RULES.minimumCollisionDistance)continue;
-    const push=(BIOLOGY_RULES.minimumCollisionDistance-d)*.18;
-    entity.x+=dx/d*push;
-    entity.z+=dz/d*push;
+function applySocialSeparation(living,habitat){
+  const minimumDistance=BIOLOGY_RULES.minimumCollisionDistance;
+  for(let i=0;i<living.length;i++){
+    const entity=living[i];
+    if(entity.alive===false)continue;
+    for(let j=i+1;j<living.length;j++){
+      const other=living[j];
+      if(other.alive===false)continue;
+      const dx=entity.x-other.x,dz=entity.z-other.z;
+      const distance=Math.hypot(dx,dz);
+      if(distance>=minimumDistance)continue;
+      let nx,nz;
+      if(distance<=1e-6){
+        // Pair identity fixes the fallback axis; no random jitter or frame-dependent direction.
+        const seed=(identity(entity)^identity(other))>>>0;
+        const angle=seed/0x100000000*Math.PI*2;
+        nx=Math.cos(angle);
+        nz=Math.sin(angle);
+      }else{
+        nx=dx/distance;
+        nz=dz/distance;
+      }
+      const correction=(minimumDistance-distance)*.5;
+      entity.x+=nx*correction;
+      entity.z+=nz*correction;
+      other.x-=nx*correction;
+      other.z-=nz*correction;
+    }
   }
+  // Separation can move an animal toward the glass; restore valid floor limits afterwards.
+  for(const entity of living)if(entity.alive!==false)settlePosition(entity,habitat);
 }
 
 function settlePosition(entity,habitat){
@@ -295,11 +317,10 @@ export function stepSimulation(state,minutes=1){
         }
       }
 
-      applySocialSeparation(entity,living);
-      settlePosition(entity,habitat);
       if(entity.hydration<=0||entity.energy<=0)entity.stress=clamp(entity.stress+.002,0,1);
       if(entity.hydration<.15&&entity.energy<.1)entity.alive=false;
     }
+    applySocialSeparation(living,habitat);
   }
   return state;
 }

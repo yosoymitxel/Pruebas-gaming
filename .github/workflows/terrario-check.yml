@@ -32,6 +32,8 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Browser interaction smoke test
+        env:
+          SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node tests/browser-smoke.mjs
       - name: Upload browser evidence
         if: always()

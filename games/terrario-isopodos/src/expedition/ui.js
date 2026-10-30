@@ -4,7 +4,8 @@ import {
   travelToNode,
   resolveExpeditionEvent,
   returnFromExpedition,
-  buyExpeditionUpgrade
+  buyExpeditionUpgrade,
+  isExpeditionNodeUnlocked
 } from "./system.js";
 import { EXPEDITION_NODES, EXPEDITION_UPGRADES, INVENTORY_KEYS, MIN_EXPLORER_ENERGY, START_NODE_ID } from "./content.js";
 
@@ -19,7 +20,15 @@ const NODE_NOTES=Object.freeze({
   "mossy-stone":"Una piedra fría cubierta de musgo",
   "rotting-log":"Corteza húmeda y túneles diminutos",
   "rotten-fruit":"Pulpa fermentada y esporas",
-  "compost-bin":"Restos vegetales en descomposición"
+  "compost-bin":"Restos vegetales en descomposición",
+  "abandoned-pot":"Raíces finas bajo una maceta caída",
+  "mite-nest":"Un refugio activo entre fibras y corteza",
+  "web-zone":"Hilos tensos entre hojas y ramas"
+});
+const UNLOCK_HINTS=Object.freeze({
+  "compost-access":"Seguí las raíces bajo la Maceta abandonada.",
+  "mite-colony":"Observá una colonia de ácaros para localizar el nido.",
+  "web-passage":"Rompé la telaraña del Tronco podrido para abrir el paso."
 });
 const text=value=>String(value??"");
 const dayOf=state=>Math.floor(state.clockMinutes/1440)+1;
@@ -66,8 +75,10 @@ export function mountExpeditionScreen({
           '</div>',
         '</section>',
         '<section id="expedition-level-layer" class="expedition-level-layer" hidden>',
-          '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
-          '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
+          '<div id="expedition-decision-panel" class="expedition-decision-panel">',
+            '<div class="expedition-event" id="expedition-event" aria-live="polite"><p class="expedition-event-location" id="expedition-event-location"></p><h2 id="expedition-event-title" tabindex="-1"></h2><p id="expedition-event-description"></p><div id="expedition-run-actions" class="expedition-run-actions" hidden><button type="button" id="expedition-save" class="expedition-secondary">Guardar</button><button type="button" id="expedition-return" class="expedition-primary expedition-retreat">Retirarse</button></div></div>',
+            '<div id="expedition-choice-dock" class="expedition-choice-dock"></div>',
+          '</div>',
           '<button type="button" id="expedition-map-back" class="expedition-map-back">← Volver al mapa</button>',
         '</section>',
         '<section id="expedition-settlement" class="expedition-settlement" hidden>',
@@ -88,6 +99,7 @@ export function mountExpeditionScreen({
   document.body.append(root);
 
   const $=selector=>root.querySelector(selector);
+  $(".expedition-header").append($("#expedition-map-back"),$("#expedition-vitals"));
   const viewHead=document.querySelector(".viewhead");
   const trigger=document.createElement("button");
   trigger.type="button";
@@ -189,11 +201,13 @@ export function mountExpeditionScreen({
     root.classList.toggle("has-pending-event",hasPending);
     root.classList.remove("is-level","is-settlement");
     $("#expedition-map-layer").classList.toggle("is-running",Boolean(run));
+    const unlockedNodeIds=Object.keys(EXPEDITION_NODES).filter(id=>isExpeditionNodeUnlocked(state,id));
     renderer().setExpeditionView("map",{
       nodes:EXPEDITION_NODES,
       visitedNodes:visited,
       currentNodeId:run?.currentNodeId??null,
       previewNodeId:run?null:selectedMapNodeId,
+      unlockedNodeIds,
       seed:run?.seed??state.expeditionProgress.worldSeed
     });
     $("#expedition-map-layer").hidden=false;
@@ -202,7 +216,7 @@ export function mountExpeditionScreen({
     $("#expedition-event").hidden=true;
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden= !run;
-    $("#expedition-map-layer").append($("#expedition-run-actions"));
+    $("#expedition-map-layer").append($("#expedition-run-actions"),$("#expedition-session-message"));
     $("#expedition-run-actions").hidden=!run;
     $("#expedition-map-back").hidden=true;
     $("#expedition-resume-event").hidden=!hasPending;
@@ -212,10 +226,12 @@ export function mountExpeditionScreen({
     $("#expedition-day").textContent="DÍA "+String(dayOf(state)).padStart(2,"0")+" · MAPA DE EXPLORACIÓN";
     $("#expedition-kicker").textContent=run?"RUTAS DEL JARDÍN":"MAPA DEL JARDÍN";
     const preview=EXPEDITION_NODES[selectedMapNodeId]??EXPEDITION_NODES[START_NODE_ID];
+    const previewUnlocked=isExpeditionNodeUnlocked(state,preview.id);
+    const previewHint=preview.unlockDiscovery?UNLOCK_HINTS[preview.unlockDiscovery]??preview.unlockHint:"";
     $("#expedition-location-title").textContent=run?current.label:preview.label;
     $("#expedition-location-copy").textContent=run
       ?(hasPending?"Hay un encuentro pendiente. Resuélvelo para abrir nuevas rutas.":NODE_NOTES[nodeId]+". Toca un lugar conectado para continuar.")
-      :"Vista previa: "+(NODE_NOTES[selectedMapNodeId]??preview.label)+". La expedición siempre comienza en Jardín húmedo; elegí un explorador para salir.";
+      :(!previewUnlocked?"Zona bloqueada. "+previewHint:"Vista previa: "+(NODE_NOTES[selectedMapNodeId]??preview.label)+". La expedición siempre comienza en Jardín húmedo; elegí un explorador para salir.");
     $("#expedition-run-label").textContent=run?"EXPEDICIÓN "+run.id.toUpperCase()+" · SEMILLA "+run.seed:"UNA EXPEDICIÓN POR DÍA";
     $("#expedition-actions").textContent=String(run?.actionPoints??6).padStart(2,"0");
     $("#expedition-energy-value").textContent=String(run?.energy??0).padStart(2,"0");
@@ -223,10 +239,13 @@ export function mountExpeditionScreen({
       const active=Boolean(run)&&node.id===nodeId;
       const previewSelected=!run&&node.id===selectedMapNodeId;
       const seen=visited.includes(node.id),connected=neighbors.has(node.id);
-      const selectable=run?(!hasPending&&!active&&connected&&run.actionPoints>=node.travelCost):true;
-      const status=run?(active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir"):(previewSelected?"Vista previa":"Consultar zona");
+      const unlocked=isExpeditionNodeUnlocked(state,node.id);
+      const selectable=run?(!hasPending&&!active&&connected&&unlocked&&run.actionPoints>=node.travelCost):true;
+      const status=!unlocked?"Bloqueado":run?(active?"Posición actual":seen?"Visitado":connected?"Ruta abierta":"Por descubrir"):(previewSelected?"Vista previa":"Consultar zona");
       const cost=node.travelCost===0?"Inicio":node.travelCost+(node.travelCost===1?" acción":" acciones");
-      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+'</small></button>';
+      const risk=node.risk==="high"?"Riesgo alto":node.risk==="medium"?"Riesgo medio":"Riesgo bajo";
+      const hint=node.unlockDiscovery?UNLOCK_HINTS[node.unlockDiscovery]??node.unlockHint:"";
+      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+(unlocked?"":" is-locked")+'" data-node-id="'+node.id+'" data-unlocked="'+String(unlocked)+'" data-discovery="'+(node.unlockDiscovery??"")+'" aria-label="'+node.label+". "+status+". "+cost+". "+risk+(hint?" · "+hint:"")+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+' · '+risk+'</small></button>';
     }).join("");
     renderExplorerDock();
     $("#expedition-session-message").textContent=feedback;
@@ -246,6 +265,7 @@ export function mountExpeditionScreen({
     $("#expedition-settlement").hidden=true;
     $("#expedition-vitals").hidden=false;
     $("#expedition-event").append($("#expedition-run-actions"));
+    $("#expedition-decision-panel").append($("#expedition-session-message"));
     $("#expedition-run-actions").hidden=false;
     $("#expedition-map-back").hidden=false;
     $("#expedition-resume-event").hidden=true;
@@ -257,7 +277,7 @@ export function mountExpeditionScreen({
     $("#expedition-kicker").textContent="OBSERVACIÓN DE CAMPO";
     $("#expedition-location-title").textContent=node.label;
     $("#expedition-location-copy").textContent="Encuentro activo · elige una interacción en el diorama.";
-    $("#expedition-event-location").textContent="ENCUENTRO · "+node.label.toUpperCase();
+    $("#expedition-event-location").textContent="ENCUENTRO";
     $("#expedition-event-title").textContent=event.title;
     $("#expedition-event-description").textContent=event.description;
     $("#expedition-run-label").textContent="ELIGE UNA INTERACCIÓN EN EL DIORAMA";
@@ -377,7 +397,7 @@ export function mountExpeditionScreen({
   function start(){
     try{
       const run=commitMutation(()=>startExpedition(state,selectedExplorerId,{wasRunning:resumeAfterClose}),()=>{
-        feedback="La colonia ha encontrado el primer rastro.";
+        feedback="";
       });
       if(!run)return;
       selectedMapNodeId=START_NODE_ID;
