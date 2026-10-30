@@ -242,7 +242,7 @@ export function mountExpeditionScreen({
       const cost=node.travelCost===0?"Inicio":node.travelCost+(node.travelCost===1?" acción":" acciones");
       const risk=node.risk==="high"?"Riesgo alto":node.risk==="medium"?"Riesgo medio":"Riesgo bajo";
       const hint=node.unlockDiscovery?UNLOCK_HINTS[node.unlockDiscovery]??node.unlockHint:"";
-      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+(unlocked?"":" is-locked")+'" data-node-id="'+node.id+'" aria-label="'+node.label+". "+status+". "+cost+". "+risk+(hint?" · "+hint:"")+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+' · '+risk+'</small></button>';
+      return '<button type="button" class="expedition-node'+(active?" is-current":"")+(previewSelected?" is-selected":"")+(seen&&!active?" is-visited":"")+(connected&&!active&&run?" is-connected":"")+(unlocked?"":" is-locked")+'" data-node-id="'+node.id+'" data-unlocked="'+String(unlocked)+'" data-discovery="'+(node.unlockDiscovery??"")+'" aria-label="'+node.label+". "+status+". "+cost+". "+risk+(hint?" · "+hint:"")+'" aria-pressed="'+previewSelected+'"'+(active?' aria-current="location"':"")+(selectable?"":" disabled")+'><strong>'+node.label+'</strong><small>'+status+' · '+cost+' · '+risk+'</small></button>';
     }).join("");
     renderExplorerDock();
     $("#expedition-session-message").textContent=feedback;
