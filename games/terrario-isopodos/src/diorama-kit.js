@@ -50,10 +50,12 @@ export const DIORAMA_ASSETS=Object.freeze([
 const SOIL_TONES=Object.freeze([0x493a2b,0x5b4532,0x756045,0x95805d]);
 
 export function createDioramaKit({
-  shape="esferico",radius=1.48,seed=884201,paletteOverrides={}
+  shape="esferico",radius=1.48,seed=884201,paletteOverrides={},
+  surfaceOffset=.078
 }={}) {
   if(!["rectangular","cilindrico","esferico"].includes(shape))throw new RangeError("Forma de diorama desconocida: "+shape);
   if(!Number.isFinite(radius)||radius<=0)throw new RangeError("El radio del diorama debe ser positivo");
+  if(!Number.isFinite(surfaceOffset))throw new RangeError("El desplazamiento de superficie debe ser finito");
   const random=createSeededRandom(seed>>>0);
   const materials=createWoodlandMaterials();
   for(const [key,value] of Object.entries(paletteOverrides)){
@@ -88,15 +90,15 @@ export function createDioramaKit({
     leaves.dispose();
   }
   const localBase=terrainHeightAt(0,0,shape,radius);
-  const surfaceHeightAt=(x,z,surfaceRadius=radius)=>.078+terrainHeightAt(x,z,shape,surfaceRadius)-terrainHeightAt(0,0,shape,surfaceRadius);
+  const surfaceHeightAt=(x,z,surfaceRadius=radius)=>surfaceOffset+terrainHeightAt(x,z,shape,surfaceRadius)-terrainHeightAt(0,0,shape,surfaceRadius);
 
   function addAsset(parent,type,options={}) {
     if(!parent?.add)throw new TypeError("addAsset necesita un grupo Three.js");
     const target=new T.Group();
     const position=options.position??[options.x??0,0,options.z??0];
-    const x=Number(position[0]??0),z=Number(position[2]??0);
-    const groundY=Number(options.groundY??surfaceHeightAt(x,z));
-    target.position.set(x,groundY-localBase+Number(position[1]??0),z);
+    const originX=Number(position[0]??0),originZ=Number(position[2]??0);
+    const groundY=Number(options.groundY??surfaceHeightAt(originX,originZ));
+    target.position.set(originX,groundY-localBase+Number(position[1]??0),originZ);
     target.scale.setScalar(Number(options.scale??1));
     parent.add(target);
     target.userData.dioramaAsset=type;
@@ -316,7 +318,7 @@ export function createDioramaKit({
 
     const skirtPositions=[],skirtColors=[],skirtIndices=[];
     const skirtLevels=[0,.34,.68,1];
-    const bottomY=.078-soilDepth;
+    const bottomY=surfaceOffset-soilDepth;
     for(let level=0;level<skirtLevels.length;level++){
       const t=skirtLevels[level];
       for(let i=0;i<=segments;i++){
@@ -349,6 +351,7 @@ export function createDioramaKit({
     const objects=[soilSide,plinth,top];
     for(const object of objects){object.castShadow=object!==top;object.receiveShadow=true;root.add(object);}
     root.userData.dioramaRadius=baseRadius;
+    root.userData.dioramaSurfaceOffset=surfaceOffset;
     root.userData.dioramaPalette={...paletteOverrides};
     root.userData.dioramaKitDispose=dispose;
     root.userData.dioramaSurface={kind:"organic-soil-cutaway",radialSegments,angularSegments:segments,relief:true};
