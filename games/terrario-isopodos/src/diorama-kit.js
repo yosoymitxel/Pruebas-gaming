@@ -359,7 +359,7 @@ export function createDioramaKit({
   }
 
   return Object.freeze({
-    shape,radius,seed:seed>>>0,random,materials,leafGeometry:leaves,
+    shape,radius,seed:seed>>>0,surfaceOffset,random,materials,leafGeometry:leaves,
     addAsset,addBiome,createBase,surfaceHeightAt,dispose
   });
 }
