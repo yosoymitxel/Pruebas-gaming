@@ -1253,3 +1253,10 @@ footer{display:none}
  .load-creature{translate:0 0}
  .loading-progress span{left:32%;width:36%}
 }
+
+
+@media(max-width:420px) and (max-height:720px){
+ .menu-actions{gap:5px}
+ .menu-actions button{min-height:35px;padding:6px 7px;font-size:9px}
+ .menu-actions #new-game{min-height:40px}
+}
