@@ -1,5 +1,5 @@
 import * as T from "three";
-import { HABITAT_GEOMETRY } from "./habitat.js";
+import { HABITAT_GEOMETRY, HOLLOW_BARK_ROTATION, getBarkFootprint } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
 import { createDioramaKit } from "./diorama-kit.js";
 import { resolveIsopodRefugePose } from "./isopod-placement.js";
@@ -1328,6 +1328,10 @@ export class TerrariumRenderer {
         density:Number(profile.options.density??1)*amount
       });
       object.name="resource-diorama-"+resource.type+"-"+resource.id;
+      if(resource.type==="bark"){
+        object.rotation.y=HOLLOW_BARK_ROTATION;
+        object.userData.barkFootprint=getBarkFootprint(1.02*amount);
+      }
       object.userData.resourceId=resource.id;
       object.userData.resourceType=resource.type;
     }
@@ -1338,6 +1342,13 @@ export class TerrariumRenderer {
     canvas.dataset.shelterCount=String(this.state.resources.filter(r=>r.type==="shelter").length);
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
     canvas.dataset.resourceArt="shared-diorama-kit";
+    const barkResources=this.state.resources.filter(resource=>resource.type==="bark");
+    canvas.dataset.barkDiagonalCount=String(barkResources.length);
+    canvas.dataset.barkRotation=String(HOLLOW_BARK_ROTATION);
+    canvas.dataset.barkFootprints=JSON.stringify(barkResources.map(resource=>({
+      id:resource.id,x:resource.x,z:resource.z,
+      ...getBarkFootprint(1.02*Math.max(.4,Math.min(1.2,Number(resource.amount??1))))
+    })));
   }
 
   isExpeditionPortrait(){

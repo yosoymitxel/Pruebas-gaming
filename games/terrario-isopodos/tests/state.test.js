@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
 import {addFood,addShelter,stepSimulation,sampleMicroclimate,startleIsopod,moveIsopod,moveResource,purchaseItem} from "../src/simulation.js";
-import {constrainToHabitat,HABITAT_GEOMETRY} from "../src/habitat.js";
+import {constrainToHabitat,HABITAT_GEOMETRY,HOLLOW_BARK_ROTATION,getBarkFootprint,constrainBarkToHabitat} from "../src/habitat.js";
 import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,hasValidTerrariumSave,SAVE_KEY} from "../src/persistence.js";
 
 test("el estado inicial contiene una colonia con IDs estables",()=>{
@@ -370,4 +370,42 @@ test("el dominio inicializa y conserva progreso de expedición dentro de la fuen
   assert.deepEqual(a.expeditionProgress,b.expeditionProgress);
   assert.equal(a.expeditionProgress.worldSeed,12345);
   assert.deepEqual(JSON.parse(snapshotDomain(a)).expeditionProgress,a.expeditionProgress);
+});
+
+
+test("el tronco hueco diagonal conserva todos sus extremos dentro de los tres recipientes",()=>{
+  assert.ok(Math.abs(HOLLOW_BARK_ROTATION)>.1);
+  for(const shape of ["rectangular","cilindrico","esferico"]){
+    const spec=HABITAT_GEOMETRY[shape];
+    const footprint=getBarkFootprint(1.02);
+    const point=constrainBarkToHabitat(100,-100,shape,1.02);
+    if(shape==="rectangular"){
+      assert.ok(Math.abs(point.x)+footprint.extentX<=spec.floorWidth/2+1e-9);
+      assert.ok(Math.abs(point.z)+footprint.extentZ<=spec.floorDepth/2+1e-9);
+    }else{
+      assert.ok(Math.hypot(point.x,point.z)+footprint.radius<=spec.floorRadius+1e-9);
+    }
+  }
+});
+
+test("comprar y mover Tronco hueco respetan la huella diagonal completa",()=>{
+  const state=createTerrariumState();
+  const bought=purchaseItem(state,"bark",{x:100,z:-100});
+  const footprint=getBarkFootprint(1.02);
+  assert.ok(Math.abs(bought.resource.x)+footprint.extentX<=HABITAT_GEOMETRY.rectangular.floorWidth/2+1e-9);
+  assert.ok(Math.abs(bought.resource.z)+footprint.extentZ<=HABITAT_GEOMETRY.rectangular.floorDepth/2+1e-9);
+  const moved=moveResource(state,bought.resource.id,-100,100);
+  assert.ok(Math.abs(moved.x)+footprint.extentX<=HABITAT_GEOMETRY.rectangular.floorWidth/2+1e-9);
+  assert.ok(Math.abs(moved.z)+footprint.extentZ<=HABITAT_GEOMETRY.rectangular.floorDepth/2+1e-9);
+});
+
+test("los guardados antiguos corrigen la posición del tronco para que no atraviese el vidrio",()=>{
+  const state=createTerrariumState();
+  state.resources.push({id:"legacy-bark-edge",type:"bark",amount:1,x:1.48,z:.93});
+  const raw=JSON.stringify({schemaVersion:3,gameId:"terrario-isopodos",state});
+  const restored=parseTerrarium(raw);
+  const bark=restored.resources.find(resource=>resource.id==="legacy-bark-edge");
+  const footprint=getBarkFootprint(1.02);
+  assert.ok(Math.abs(bark.x)+footprint.extentX<=HABITAT_GEOMETRY.rectangular.floorWidth/2+1e-9);
+  assert.ok(Math.abs(bark.z)+footprint.extentZ<=HABITAT_GEOMETRY.rectangular.floorDepth/2+1e-9);
 });

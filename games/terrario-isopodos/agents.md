@@ -65,7 +65,7 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 | 6 | INPUT-02 | Seleccionar con primer toque y mover después; contorno 3D | Medio–alto | En progreso · halo dorado sobre vegetación; captura real pendiente |
 | 7 | INV-02 | Unificar tienda, inventario, colocación y retirada | Alto | Pendiente |
 | 8 | SPACE-01 | Ampliar el volumen útil del terrario | Alto | Pendiente |
-| 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | Pendiente |
+| 9 | SPACE-02 | Tronco diagonal con límites de vidrio | Alto | En progreso · orientación 36°, huella compartida y migración de guardados; CI pendiente |
 | 10 | BIO-01 | Permitir entrada y tránsito bajo el tronco | Alto | En progreso · pose bajo «Tronco hueco»; test de simulación añadido |
 | 11 | BIO-02 | Eliminar colisiones/solapamientos inestables | Muy alto | En progreso · separación simétrica y determinista; prueba exacta PASS |
 | 12 | QA-01 | Validación integral y regresiones | Continuo | En progreso · CI completo PASS en c766; nueva revisión visual pendiente |
@@ -131,10 +131,12 @@ El orden va de menor a mayor esfuerzo y respeta las dependencias: escala/geometr
 - [ ] Verificar paredes y suelo con geometría y límites coherentes.
 
 ### SPACE-02 — Tronco diagonal
-- [ ] Auditar malla, pivote, transform, collider y dimensiones.
-- [ ] Rotar/ubicar en el espacio local del recipiente.
-- [ ] Evitar clipping con vidrio y suelo; mantener el volumen dentro del contenedor.
-- [ ] Dejar espacio inferior útil y visible desde varios ángulos.
+- [x] Auditar la malla y su pivote: la cáscara convierte el eje local Y en X; la rotación se aplica al grupo completo.
+- [x] Girar Tronco hueco 36° con una constante compartida entre renderer y dominio.
+- [x] Calcular huella X/Z y reservarla en el vidrio rectangular; usar radio envolvente conservador en recipientes circulares.
+- [x] Aplicar los mismos límites a compra, arrastre y migración de guardados antiguos.
+- [ ] Validar captura real desktop/móvil y comprobar que no invade el suelo ni el vidrio.
+- [ ] Validar el corredor inferior transitable y entrada/salida; corresponde a BIO-01.
 
 ### BIO-01 — Bajo el tronco
 - [ ] Distinguir volumen sólido superior de espacio inferior transitable.
