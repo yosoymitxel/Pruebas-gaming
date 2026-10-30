@@ -1,6 +1,7 @@
 import * as T from "three";
 import { HABITAT_GEOMETRY } from "./habitat.js";
 import { buildWoodlandInterior, terrainHeightAt } from "./terrarium-art.js";
+import { buildExpeditionMapDiorama, buildExpeditionLevelDiorama } from "./expedition/diorama.js";
 
 const mat=(c,r=.88,extra={})=>new T.MeshStandardMaterial({color:c,roughness:r,...extra});
 
@@ -416,6 +417,7 @@ export class TerrariumRenderer {
     this.interpolationAlpha=1;
     this.motionQuery=window.matchMedia?.("(prefers-reduced-motion: reduce)")??null;
     this.el=el;
+    this.host=el;
     this.state=state;
     this.scene=new T.Scene();
     this.scene.background=new T.Color(0x354238);
@@ -450,14 +452,22 @@ export class TerrariumRenderer {
     this.life=new T.Group();
     this.resourcesGroup=new T.Group();
     this.weatherGroup=new T.Group();
+    this.expeditionGroup=new T.Group();
+    this.expeditionGroup.visible=false;
+    this.expeditionMode=false;
+    this.expeditionViewKind=null;
+    this.expeditionHandler=null;
+    this.expeditionCameraSnapshot=null;
+    this.expeditionActor=null;
     this.ground=new T.Mesh(new T.PlaneGeometry(40,40), new T.MeshStandardMaterial({color:0x3e483c, roughness:.99}));
     this.ground.rotation.x=-Math.PI/2;
     this.ground.position.y=-.2;
     this.world.add(this.ground,this.habitat,this.resourcesGroup,this.life,this.weatherGroup);
-    this.scene.add(this.world);
+    this.scene.add(this.world,this.expeditionGroup);
     this.tool="hand";
     this.onInteractionStart=null;
     this.onInteractionMove=null;
+    this.onInteractionEnd=null;
     this.onWorldAction=null;
     this.angle=.68;
     this.elevation=state.habitat.shape==="cilindrico"?.68:state.habitat.shape==="esferico"?.78:.72;
@@ -466,7 +476,7 @@ export class TerrariumRenderer {
     this.resourceSignature="";
     this.bind();
     this.resizeObserver=new ResizeObserver(()=>this.resize());
-    this.resizeObserver.observe(el);
+    this.resizeObserver.observe(this.host);
     this.cameraUpdate();
     this.setShape(state.habitat.shape);
     this.setMode(state.presentation.mode);
@@ -482,6 +492,7 @@ export class TerrariumRenderer {
     const pointer=new T.Vector2();
     const groundPlane=new T.Plane(new T.Vector3(0,1,0),-.19);
     let interaction=null;
+    let expeditionTap=null;
     let drag=null;
     let pinchDistance=null;
 
@@ -500,6 +511,23 @@ export class TerrariumRenderer {
         let node=hit.object;
         while(node&&!node.userData?.entityId)node=node.parent;
         if(node?.userData?.entityId)return node.userData.entityId;
+      }
+      return null;
+    };
+    const expeditionTargetAt=e=>{
+      const rect=c.getBoundingClientRect();
+      pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+      raycaster.setFromCamera(pointer,this.camera);
+      // Solo las hitboxes explícitas reciben interacción. La geometría decorativa
+      // del bioma no debe interceptar el rayo ni seleccionar otro nodo por delante.
+      const targets=[];
+      this.expeditionGroup.traverse(object=>{
+        if(object.isMesh&&(object.userData?.expeditionNodeId||object.userData?.expeditionChoiceId))targets.push(object);
+      });
+      for(const hit of raycaster.intersectObjects(targets,false)){
+        const target=hit.object.userData;
+        if(target.expeditionNodeId)return {kind:"node",id:target.expeditionNodeId};
+        if(target.expeditionChoiceId)return {kind:"choice",id:target.expeditionChoiceId};
       }
       return null;
     };
@@ -524,6 +552,17 @@ export class TerrariumRenderer {
 
     c.addEventListener("pointerdown",e=>{
       if(e.pointerType==="mouse" && e.button!==0) return;
+      if(this.expeditionMode){
+        const target=expeditionTargetAt(e);
+        c.dataset.expeditionLastPointerTarget=target?target.kind+":"+target.id:"none";
+        expeditionTap={pointerId:e.pointerId,target,x:e.clientX,y:e.clientY,moved:false};
+        pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(pointers.size===1)drag={x:e.clientX,y:e.clientY,id:e.pointerId};
+        if(pointers.size===2){const pts=[...pointers.values()];pinchDistance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}
+        c.setPointerCapture?.(e.pointerId);
+        e.preventDefault();
+        return;
+      }
       if(this.tool==="leaf-litter"||this.tool==="shelter"){
         const point=projectGround(e);
         if(point)this.onWorldAction?.(this.tool,point.x,point.z);
@@ -535,7 +574,7 @@ export class TerrariumRenderer {
         const point=projectGround(e);
         const resourceId=entityId?null:resourceAt(point);
         if(entityId||resourceId){
-          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId};
+          interaction={pointerId:e.pointerId,kind:entityId?"entity":"resource",id:entityId??resourceId,startX:point?.x,startZ:point?.z,moved:false};
           c.setPointerCapture?.(e.pointerId);
           if(entityId)this.onInteractionStart?.(interaction);
           e.preventDefault();
@@ -555,11 +594,15 @@ export class TerrariumRenderer {
     c.addEventListener("pointermove",e=>{
       if(interaction?.pointerId===e.pointerId){
         const point=projectGround(e);
-        if(point)this.onInteractionMove?.(interaction,point.x,point.z);
+        if(point){
+          if(Number.isFinite(interaction.startX)&&Math.hypot(point.x-interaction.startX,point.z-interaction.startZ)>.025)interaction.moved=true;
+          this.onInteractionMove?.(interaction,point.x,point.z);
+        }
         e.preventDefault();
         return;
       }
       if(!pointers.has(e.pointerId))return;
+      if(expeditionTap?.pointerId===e.pointerId&&Math.hypot(e.clientX-expeditionTap.x,e.clientY-expeditionTap.y)>6)expeditionTap.moved=true;
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
       if(pointers.size===2){
@@ -587,14 +630,17 @@ export class TerrariumRenderer {
     });
 
     c.addEventListener("pointerup",e=>{
-      if(interaction?.pointerId===e.pointerId){interaction=null;return;}
+      if(interaction?.pointerId===e.pointerId){const completed=interaction;interaction=null;this.onInteractionEnd?.(completed);return;}
+      if(expeditionTap?.pointerId===e.pointerId){const completed=expeditionTap;expeditionTap=null;if(!completed.moved&&completed.target){c.dataset.expeditionLastActivated=completed.target.kind+":"+completed.target.id;this.expeditionHandler?.(completed.target);}else if(!completed.moved){c.dataset.expeditionLastActivated="none";}}
       pointers.delete(e.pointerId);
       if(pointers.size<2) pinchDistance=null;
       if(pointers.size===0) drag=null;
     });
 
     c.addEventListener("pointercancel",()=>{
+      if(interaction)this.onInteractionEnd?.(interaction);
       interaction=null;
+      expeditionTap=null;
       pointers.clear();
       drag=null;
       pinchDistance=null;
@@ -604,6 +650,101 @@ export class TerrariumRenderer {
       e.preventDefault();
       zoomBy(-e.deltaY*0.006);
     },{passive:false});
+  }
+
+  setHost(host){
+    if(!host)throw new TypeError("Se requiere un contenedor para el diorama");
+    if(this.host===host&&this.renderer.domElement.parentElement===host){this.resize();return;}
+    this.resizeObserver?.unobserve(this.host);
+    this.host=host;
+    if(this.renderer.domElement.parentElement!==host)host.appendChild(this.renderer.domElement);
+    this.renderer.domElement.style.width="100%";
+    this.renderer.domElement.style.height="100%";
+    this.resizeObserver?.observe(host);
+    this.resize();
+  }
+
+  setExpeditionInteractionHandler(handler){
+    this.expeditionHandler=typeof handler==="function"?handler:null;
+  }
+
+  setExpeditionView(kind,data={}){
+    if(kind!=="map"&&kind!=="level")throw new Error("Vista de expedición desconocida: "+kind);
+    if(!this.expeditionMode){
+      this.expeditionCameraSnapshot={angle:this.angle,elevation:this.elevation,distance:this.distance,userAdjustedCamera:this.userAdjustedCamera,background:this.scene.background.clone(),fog:this.scene.fog.color.clone(),fogNear:this.scene.fog.near,fogFar:this.scene.fog.far,keyIntensity:this.keyLight.intensity};
+      this.world.visible=false;
+      this.expeditionGroup.visible=true;
+      this.expeditionMode=true;
+    }
+    this.clear(this.expeditionGroup);
+    const makeIsopod=()=>isopod(this.state.presentation.mode==="voxel");
+    const scene=kind==="map"
+      ?buildExpeditionMapDiorama(T,{...data,aspect:this.camera.aspect,makeIsopod})
+      :buildExpeditionLevelDiorama(T,{...data,aspect:this.camera.aspect,makeIsopod});
+    this.expeditionGroup.add(scene);
+    this.expeditionViewKind=kind;
+    this.expeditionActor=scene.getObjectByName("expedition-isopod");
+    const portrait=this.camera.aspect<.78;
+    this.angle=portrait?0:(kind==="map"?.58:.68);
+    this.elevation=portrait?(kind==="map"?1.05:1.0):(kind==="map"?.78:.72);
+    this.distance=kind==="map"?7.7:5.7;
+    this.userAdjustedCamera=false;
+    this.scene.background.setHex(kind==="map"?0x293c2c:0x344330);
+    this.scene.fog.color.setHex(kind==="map"?0x293c2c:0x344330);
+    this.scene.fog.near=kind==="map"?9:7;
+    this.scene.fog.far=kind==="map"?24:19;
+    this.keyLight.intensity=kind==="map"?2.55:2.8;
+    const canvas=this.renderer.domElement;
+    canvas.dataset.expeditionMapPositions=JSON.stringify(scene.userData.mapPositions??{});
+    canvas.dataset.expeditionView=kind;
+    canvas.dataset.expeditionPortrait=String(this.camera.aspect<.78);
+    canvas.dataset.expeditionNodeCount=String(Object.keys(data.nodes??{}).length);
+    canvas.dataset.expeditionInteractionTargets=String(scene.userData.expeditionScene==="level"?scene.children.filter(child=>child.userData?.expeditionChoiceId).length:scene.children.filter(child=>child.userData?.expeditionNodeId).length);
+    this.cameraUpdate();
+    this.resize();
+  }
+
+  syncExpeditionTargetScreens(){
+    if(!this.expeditionMode)return;
+    const canvas=this.renderer.domElement,rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    this.camera.updateMatrixWorld(true);
+    this.expeditionGroup.updateMatrixWorld(true);
+    const screens={};
+    const point=new T.Vector3();
+    this.expeditionGroup.traverse(object=>{
+      const id=object.userData?.expeditionNodeId??object.userData?.expeditionChoiceId;
+      if(!object.isMesh||!id)return;
+      object.getWorldPosition(point);
+      point.project(this.camera);
+      screens[id]={
+        x:rect.left+(point.x+1)*rect.width/2,
+        y:rect.top+(1-point.y)*rect.height/2,
+        visible:point.z>=-1&&point.z<=1&&Math.abs(point.x)<=1&&Math.abs(point.y)<=1
+      };
+    });
+    canvas.dataset.expeditionTargetScreens=JSON.stringify(screens);
+  }
+
+  showTerrarium(){
+    if(!this.expeditionMode)return;
+    this.clear(this.expeditionGroup);
+    this.expeditionGroup.visible=false;
+    this.world.visible=true;
+    this.expeditionMode=false;
+    this.expeditionViewKind=null;
+    this.expeditionActor=null;
+    this.expeditionHandler=null;
+    const snapshot=this.expeditionCameraSnapshot;
+    if(snapshot){
+      this.angle=snapshot.angle;this.elevation=snapshot.elevation;this.distance=snapshot.distance;this.userAdjustedCamera=snapshot.userAdjustedCamera;
+      this.scene.background.copy(snapshot.background);this.scene.fog.color.copy(snapshot.fog);
+      this.scene.fog.near=snapshot.fogNear;this.scene.fog.far=snapshot.fogFar;this.keyLight.intensity=snapshot.keyIntensity;
+    }
+    this.expeditionCameraSnapshot=null;
+    this.renderer.domElement.dataset.expeditionView="terrarium";
+    this.cameraUpdate();
+    this.syncEntities();this.syncResources();
   }
 
   setTool(tool){
@@ -677,6 +818,14 @@ export class TerrariumRenderer {
   }
 
   fitDistance(){
+    if(this.expeditionMode){
+      const portrait=this.camera.aspect<.78;
+      const halfWidth=this.expeditionViewKind==="map"?(portrait?1.62:2.95):(portrait?1.52:2.15);
+      const halfHeight=this.expeditionViewKind==="map"?(portrait?2.75:2.05):(portrait?2.35:1.55);
+      const verticalFov=T.MathUtils.degToRad(this.camera.fov);
+      const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*Math.max(this.camera.aspect,.1));
+      return Math.max(4.3,halfWidth/Math.tan(horizontalFov/2),halfHeight/Math.tan(verticalFov/2))*1.12;
+    }
     const shape=this.state.habitat.shape;
     const spec=HABITAT_GEOMETRY[shape];
     const round=shape!=="rectangular";
@@ -693,6 +842,20 @@ export class TerrariumRenderer {
   }
 
   cameraUpdate(){
+    if(this.expeditionMode){
+      const target=new T.Vector3(0,.2,0),horizontal=Math.cos(this.elevation)*this.distance;
+      this.camera.position.set(Math.sin(this.angle)*horizontal,target.y+Math.sin(this.elevation)*this.distance,Math.cos(this.angle)*horizontal);
+      this.camera.lookAt(target);
+      this.scene.fog.near=Math.max(7,this.distance*1.18);this.scene.fog.far=Math.max(18,this.distance*2.75);
+      this.renderer.domElement.dataset.cameraDistance=this.distance.toFixed(2);
+      this.renderer.domElement.dataset.cameraFitDistance=this.fitDistance().toFixed(2);
+      this.renderer.domElement.dataset.cameraElevation=this.elevation.toFixed(2);
+      this.renderer.domElement.dataset.cameraAngle=this.angle.toFixed(4);
+      this.renderer.domElement.dataset.fogNear=this.scene.fog.near.toFixed(2);
+      this.renderer.domElement.dataset.fogFar=this.scene.fog.far.toFixed(2);
+      this.syncExpeditionTargetScreens();
+      return;
+    }
     const target=new T.Vector3(0,this.state.habitat.shape==="esferico"?.84:.32,0);
     const horizontal=Math.cos(this.elevation)*this.distance;
     this.camera.position.set(
@@ -719,6 +882,14 @@ export class TerrariumRenderer {
   }
 
   resetCamera(){
+    if(this.expeditionMode){
+      this.angle=this.expeditionViewKind==="map"?.58:.68;
+      this.elevation=this.expeditionViewKind==="map"?.78:.72;
+      this.userAdjustedCamera=false;
+      this.distance=Math.max(this.expeditionViewKind==="map"?7.7:5.7,this.fitDistance());
+      this.cameraUpdate();
+      return;
+    }
     this.angle=.68;
     this.elevation=this.state.habitat.shape==="cilindrico"?.68:this.state.habitat.shape==="esferico"?.78:.72;
     this.userAdjustedCamera=false;
@@ -1138,6 +1309,25 @@ export class TerrariumRenderer {
     canvas.dataset.foodCount=String(this.state.resources.filter(r=>r.type==="leaf-litter").length);
   }
 
+  syncExpeditionComposition(){
+    const scene=this.expeditionGroup.children[0];
+    if(!scene)return;
+    const portrait=this.camera.aspect<.78;
+    if(Boolean(scene.userData.expeditionPortrait)===portrait)return;
+    scene.userData.expeditionPortrait=portrait;
+    if(scene.userData.expeditionScene==="map"){
+      const scaleX=portrait?.55:1,scaleZ=portrait?1.05:1;
+      scene.scale.set(scaleX,1,scaleZ);
+      const local=scene.userData.mapPositionsLocal??{};
+      const positions=Object.fromEntries(Object.entries(local).map(([id,[x,z]])=>[id,[x*scaleX,z*scaleZ]]));
+      scene.userData.mapPositions=positions;
+      this.renderer.domElement.dataset.expeditionMapPositions=JSON.stringify(positions);
+    }else if(scene.userData.expeditionScene==="level"){
+      scene.scale.set(portrait?.72:1,1,portrait?1.25:1);
+    }
+    this.renderer.domElement.dataset.expeditionPortrait=String(portrait);
+  }
+
   setQuality(quality){
     const economy=quality === "economy";
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, economy ? 1 : 1.65));
@@ -1146,25 +1336,41 @@ export class TerrariumRenderer {
   }
 
   resize(){
-    const w=Math.max(1,this.el.clientWidth||400);
-    const h=Math.max(1,this.el.clientHeight||260);
+    const w=Math.max(1,this.host?.clientWidth||this.el.clientWidth||400);
+    const h=Math.max(1,this.host?.clientHeight||this.el.clientHeight||260);
     this.camera.aspect=w/h;
     this.camera.updateProjectionMatrix();
+    if(this.expeditionMode)this.syncExpeditionComposition();
     const fit=this.fitDistance();
-    if(this.userAdjustedCamera) this.distance=Math.max(this.distance,fit);
+    if(this.expeditionMode){
+      if(this.userAdjustedCamera)this.distance=Math.max(this.distance,fit);
+      else this.distance=Math.max(this.distance,fit);
+    }else if(this.userAdjustedCamera)this.distance=Math.max(this.distance,fit);
     else this.distance=Math.max(6.8,fit);
     this.renderer.setSize(w,h,false);
     this.cameraUpdate();
   }
 
   draw(now=performance.now()){
-    if(this.state.presentation.autoRotate){
+    if(!this.expeditionMode&&this.state.presentation.autoRotate){
       this.angle += .0009;
       this.cameraUpdate();
     }
-    this.syncEntities();
-    this.syncResources();
-    this.updateWeather(now*.001);
+    if(this.expeditionMode){
+      if(this.expeditionActor){
+        const phase=now*.0007;
+        this.expeditionActor.position.x=this.expeditionActor.userData.baseX+Math.sin(phase)*.07;
+        this.expeditionActor.position.z=this.expeditionActor.userData.baseZ+Math.cos(phase*.73)*.035;
+        const moving=!this.motionQuery?.matches;
+        const curled=false;
+        if(this.expeditionActor.userData.isVoxel)updateVoxelIsopod(this.expeditionActor,phase,moving,curled);
+        else updateIsopodRig(this.expeditionActor,phase,moving,curled);
+      }
+    }else{
+      this.syncEntities();
+      this.syncResources();
+      this.updateWeather(now*.001);
+    }
     this.renderer.render(this.scene,this.camera);
     const diagnostics=this.renderer.info,canvas=this.renderer.domElement;
     canvas.dataset.renderCalls=String(diagnostics.render.calls);
@@ -1177,6 +1383,7 @@ export class TerrariumRenderer {
   dispose(){
     cancelAnimationFrame(this.frame);
     this.resizeObserver?.disconnect();
+    this.clear(this.expeditionGroup);
     this.clear(this.world);
     this.renderer.dispose();
     isopodShellTexture?.dispose();isopodShellTexture=null;

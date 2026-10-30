@@ -39,6 +39,17 @@ function attachRendererActions(){
   if(target.kind==="entity")moveIsopod(state,target.id,x,z);
   else moveResource(state,target.id,x,z);
  };
+ renderer.onInteractionEnd=target=>{
+  if(target.kind==="entity")saveMessage=target.moved?`Isópodo ${target.id} reubicado`:`El isópodo ${target.id} se ha enrollado para protegerse`;
+  else if(target.moved){
+   const resource=state.resources.find(item=>item.id===target.id);
+   const labels={"leaf-litter":"Hojarasca","shelter":"Refugio","bark":"Tronco","moss":"Musgo","fern":"Helecho","stone":"Piedra","mushroom":"Setas"};
+   saveMessage=`${labels[resource?.type]??"Elemento"} reubicado`;
+  }
+  try{saveTerrarium(state);refreshMenu();}
+  catch(error){saveMessage="No se pudo guardar la interacción: "+error.message;}
+  update();
+ };
  renderer.onWorldAction=(tool,x,z)=>{
   try{
    const result=purchaseItem(state,tool==="leaf-litter"?"leaf-litter":"shelter",{x,z});
@@ -197,6 +208,7 @@ function update(){
 }
 expeditionUI=mountExpeditionScreen({
  state,
+ getRenderer:()=>renderer,
  onEnter:()=>{const wasRunning=state.running;state.running=false;last=performance.now();acc=0;update();return wasRunning;},
  onExit:({resume})=>{state.running=Boolean(resume);last=performance.now();acc=0;renderer?.syncEntities();renderer?.syncResources();update();try{saveTerrarium(state);refreshMenu();}catch(error){saveMessage="No se pudo guardar el regreso: "+error.message;update();}},
  onSave:()=>{try{saveTerrarium(state);refreshMenu();return true;}catch(error){saveMessage="No se pudo guardar la expedición: "+error.message;return false;}},
