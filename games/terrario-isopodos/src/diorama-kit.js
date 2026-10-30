@@ -151,7 +151,8 @@ export function createDioramaKit({
       case "bark-shelter":{
         const length=Number(options.length??.92);
         const thickness=Number(options.thickness??.25);
-        const archGeometry=new T.CylinderGeometry(thickness,thickness*.92,length,24,7,true,0,Math.PI);
+        // Semicírculo superior: los extremos quedan apoyados en el sustrato y el hueco abre hacia abajo.
+        const archGeometry=new T.CylinderGeometry(thickness,thickness*.92,length,24,7,true,-Math.PI/2,Math.PI);
         const position=archGeometry.attributes.position;
         for(let i=0;i<position.count;i++){
           const px=position.getX(i),py=position.getY(i),pz=position.getZ(i);
@@ -160,11 +161,14 @@ export function createDioramaKit({
         }
         archGeometry.computeVertexNormals();
         const arch=new T.Mesh(archGeometry,materials.bark);
-        arch.position.set(x,localBase+thickness*.72,z);
+        arch.name="bark-shelter-shell";
+        arch.position.set(x,localBase,z);
         arch.rotation.z=Math.PI/2;
+        arch.scale.x=1.45;
         arch.rotation.x=.045;
         arch.castShadow=true;arch.receiveShadow=true;
         const entrance=new T.Mesh(new T.CircleGeometry(thickness*.8,20),materials.barkInterior);
+        entrance.name="bark-shelter-entrance";
         entrance.position.set(x+length*.47,localBase+thickness*.12,z);
         entrance.rotation.y=Math.PI/2;
         entrance.rotation.z=.08;
