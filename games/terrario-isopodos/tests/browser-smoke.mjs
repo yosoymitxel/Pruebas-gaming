@@ -358,7 +358,17 @@ try{
  await expeditionCanvas.waitFor({state:"visible",timeout:15000});
  if(!await page.evaluate(()=>window.__terrariumCanvasBeforeExpedition===document.querySelector("#expedition-diorama canvas")))throw new Error("La expedición creó otro canvas en vez de reutilizar el del terrario");
  if(await expeditionCanvas.getAttribute("data-expedition-view")!=="map")throw new Error("Explorar no abrió el diorama del mapa");
- if(Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==5)throw new Error("El mapa 3D no tiene cinco lugares seleccionables");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-interaction-targets"))!==8)throw new Error("El mapa 3D no tiene ocho lugares seleccionables");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-landmark-count"))!==8)throw new Error("El renderer no creó ocho landmarks físicos");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-locked-node-count"))!==3)throw new Error("El renderer no conserva las tres rutas bloqueadas");
+ if(Number(await expeditionCanvas.getAttribute("data-expedition-unlocked-node-count"))!==5)throw new Error("El mapa inicial debe mostrar cinco destinos accesibles");
+ const lockedNodes=page.locator(".expedition-node.is-locked");
+ if(await lockedNodes.count()!==3)throw new Error("La interfaz no identifica visualmente los tres destinos bloqueados");
+ for(const id of ["compost-bin","mite-nest","web-zone"]){
+  const node=page.locator('[data-node-id="'+id+'"]');
+  if(!await node.evaluate(element=>element.classList.contains("is-locked")))throw new Error("El nodo "+id+" no muestra el estado bloqueado");
+  if(!(await node.getAttribute("aria-label")).includes("Bloqueado"))throw new Error("El nodo "+id+" no anuncia que está bloqueado");
+ }
  if(await expeditionCanvas.getAttribute("data-expedition-surface")!=="organic-soil-cutaway")throw new Error("El mapa no usa la superficie orgánica del kit");
  if(Number(await expeditionCanvas.getAttribute("data-expedition-trail-count"))<5)throw new Error("El mapa no montó sus senderos físicos");
  if(Number(await expeditionCanvas.getAttribute("data-expedition-fov"))!==54)throw new Error("La cámara del mapa no usa su encuadre específico");
