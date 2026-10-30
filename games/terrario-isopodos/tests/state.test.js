@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createTerrariumState,advanceMinutes,formatClock,snapshotDomain} from "../src/state.js";
-import {addFood,addShelter,stepSimulation} from "../src/simulation.js";
+import {addFood,addShelter,stepSimulation,sampleMicroclimate} from "../src/simulation.js";
 import {constrainToHabitat,HABITAT_GEOMETRY} from "../src/habitat.js";
 import {parseTerrarium,serializeTerrarium,saveTerrarium,loadTerrarium,hasValidTerrariumSave,SAVE_KEY} from "../src/persistence.js";
 
@@ -195,4 +195,52 @@ test("la simulación no permite que un isópodo atraviese el límite rectangular
 test("la forma esférica se conserva al guardar y restaurar",()=>{
   const s=createTerrariumState();s.habitat.shape="esferico";
   assert.equal(parseTerrarium(serializeTerrarium(s)).habitat.shape,"esferico");
+});
+
+
+test("el refugio y el musgo crean un microclima local más húmedo y oscuro",()=>{
+  const s=createTerrariumState();
+  s.clockMinutes=720;
+  s.habitat.light=1;
+  s.resources.push({id:"moss-test",type:"moss",amount:1,x:-.3,z:.2});
+  const exposed=sampleMicroclimate(s,1.25,.85);
+  const shaded=sampleMicroclimate(s,.8,-.45);
+  const moss=sampleMicroclimate(s,-.3,.2);
+  assert.ok(shaded.humidity>exposed.humidity);
+  assert.ok(shaded.light<exposed.light);
+  assert.ok(moss.humidity>exposed.humidity);
+  assert.ok(moss.shade>0);
+});
+
+test("la luz intensa provoca búsqueda de sombra sin depender de un ciclo artificial",()=>{
+  const s=createTerrariumState();
+  s.clockMinutes=720;
+  s.habitat.light=1;
+  Object.assign(s.entities[0],{hydration:.95,energy:.95,stress:.1});
+  stepSimulation(s,1);
+  assert.equal(s.entities[0].behavior,"seeking-shelter");
+});
+
+test("en un ambiente seco el movimiento aumenta y la conducta busca refugio",()=>{
+  const damp=createTerrariumState(),dry=createTerrariumState();
+  damp.entities[0].x=dry.entities[0].x=.15;
+  damp.entities[0].z=dry.entities[0].z=.25;
+  damp.habitat.humidity=.88;
+  dry.habitat.humidity=.18;
+  stepSimulation(damp,1);
+  stepSimulation(dry,1);
+  const dampDistance=Math.hypot(damp.entities[0].x-.15,damp.entities[0].z-.25);
+  const dryDistance=Math.hypot(dry.entities[0].x-.15,dry.entities[0].z-.25);
+  assert.equal(dry.entities[0].behavior,"seeking-shelter");
+  assert.ok(dryDistance>dampDistance);
+});
+
+test("el estado de conglobación depende del estrés y no de un temporizador",()=>{
+  const s=createTerrariumState();
+  for(const entity of s.entities){entity.hydration=.8;entity.energy=.8;entity.stress=.24;}
+  stepSimulation(s,50);
+  assert.ok(s.entities.every(entity=>entity.behavior!=="defensive-curl"));
+  s.entities[0].stress=.95;
+  stepSimulation(s,1);
+  assert.equal(s.entities[0].behavior,"defensive-curl");
 });
