@@ -157,6 +157,9 @@ function isopod(voxel){
   const shellMaterial=new T.MeshStandardMaterial({
     color:0xf7f1df,map:shellTexture,vertexColors:true,roughness:.82,metalness:.008
   });
+  const headShellMaterial=new T.MeshStandardMaterial({
+    color:0xe4ddc5,map:shellTexture,roughness:.84,metalness:.006
+  });
   const undersideMaterial=mat(0x343d39,.94);
   const edgeMaterial=mat(0x59645d,.84);
   const legMaterial=mat(0x414b44,.86);
@@ -177,7 +180,7 @@ function isopod(voxel){
 
   const head=new T.Group();
   head.position.set(.205,.078,0);
-  const cephalon=mesh(new T.SphereGeometry(1,20,14),shellMaterial,[.012,.012,0]);
+  const cephalon=mesh(new T.SphereGeometry(1,20,14),headShellMaterial,[.012,.012,0]);
   cephalon.scale.set(.077,.052,.094);
   head.add(cephalon);
   const eyes=new T.InstancedMesh(new T.SphereGeometry(1,10,8),eyeMaterial,2);
