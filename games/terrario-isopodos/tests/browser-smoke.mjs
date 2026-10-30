@@ -96,8 +96,9 @@ try{
  await page.waitForFunction(()=>document.activeElement?.id==="open-help-game");
  await page.getByRole("button",{name:/Diorama/}).click();
  if(await page.locator("#view-label").textContent()!=="DIORAMA 3D"||await cameraCanvas.getAttribute("data-render-mode")!=="diorama")throw new Error("No cambió realmente a Diorama");
- if(await cameraCanvas.getAttribute("data-isopod-model")!=="seven-tergites-fourteen-pereopods")throw new Error("El modelo Diorama no presenta placas y patas articuladas");
+ if(await cameraCanvas.getAttribute("data-isopod-model")!=="continuous-carapace-seven-tergites-fourteen-pereopods")throw new Error("El modelo Diorama no presenta placas y patas articuladas");
  if(await cameraCanvas.getAttribute("data-isopod-dorsal-plates")!=="7"||await cameraCanvas.getAttribute("data-isopod-walking-legs")!=="14"||await cameraCanvas.getAttribute("data-isopod-antennae")!=="2")throw new Error("El isópodo Diorama no completa su anatomía base");
+ if(await cameraCanvas.getAttribute("data-isopod-shell-profile")!=="continuous-domed-carapace")throw new Error("El isópodo no usa el caparazón continuo con siete suturas");
 
  if(Number(await cameraCanvas.getAttribute("data-render-triangles"))<=0)throw new Error("Diorama quedó sin geometría tras cambiar de modo");
  await page.screenshot({path:"artifacts/visual/gameplay-diorama-1440x1000.png",fullPage:true});
