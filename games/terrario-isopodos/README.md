@@ -56,6 +56,7 @@ El juego incluye un kit procedural para configurar biomas, piezas, semillas, den
 - [Spike de render](docs/SPIKE-RENDER.md)
 - [Informe de calidad](docs/QUALITY-REPORT.md)
 - [Plan de recuperación del MVP](docs/PLAN-RECUPERACION-MVP.md)
+- [Propuesta: lavado de cara «terror cozy»](docs/PROPUESTA-TERROR-COZY.md)
 
 ## Límites vigentes
 
