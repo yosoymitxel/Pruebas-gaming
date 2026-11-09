@@ -216,7 +216,7 @@ no pantallas enteras.
 
 ## 8. Fases (cada una jugable y verificable)
 
-0. **Esqueleto nuevo**: carpetas data/game/view/ui, registro + `check-registry`, i18n, paleta; juego viejo intacto en otra ruta hasta reemplazarlo.
+0. ✅ (10-11-2026, `next/`) **Esqueleto nuevo**: carpetas data/game/view/ui, registro + `check-registry`, i18n, paleta; juego viejo intacto en otra ruta hasta reemplazarlo.
 1. **Slice vertical de render** (decide todo lo demás): cámara inclinada dentro del terrario, suelo
    en rejilla, shader de tinta + punteado, un isópodo chibi y El Bufón como sprites recortados, 360×800 y PC a
    ≥ 50 fps en móvil medio. Si no convence, no se avanza.
