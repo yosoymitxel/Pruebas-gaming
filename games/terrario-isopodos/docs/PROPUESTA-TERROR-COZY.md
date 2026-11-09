@@ -1,6 +1,6 @@
 # Propuesta: lavado de cara total — «terror cozy» de isópodos
 
-Estado: **propuesta**, no implementada. Fecha: 09-11-2026. Base revisada: `main` en `b9174c6`.
+Estado: **propuesta**, no implementada. Alcance: reingeniería total (visual y código). Fecha: 09-11-2026. Base revisada: `main` en `b9174c6`.
 
 Objetivo: convertir el terrario en un juego del género de *Cult of the Lamb* (gestionar una base acogedora + salir a
 expediciones peligrosas), con combate en tiempo real con barra ATB al estilo de *FF VII Remake* contra las
@@ -20,9 +20,47 @@ Capturas tomadas hoy en `localhost` (1280×800) sobre `b9174c6`; 0 errores de co
 | Dos renderers (Diorama/Voxel) sobre el mismo estado | Duplica coste de mantenimiento y ninguno tiene identidad propia. |
 | Sin combate, sin enemigos, sin tono de terror | Falta la mitad del género. |
 
-Conclusión: **se reutiliza el dominio** (`state.js`, `simulation.js`, `persistence.js`, `expedition/rng.js`,
-`expedition/content.js`, pruebas) y **se sustituye la presentación** (`renderers.js`, `terrarium-art.js`,
-`diorama-kit.js`, `expedition/diorama.js`, `expedition/ui.js`, `style.css`).
+Conclusión: **reingeniería total**, visual y de código (ver §1.1). Del código actual solo se rescatan ideas y
+fórmulas sueltas (microclima de `simulation.js`, semilla de `expedition/rng.js`, textos de `expedition/content.js`)
+pasándolas al nuevo registro; nada se conserva por inercia.
+
+### 1.1 Calidad de código: por qué no se puede parchear
+
+Medido en `src/` (6.483 líneas):
+
+| Hallazgo | Evidencia | Principio que rompe |
+|---|---|---|
+| Archivo dios de render | `renderers.js` 1.428 líneas, una clase `TerrariumRenderer` con todo; Diorama y Voxel mezclados | ponytail: lo mínimo, una responsabilidad por módulo |
+| Mismos datos repetidos | Nombres de objetos («Hojarasca», «Refugio», «Tronco»…) definidos en `simulation.js:378` y otra vez dos veces en `main.js:35` y `main.js:54` | Kurei: un solo registro en `src/data/`, el resto lo lee |
+| Colores sueltos | 104 colores hex escritos a mano en JS, más los de `style.css` (1.657 líneas) | Kurei: paleta/tema centralizado; CSS solo con tokens |
+| HTML en cadenas | Ayuda y modales como plantillas de texto en `main.js` (p. ej. `showHelp`) | Kurei: textos por `t()`, pantallas como componentes |
+| `main.js` muta el dominio | Ya señalado en el plan de recuperación (P1) | Fuente única de verdad |
+| Código comprimido ilegible | Funciones de una línea con nombres de 1–3 letras (`mesh(g,m,p)`, `rod(...)`) | antislop: legible antes que corto |
+
+## 1.2 Arquitectura nueva (patrón KureiChaosChess)
+
+```
+src/
+  data/        registros: aberrations.js, isopods.js (rasgos, cosméticos), items.js, buildings.js,
+               rooms.js, map-nodes.js, rituals.js, palettes.js (cozy/terror), sfx.js
+  game/        lógica pura y probada en Node: colony.js, combat.js (ATB, presión, aturdimiento),
+               map.js (capas), run.js, base-grid.js, achievements.js, backup.js
+  view/        three: stage.js (cámara+luz), ink-pass.js (shader), sprite.js (billboard+recortes),
+               fx.js; nada de lógica de juego
+  ui/          pantallas y HUD; leen datos de data/ y estado de game/
+  i18n/        t() y catálogo
+tools/
+  check-registry.mjs   cada aberración con arte, patrón y entrada de bestiario; cada objeto con icono,
+                       precio y texto; cada logro con quien lo otorga. Sale con 1 si falta algo.
+  combat-selfcheck.mjs cada aberración vencible con el equipo inicial en las 3 dificultades
+```
+
+Reglas: añadir una aberración u objeto = **una entrada en `src/data/`** + su dibujo; nada más que tocar. Colores
+solo desde `palettes.js`/tokens CSS. Ninguna función de `view/` decide daño, botín o victoria. Archivos < 400
+líneas; si crecen, se parten por responsabilidad, no por tamaño.
+
+Stack: se mantiene Vite + Three (WebGL hace falta para el shader de tinta); la UI pasa a Preact + htm como en
+Kurei para poder portar pantallas (ajustes, logros, galería) casi tal cual.
 
 ## 2. Dirección visual: «cuaderno maldito»
 
@@ -154,7 +192,8 @@ no pantallas enteras.
 
 ## 8. Fases (cada una jugable y verificable)
 
-1. **Slice vertical de render** (lo primero, decide todo lo demás): cámara inclinada dentro del terrario, suelo
+0. **Esqueleto nuevo**: carpetas data/game/view/ui, registro + `check-registry`, i18n, paleta; juego viejo intacto en otra ruta hasta reemplazarlo.
+1. **Slice vertical de render** (decide todo lo demás): cámara inclinada dentro del terrario, suelo
    en rejilla, shader de tinta + punteado, un isópodo chibi y El Bufón como sprites recortados, 360×800 y PC a
    ≥ 50 fps en móvil medio. Si no convence, no se avanza.
 2. **Combate mínimo**: 1 isópodo, básico + esquiva + ATB + 2 habilidades + pausa táctica contra El Bufón.
