@@ -79,7 +79,7 @@ garabato. El juego entero debe parecer **dibujado en ese cuaderno**.
     bordes de pantalla, viñeta, líneas que tiemblan (*boiling lines*, 3 fotogramas a 8 fps).
 - **Isópodos**: chibi, ojos grandes, antenas expresivas, caparazón con color/patrón personalizable. Contraste
   máximo con las aberraciones, como en el género (lo tierno vs. lo grotesco).
-- **Voxel** se retira como modo de render. Si se quiere, vuelve como «tema» de mesa más adelante.
+- **Voxel** actual se retira; una versión voxel o pixel art de personajes queda abierta (§9).
 
 Referencias aplicables: `dioramas` (composición, luz, capas), `pixelfx`/Sprite Fusion (VFX de golpes con
 anticipación-impacto-recuperación; adaptar a tinta en vez de píxel), `vfx-js` (distorsión de pantalla en el modo
@@ -87,15 +87,32 @@ terror), `emil-design-eng` (curvas y duraciones de UI), Justinmind (HUD de juego
 
 ## 3. Bucle de juego
 
+Referencia principal: *Cult of the Lamb* (estructura, no arte ni nombres). Concepto de mundo: **islas flotantes
+pequeñas**, cada una con personalidad, clima y generación procedural (patrón de climas de KureiChess). Sensación
+constante de diorama: todo es pequeñito, pero legible.
+
 ```
-BASE (terrario)  ──►  MAPA DE RUTA  ──►  SALAS (exploración + combate)  ──►  JEFE  ──►  vuelta a BASE
- cuidar colonia        ramas por capas      recoger botín, rescatar           aberración     invertir botín
- construir/decorar     elegir camino        isópodos perdidos                                 subir moral
+TERRARIO (base, núcleo)  ◄──►  MAPA EXTERIOR (islas)  ──►  MAPA INTERIOR (niveles de combate)  ──►  JEFE
+ colonia, construir,            viajar entre islas,          ramas por capas, salas, botín,
+ decorar, rituales              minijuegos, recursos,        isópodos perdidos que se rescatan
+                                comercio, eventos
 ```
 
+Dos mapas distintos, como en el género:
+- **Exterior**: archipiélago de islas flotantes; cada isla es un diorama con minijuegos (pesca, recolección,
+  carreras…), recursos y PNJ. Se recorre libre o por saltos entre islas.
+- **Interior**: el nivel de combate; mapa de ramas por capas (§3.2) que lleva sala a sala hasta el jefe.
+
+**Recogibles**: isópodos (se rescatan/reclutan en expediciones y se suman a la colonia) y recursos (hojarasca,
+musgo, esporas, cal, ámbar…) que alimentan construcción, rituales y cartas. Todo declarado en `src/data/`.
+
 ### 3.1 Base: el terrario como asentamiento
-- Suelo en **rejilla** dentro del terrario (cámara desde dentro, no desde fuera del vidrio). El vidrio queda como
-  marco de pantalla y como límite físico.
+- Es el **núcleo** y debe ser **grande**: varias zonas desbloqueables (ampliar el terrario), no la caja pequeña
+  actual. Las perillas de humedad/temperatura sin efecto se eliminan; el microclima sale de lo que construyes.
+- **Rejilla real** (celdas, ocupación por huella de cada pieza, capas suelo/objeto/decoración) con validación
+  verde/rojo y rotación en 4 pasos. La cámara va dentro del terrario; el vidrio es marco y límite físico.
+- **Colisiones correctas**: mundo 2D en el plano del suelo (círculos y cajas alineadas, separación por subpasos;
+  patrón de `physics.js` de KureiChess). El render 3D solo dibuja; nunca decide colisiones.
 - Colocar con arrastre: refugios, comederos, hongos de cultivo, charca, altar de musgo, decoración. Validación de
   casilla (verde/rojo) y rotación en 4 pasos.
 - Colonia con nombre y rasgos por isópodo; necesidades: **humedad, hambre, calma** (la calma baja con cada
@@ -119,7 +136,10 @@ BASE (terrario)  ──►  MAPA DE RUTA  ──►  SALAS (exploración + comba
 
 Inspirado en el modelo de FF VII Remake, adaptado a táctil:
 
-- **Equipo de 3 isópodos**, controlas uno y cambias con un toque; los otros actúan con IA simple.
+- **Un isópodo principal + dos de apoyo** (decidido). Controlas al principal; los de apoyo actúan solos y sus
+  habilidades se ordenan desde la pausa táctica.
+- **Cartas** (sistema de KureiChess): mazo de mejoras que se gana durante la expedición y modifica ataques,
+  habilidades y reglas del nivel.
 - **Ataque básico** en tiempo real (toque/tecla) y **esquiva/rodar** (gesto de bola: el isópodo se enrolla,
   invulnerable breve). Cada básico llena la **barra ATB** (2 segmentos).
 - Gastar ATB en **habilidades** y **objetos**. Abrir el menú de habilidades **ralentiza el tiempo al 10 %** (modo
@@ -140,9 +160,13 @@ Inspirado en el modelo de FF VII Remake, adaptado a táctil:
 | Cabeza de cono, garras largas, agachado | **El Bufón** | Élite | Rápido, embiste en línea recta tras agacharse (anticipación clara); queda clavado = presionado. |
 | Muchos ojos, báculo-hoz, patas múltiples | **El Segador** | Élite / jefe zona 3 | Invoca larvas, guadaña en arco amplio; los ojos son puntos débiles que se apagan uno a uno. |
 
-Los dibujos se guardan como concept art en `art/aberraciones/` (originales del dueño). Para el juego se escanean
-limpios (fondo blanco → alfa) y se cortan en partes (cabeza, brazos, patas) para animar por **recortes** (*cutout*,
-rotar/escalar piezas), no por fotogramas: es lo que permite animar ilustración a mano sin redibujar.
+Hay **~19 dibujos**; el registro `src/data/aberrations.js` se diseña para ~20 entradas con rol por entrada
+(`normal`, `élite`, `jefe`) y reaparición entre zonas. Cada entrada: arte, patrón, afinidades, entrada de
+bestiario; `check-registry` falla si falta algo.
+
+Arte: **de momento los dibujos se usan tal cual** (concept art en `art/aberraciones/`). Más adelante se decide la
+versión integrada (voxel, pixel art o recortes del escaneo); el registro guarda la ruta del arte para cambiarla sin
+tocar lógica.
 
 ## 5. Interfaz
 
@@ -198,14 +222,20 @@ no pantallas enteras.
    ≥ 50 fps en móvil medio. Si no convence, no se avanza.
 2. **Combate mínimo**: 1 isópodo, básico + esquiva + ATB + 2 habilidades + pausa táctica contra El Bufón.
    Selfcheck del combate (daño, aturdimiento, ATB) en Node.
-3. **Mapa por capas** en 2D cuaderno, reusando rng/contenido; salas con 1–2 combates.
-4. **Base cozy**: colocar en rejilla, necesidades, calma, personalización.
+3. **Mapa interior** por capas en 2D cuaderno; salas con 1–2 combates.
+3b. **Mapa exterior**: 2–3 islas flotantes procedurales con clima y un minijuego.
+4. **Terrario**: rejilla, colisiones, ampliación por zonas, recogibles, necesidades, personalización.
 5. **Jefes**: La Gemela y El Comensal; cinemática de aparición.
 6. **Transversales portados**: ajustes, logros, galería/bestiario, i18n, export/import, sonido.
 7. **Pulido**: auditoría de interfaz y accesibilidad, rendimiento móvil, pruebas Playwright por pantalla.
 
-## 9. Decisiones abiertas para el dueño
+## 9. Decisiones del dueño (10-11-2026)
 
-- ¿Combate con equipo de 3 (más táctico) o 1 isópodo + compañeros pasivos (más simple en móvil)?
-- ¿Se escanean los dibujos originales y se usan tal cual (recomendado) o se redibujan en limpio?
-- ¿El nombre del juego sigue siendo «Terrario de isópodos»?
+- Equipo: 1 principal + 2 de apoyo.
+- Dibujos: tal cual por ahora; versión voxel/pixel/recortes se decide después.
+- ~19 aberraciones recurrentes; rol (jefe/élite/normal) por definir.
+- Nombre: «Terrario de isópodos»; el terrario es el núcleo.
+- Código actual: no cumple estándares ni tiene estructura fiable; no se da nada por funcionando. Referencia de
+  calidad y estructura: KureiChaosChess. Reglas: ponytail, antislop, web-game-toolkit.
+- Assets externos bienvenidos si encajan (licencia revisada). Skills de diorama/voxel como referencia visual, no
+  de interacción.
