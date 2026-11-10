@@ -131,5 +131,25 @@ export function arena(radius, seed = 1) {
   const tufts = Array.from({ length: 50 }, () => { const a = rng() * Math.PI * 2, d = Math.sqrt(rng()) * radius * 0.95; return [Math.cos(a) * d, 0, Math.sin(a) * d, 0.8 + rng() * 0.5, rng()]; });
   decor(group, rocks, ferns, tufts);
   group.add(substrateDisc(radius + 2.1));
+  // Marco de nido: raíces oscuras altas detrás del anillo y antorchas con su charco de luz cálida.
+  const root = new THREE.ConeGeometry(0.22, 1, 5).translate(0, 0.5, 0);
+  const roots = new THREE.InstancedMesh(root, lambert(PALETTES.terror.bark), 36);
+  for (let k = 0; k < 36; k++) {
+    const a = (k / 36) * Math.PI * 2 + rng() * 0.15, d = radius + 1.2 + rng() * 0.8, h = 1.2 + rng() * 2.2;
+    m.compose(new THREE.Vector3(Math.cos(a) * d, 0, Math.sin(a) * d), new THREE.Quaternion().setFromEuler(new THREE.Euler((rng() - 0.5) * 0.5, 0, (rng() - 0.5) * 0.5)), new THREE.Vector3(1 + rng(), h, 1 + rng()));
+    roots.setMatrixAt(k, m);
+  }
+  roots.castShadow = true;
+  group.add(roots);
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2 + 0.5, x = Math.cos(a) * (radius + 0.6), z = Math.sin(a) * (radius + 0.6);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.3, 6), lambert(PALETTES.terror.bark));
+    post.position.set(x, 0.65, z);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 6), new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber }));
+    flame.position.set(x, 1.45, z);
+    const light = new THREE.PointLight(PALETTES.cozy.amber, 9, 6, 1.6);
+    light.position.set(x, 1.7, z);
+    group.add(post, flame, light);
+  }
   return group;
 }
