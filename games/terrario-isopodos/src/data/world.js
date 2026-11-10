@@ -32,6 +32,15 @@ export const WEATHERS = localize('weathers', {
   lluvia: { name: 'Lluvia', yield: 1.5, gloom: 0.3 },
 });
 
+// Formas de las islas de recolección (game/gather.js): cada una pide moverse distinto.
+export const GATHER_SHAPES = localize('gatherShapes', {
+  meseta: { name: 'Meseta', hint: 'Sube escalón a escalón: arriba está el ámbar.' },
+  escalinata: { name: 'Escalinata', hint: 'Una escalera de terrazas de punta a punta.' },
+  islotes: { name: 'Islotes', hint: 'Salta entre islotes; si caes, vuelves atrás.' },
+  anillo: { name: 'Anillo', hint: 'Un pozo en medio: rodéalo por las terrazas.' },
+  cresta: { name: 'Cresta', hint: 'Una cresta alta cruza la isla.' },
+});
+
 // Fases del día (reloj 0–1, 0 = amanecer). De noche las piezas producen la mitad, la colonia se inquieta
 // y cada viaje cuesta tiempo (TRIP_COST); dormir salta al amanecer siguiente.
 export const DAY_PHASES = localize('dayPhases', {

@@ -20,7 +20,8 @@ import { footprint, canPlace } from '../game/grid.js';
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
-  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tanque', weather = 'claro' } = {}) {
+  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tanque', weather = 'claro', levels = null } = {}) {
+    this.levels = levels;
     this.stage = stage;
     this.weatherKind = weather;
     this.vessel = vessel;
@@ -49,7 +50,7 @@ class GridScene {
 
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
-    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief });
+    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief, levels: this.levels });
     this.shine = dress(this.island.group, this.vessel, this.island, this.grid, this.seed);
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
@@ -81,12 +82,25 @@ class GridScene {
     for (const [id, m] of this.props) if (!pieces[id] || m.userData.key !== key(pieces[id])) { this.group.remove(m); this.props.delete(id); }
     for (const p of Object.values(pieces)) {
       if (this.props.has(String(p.id))) continue;
-      const m = propMesh(p.type, p.rot);
+      const m = propMesh(p.type, p.rot, p.level ?? 1);
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       m.position.set(w.x, this.floorOf(p.x, p.y, f), w.z);
       m.userData.key = key(p);
+      // Lo recién puesto (o mejorado) entra con un rebote; lo que ya estaba al abrir la escena, no.
+      m.userData.base = m.scale.x;
+      if (this.propsReady) { m.userData.pop = 0; m.scale.setScalar(0.01); }
       this.group.add(m);
       this.props.set(String(p.id), m);
+    }
+    this.propsReady = true;
+  }
+
+  // Rebote de entrada (easeOutBack) de las piezas nuevas.
+  animateProps(dt) {
+    for (const m of this.props?.values() ?? []) {
+      if (m.userData.pop === undefined || m.userData.pop >= 1) continue;
+      const t = (m.userData.pop = Math.min(1, m.userData.pop + dt / 0.45)), c = 2.2;
+      m.scale.setScalar(m.userData.base * (1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2));
     }
   }
 }
@@ -123,7 +137,7 @@ function stainTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
+const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}:${p.level ?? 1}`;
 
 export class HomeView extends GridScene {
   constructor(stage, home) {
@@ -152,6 +166,7 @@ export class HomeView extends GridScene {
     this.tick(dt);
     if (this.grid.open.reduce((s, v) => s + v, 0) !== this.openCount) { this.rebuild(); this.stage.frame(this.camera.target, this.camera.distance, this.camera.fit); }
     this.syncProps();
+    this.animateProps(dt);
     const list = this.home.isopods.map((iso) => {
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
       const size = iso.baby > 0 ? 0.42 : 0.8;
@@ -194,7 +209,7 @@ export class MenuView extends HomeView {
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather });
+    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather, levels: gather.levels });
     this.g = gather;
     this.syncProps();
     this.pickups = gather.nodes.map((n) => {
@@ -218,7 +233,10 @@ export class GatherView extends GridScene {
       if (n.taken && m.visible) { m.visible = false; this.burst('pickup', n.x, n.y); this.onPick?.(n); }
       if (m.visible) animatePickup(m, time, k);
     });
-    const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...pw, height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
+    // En el aire, bolita si la especie puede (como un isópodo que se deja caer); al caer al vacío se encoge.
+    const air = p.air || p.falling > 0, rolls = speciesOf(this.g.shell).rolls;
+    const list = [{ id: 'player', sprite: `${air && rolls ? 'ball' : 'iso'}:${this.g.shell ?? 'vulgare'}`, x: pw.x, z: pw.z, y: p.z + 0.05, height: air && rolls ? 0.6 : 0.9,
+      flip: p.vx < 0, lift: !air && moving ? bob(time, 1) : 0, spin: air && rolls ? -time * 14 : 0, squash: p.falling > 0 ? 0.5 : 1 }];
     const l = this.g.lost;
     if (l?.taken && !l.shown) { l.shown = true; this.burst('heal', l.x, l.y); this.onPick?.({ lost: true, x: l.x, y: l.y }); }
     if (l && !l.taken) {

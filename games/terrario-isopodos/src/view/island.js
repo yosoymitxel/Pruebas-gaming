@@ -53,7 +53,7 @@ function decor(group, rocks, ferns, tufts) {
 
 // Isla a partir de una rejilla. `rim`: anillo de celdas cerradas visibles alrededor (lo ampliable), alzado
 // como colinas con decoración. Devuelve { group, gridLines, heightAt(x, y) } en coordenadas de rejilla.
-export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
+export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3, levels = null, levelH = 0.5 } = {}) {
   const rng = mulberry32(seed), n = noise2(seed, 3.5), worn = noise2(seed + 11, 2.2);
   const group = new THREE.Group();
   const ox = grid.w / 2, oz = grid.h / 2;
@@ -64,7 +64,8 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   for (let j = 0; j < grid.h; j++) for (let i = 0; i < grid.w; i++) {
     const open = isOpen(i, j);
     if (!open && !(rim && nearOpen(i, j))) continue;
-    const h = terrace(open ? n(i, j) * relief : 0.45 + n(i, j) * 0.9);
+    // `levels`: alturas fijas por celda (recolección con escalones); si no, ruido suave.
+    const h = levels && open ? 0.05 + levels[j * grid.w + i] * levelH : terrace(open ? n(i, j) * relief : 0.45 + n(i, j) * 0.9);
     heights[j * grid.w + i] = h;
     cells.push({ i, j, open, h });
   }

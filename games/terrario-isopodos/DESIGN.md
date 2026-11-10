@@ -29,6 +29,13 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
   interfaz se aparta: vida pegada a cada aberración, barra de la guardiana arriba, equipo en fichas chicas y un
   anillo bajo el isópodo que controlas. Cada golpe responde: destello blanco, número grande, efecto de píxel
   (pixelfx, `src/vendor/pixelfx`), combo, y cámara lenta con cartel al despejar la sala.
+- **Isópodos:** especies reales (`src/data/species.js`): solo Armadillidium y Cubaris se hacen bolita; los Porcellio
+  corren. En el terrario se hacen bolita al tocarlos, mudan en dos mitades y dejan la muda (calcio), crían si
+  están tranquilos, de día buscan sombra y contacto y de noche exploran. En combate la especie cambia la esquiva.
+- **Recolección:** islas con relieve de formas distintas (meseta, escalinata, islotes, anillo, cresta); saltar
+  sube un escalón o cruza un hueco; caer al vacío devuelve atrás. Todo lo que se reparte es alcanzable (BFS).
+- **Nido:** cada nivel de pelea es un piso de salas (camino principal + laterales de pelea, botín, carta o
+  reliquia), con minimapa.
 - **Arenas:** claro, raíces (cobertura), charcas de esporas (queman a todos), hondonada (pelea en anillo) y maraña;
   se anuncian al entrar con una pista (`src/data/arenas.js`).
 - **Cartas:** el sistema de KureiChaosChess: marco por tipo, gema y borde por rareza, reparto boca abajo.

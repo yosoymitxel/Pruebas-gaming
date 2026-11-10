@@ -201,7 +201,7 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 
 /* Archipiélago */
 .isle-labels { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); }
-.isle-label { position: absolute; transform: translate(-50%, 0); }
+.isle-label { position: absolute; transform: translate(-50%, -22px); }
 .isle-label button { display: grid; justify-items: center; gap: 6px; background: none; border: 0; padding: 0; cursor: pointer; color: var(--paper); }
 .isle-label .gem { display: grid; place-items: center; width: 30px; height: 30px; transform: rotate(45deg); background: var(--paper); color: var(--ink);
   border: 2px solid var(--ink); outline: 2px solid var(--paper); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 45%, transparent); transition: transform 160ms var(--ease-out); }
@@ -213,7 +213,10 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .isle-label.done button { opacity: 0.45; cursor: default; }
 /* Mapa exterior: título en cinta, como el cartel de región de Cult of the Lamb. */
 .title-block.row { display: flex; align-items: center; gap: 10px; }
-.title-block .sleep { pointer-events: auto; text-shadow: none; min-height: 40px; }
+.day-clock.can-sleep { pointer-events: auto; cursor: pointer; padding: 0; border: 0; background: none; font: inherit; }
+.day-clock .moon { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink); animation: pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .day-clock .moon { animation: none; } }
 .day-clock { position: relative; width: 54px; height: 54px; flex: none; color: var(--paper); text-shadow: none; }
 .day-clock svg { position: absolute; inset: 0; }
 .day-clock circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
@@ -553,3 +556,17 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .room-map rect.done { fill: var(--paper); }
 .room-map rect.final { fill: var(--ink); stroke: var(--rust); }
 .room-map rect.here { fill: var(--rust); }
+
+/* Construir: las fichas entran escalonadas; la ficha de pieza enseña qué hace y su nivel. */
+.build-list .card-btn { animation: lift 260ms var(--ease-out) both; animation-delay: calc(var(--i) * 30ms); }
+.card-btn .desc { font-size: 12px; opacity: 0.8; }
+.piece-card { animation: fade-in 220ms var(--ease-out); }
+@keyframes lift { from { opacity: 0; transform: translateY(8px); } }
+@keyframes fade-in { from { opacity: 0; } }
+.pc-head { display: flex; align-items: center; gap: 10px; }
+.pc-head h3 { margin: 0; flex: 1; }
+.pc-head .lvl { font: 700 16px/1 var(--hand); padding: 3px 8px; border-radius: 999px; background: var(--amber); color: var(--ink); }
+.piece-card .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .build-list .card-btn, .piece-card { animation: none; } }
+.gather-pad { grid-template-areas: 'attack'; grid-template-columns: auto; }
+.gather .hint.floating { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 100px); max-width: min(80vw, 420px); }

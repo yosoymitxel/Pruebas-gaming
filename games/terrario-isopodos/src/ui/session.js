@@ -3,7 +3,7 @@
 import { newGame, visit, tickClock, dayPhase, sleep } from '../game/game.js';
 import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, fitGrid, upgradePiece, storePiece } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -83,7 +83,7 @@ export class Session {
   sleep() { sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }
 
   newGame() { this.game = newGame(); this.persist(); this.goHome(); }
-  continueGame() { this.game = this.saved; this.goHome(); }
+  continueGame() { this.game = this.saved; fitGrid(this.game.home); this.goHome(); }
   persist() { if (this.game) save(this.game); }
 
   goHome() {
@@ -117,7 +117,12 @@ export class Session {
     if (!b || b.i === null) return false;
     if (!build(this.game.home, b.type, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
     this.sfx('build');
-    { const f = footprint(b.type, b.rot); this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); }
+    {
+      const f = footprint(b.type, b.rot), bd = BUILDINGS[b.type], w = this.view.toWorld(b.i + f.w / 2, b.j + f.h / 2);
+      this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); this.shake(0.1);
+      const gain = bd.beds ? `+${bd.beds} ${t('home.beds', 'camas')}` : bd.calm ? `+${t('home.calm', 'calma')}` : bd.produces ? `${t('home.makes', 'da')} ${RESOURCES[bd.produces.res].name}` : bd.name;
+      this.floatText(gain, w.x, w.z, 'gain', 1.2);
+    }
     this.persist();
     this.hoverBuild(b.i + Math.floor((footprint(b.type, b.rot).w - 1) / 2), b.j + Math.floor((footprint(b.type, b.rot).h - 1) / 2));
     return true;
@@ -145,7 +150,14 @@ export class Session {
       const f = footprint(p.type, p.rot);
       return home.stock[p.id]?.ready && cell.x >= p.x - 0.5 && cell.x <= p.x + f.w + 0.5 && cell.y >= p.y - 0.8 && cell.y <= p.y + f.h + 0.5;
     });
-    if (!piece) return null;
+    if (!piece) {
+      // Tocar una pieza sin nada listo la selecciona: su ficha deja mejorarla o guardarla.
+      const at = home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)];
+      this.selPiece = at ?? null;
+      if (at) this.sfx('click');
+      this.emit();
+      return at ? { piece: at } : null;
+    }
     const n = collect(home, piece.id);
     const f = footprint(piece.type, piece.rot);
     this.view.burst('pickup', piece.x + f.w / 2, piece.y + f.h / 2);
@@ -154,6 +166,24 @@ export class Session {
     this.floatText(`+${n} ${RESOURCES[BUILDINGS[piece.type].produces.res].name}`, w.x, w.z, 'gain');
     this.persist(); this.emit();
     return { res: BUILDINGS[piece.type].produces.res, n };
+  }
+  upgradePiece(id) {
+    const home = this.game.home, p = home.grid.pieces[id];
+    if (!upgradePiece(home, id)) { this.sfx('hurt', 1.6); return false; }
+    const f = footprint(p.type, p.rot), w = this.view.toWorld(p.x + f.w / 2, p.y + f.h / 2);
+    this.sfx('heal'); this.view.burst('heal', p.x + f.w / 2, p.y + f.h / 2); this.shake(0.12);
+    this.floatText(`${BUILDINGS[p.type].name} · ${t('home.level', 'nivel')} ${p.level}`, w.x, w.z, 'gain', 1.4);
+    this.persist(); this.emit();
+    return true;
+  }
+  storePiece(id) {
+    const home = this.game.home, p = home.grid.pieces[id];
+    if (!p) return false;
+    const f = footprint(p.type, p.rot);
+    if (!storePiece(home, id)) { this.sfx('hurt', 1.6); return false; }
+    this.view.burst('build', p.x + f.w / 2, p.y + f.h / 2); this.sfx('close');
+    this.selPiece = null; this.persist(); this.emit();
+    return true;
   }
   upgradeLayer(id) { const ok = upgradeLayer(this.game.home, id); if (ok) this.persist(); this.emit(); return ok; }
   expandHome() { const ok = expand(this.game.home); if (ok) this.persist(); this.emit(); return ok; }
@@ -263,7 +293,14 @@ export class Session {
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
     else if (this.mode === 'home') { tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
-    else if (this.mode === 'gather' && !this.gather.done) { tickGather(this.gather, dt, input.move); if (this.gather.done) this.emit(); }
+    else if (this.mode === 'gather' && !this.gather.done) {
+      const g = this.gather, falls = g.falls, air = g.player.air;
+      tickGather(g, dt, input.move, input.roll);
+      if (!air && g.player.air && input.roll) this.sfx('roll', 1.3);
+      if (air && !g.player.air) { this.sfx('build', 1.6); this.view.burst('dust', g.player.x, g.player.y); }
+      if (g.falls > falls) { this.sfx('hurt'); this.shake(0.2); this.floatText(t('gather.fell', '¡Al vacío! −2,5 s'), g.player.x - g.side / 2, g.player.y - g.side / 2, 'ally', 1); }
+      if (g.done) this.emit();
+    }
     else if (this.mode === 'combat') this.tickCombat(dt, input);
     this.view?.update(this.time, dt);
     if (this.fx.length) this.fx = this.fx.filter((f) => this.time - f.at < 0.9);

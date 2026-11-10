@@ -3,7 +3,8 @@ import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, beds, canAfford, nextExpansion, climate, humidity } from '../../game/home.js';
+import { calm, beds, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost } from '../../game/home.js';
+import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
@@ -37,15 +38,16 @@ export function Home({ s }) {
     if (got?.res) say(`+${got.n} ${RESOURCES[got.res].name}`);
   };
   const exp = nextExpansion(home);
+  const sel = s.selPiece ? home.grid.pieces[s.selPiece] : null;
 
   return html`<main class="screen home">
     <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">
-      <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`} />
-        <div><span class="kicker">${DAY_PHASES[s.phase].name}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
-        ${(s.phase === 'atardecer' || s.phase === 'noche') && html`<button class="btn sleep" title=${t('home.sleepHint', 'Dormir hasta el alba: empieza otro día con islas nuevas')} onClick=${() => s.sleep()}><${Icon} name="refugio" size="18" />${t('home.sleep', 'Dormir')}</button>`}</div>
+      <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
+          onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
+        <div><span class="kicker">${DAY_PHASES[s.phase].name}${s.phase === 'atardecer' || s.phase === 'noche' ? ` · ${t('home.sleepHint2', 'toca el reloj: dormir')}` : ''}</span><h2>${t('home.title', 'Tu terrario')}</h2></div></div>
       <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />
@@ -59,9 +61,20 @@ export function Home({ s }) {
       <button class="btn ghost" onClick=${() => s.cancelBuild()}>${t('ui.done', 'Listo')}</button>
     </div>`}
 
-    ${panel === 'build' && !s.build && html`<section class="drawer" aria-label=${t('home.build', 'Construir')}>
-      ${Object.entries(BUILDINGS).map(([id, b]) => html`<button class="card-btn" disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
-        <b>${b.name}</b><small>${b.size.w}×${b.size.h}${b.produces ? ` · ${t('home.makes', 'da')} ${RESOURCES[b.produces.res].name}` : ''}${b.calm ? ` · +${t('home.calm', 'calma')}` : ''}${b.beds ? ` · +${b.beds} ${t('home.beds', 'camas')}` : ''}</small>
+    ${sel && !s.build && html`<section class="drawer piece-card" aria-label=${BUILDINGS[sel.type].name}>
+      <div class="pc-head"><h3>${BUILDINGS[sel.type].name}</h3><span class="lvl">${t('home.level', 'nivel')} ${lvl(sel)}/${MAX_LEVEL}</span>
+        <button class="btn ghost icon" onClick=${() => { s.selPiece = null; s.emit(); }} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="back" /></button></div>
+      <p>${BUILDINGS[sel.type].desc}</p>
+      <div class="actions">
+        ${upgradeCost(sel) && lvl(sel) < MAX_LEVEL ? html`<button class="btn primary" disabled=${!canAfford(home, upgradeCost(sel))} onClick=${() => s.upgradePiece(sel.id)}>
+          <${Icon} name="expand" size="18" />${t('home.upgrade', 'Mejorar')} <${Cost} cost=${upgradeCost(sel)} have=${home.resources} /></button>` : html`<small class="muted">${t('home.maxed', 'No se puede mejorar más.')}</small>`}
+        <button class="btn ghost" onClick=${() => s.storePiece(sel.id) || say(t('home.cantStore', 'Hace falta al menos un comedero.'))}>${t('home.store', 'Guardar')} · ${t('home.refund', 'devuelve la mitad')}</button>
+      </div>
+    </section>`}
+
+    ${panel === 'build' && !s.build && html`<section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
+      ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
+        <b>${b.name}</b><span class="desc">${b.desc}</span><small>${b.size.w}×${b.size.h}${b.produces ? ` · ${t('home.makes', 'da')} ${RESOURCES[b.produces.res].name}` : ''}${b.calm ? ` · +${t('home.calm', 'calma')}` : ''}${b.beds ? ` · +${b.beds} ${t('home.beds', 'camas')}` : ''}</small>
         <${Cost} cost=${b.cost} have=${home.resources} />
       </button>`)}
       ${exp && html`<button class="card-btn" disabled=${!canAfford(home, exp.cost)} onClick=${() => s.expandHome() && say(t('home.expanded', 'El terrario crece.'))}>

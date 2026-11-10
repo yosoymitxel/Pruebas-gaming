@@ -19,7 +19,7 @@ export const START_LAYERS = { grava: 1, carbon: 0, tierra: 1, hojarasca: 0 };
 export const HUMIDITY = {
   base: 0.4,
   weather: { claro: -0.05, niebla: 0.05, lluvia: 0.15 },
-  pieces: { charca: 0.18, huerto: 0.05 },
+  pieces: { charca: 0.18, huerto: 0.05, esfagno: 0.12, corcho: 0.02, tronco: 0.03 },
   perGrava: 0.05, // la grava deja subir el techo sin encharcar
   dry: 0.45, wet: 0.8, flood: 0.9,
 };

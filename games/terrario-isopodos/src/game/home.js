@@ -1,9 +1,9 @@
 // El terrario: rejilla con piezas, capas de sustrato y clima interior; colonia que pasea, come y descansa,
 // y recursos que producen las piezas y se recogen a mano. Lógica pura; el tiempo avanza con tickHome.
-import { BUILDINGS, EXPANSIONS, GRID_SIDE } from '../data/buildings.js';
+import { BUILDINGS, EXPANSIONS, GRID_SIDE, MAX_LEVEL } from '../data/buildings.js';
 import { CLASSES, NAMES } from '../data/isopods.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
-import { createGrid, openRect, place, canPlace, blocked, collideGrid } from './grid.js';
+import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES } from '../data/substrate.js';
 
@@ -26,7 +26,7 @@ function newIsopod(rng, id, cls, taken = [], species) {
 export function newHome(rng) {
   const grid = createGrid(GRID_SIDE, GRID_SIDE);
   const home = { grid, expansion: -1, resources: { ...START_RES }, isopods: [], nextIsopod: 1, stock: {}, fear: 0, layers: { ...START_LAYERS }, weather: 'claro' };
-  expand(home, true);
+  expand(home, true); expand(home, true); // se empieza con 10 × 10
   const c = GRID_SIDE / 2;
   place(grid, 'refugio', c - 3, c - 3);
   place(grid, 'comedero', c + 1, c - 2);
@@ -72,7 +72,38 @@ export function build(home, type, x, y, rot = 0) {
   return place(home.grid, type, x, y, rot);
 }
 
-export const beds = (home) => 4 + Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].beds ?? 0), 0);
+export const lvl = (p) => p.level ?? 1;
+export const beds = (home) => 4 + Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].beds ?? 0) * lvl(p), 0);
+
+// Mejorar una pieza: nivel 2 y 3 (ver `upgrade` en BUILDINGS).
+export const upgradeCost = (p) => BUILDINGS[p.type].upgrade?.[lvl(p) - 1] ?? null;
+export function upgradePiece(home, id) {
+  const p = home.grid.pieces[id], cost = p && upgradeCost(p);
+  if (!cost || lvl(p) >= MAX_LEVEL || !pay(home, cost)) return false;
+  p.level = lvl(p) + 1;
+  return true;
+}
+
+// Quitar una pieza devuelve la mitad de lo que costó.
+export function storePiece(home, id) {
+  const p = home.grid.pieces[id];
+  if (!p || BUILDINGS[p.type].feeds && Object.values(home.grid.pieces).filter((q) => BUILDINGS[q.type].feeds).length === 1) return false;
+  for (const [r, n] of Object.entries(BUILDINGS[p.type].cost)) home.resources[r] = (home.resources[r] ?? 0) + Math.floor(n / 2);
+  remove(home.grid, id);
+  delete home.stock[id];
+  return true;
+}
+
+// Partidas guardadas con una rejilla más chica: se agranda centrando lo que había.
+export function fitGrid(home) {
+  const g = home.grid;
+  if (g.w >= GRID_SIDE) return;
+  const o = (GRID_SIDE - g.w) / 2, n = createGrid(GRID_SIDE, GRID_SIDE);
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.open[j * g.w + i]) openRect(n, i + o, j + o, 1, 1);
+  for (const p of Object.values(g.pieces)) { place(n, p.type, p.x + o, p.y + o, p.rot); const q = n.pieces[n.nextId - 1]; q.level = p.level; home.stock[q.id] = home.stock[p.id]; }
+  for (const iso of home.isopods) { iso.x += o; iso.y += o; iso.tx = null; }
+  home.grid = n;
+}
 
 export const layer = (home, id) => home.layers?.[id] ?? START_LAYERS[id];
 
@@ -100,7 +131,8 @@ export function climate(home) {
   const h = humidity(home);
   if (h < HUMIDITY.dry) return 'seco';
   if (h <= HUMIDITY.wet) return 'ideal';
-  return h - HUMIDITY.wet <= layer(home, 'carbon') * 0.06 ? 'humedo' : 'moho';
+  const springtails = Object.values(home.grid.pieces).some((p) => p.type === 'colembolos'); // se comen el moho
+  return springtails || h - HUMIDITY.wet <= layer(home, 'carbon') * 0.06 ? 'humedo' : 'moho';
 }
 
 export const nextLayerCost = (home, id) => LAYERS[id].costs[layer(home, id)] ?? null;
@@ -114,7 +146,7 @@ export function upgradeLayer(home, id) {
 
 // Calma 0–1: decoración, hojarasca y clima suben; hacinamiento, mal clima y miedo de la última expedición bajan.
 export function calm(home) {
-  const deco = Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].calm ?? 0), 0);
+  const deco = Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].calm ?? 0) * lvl(p), 0);
   const crowd = Math.max(0, home.isopods.length - beds(home)) * 0.08;
   const litter = layer(home, 'hojarasca') * 0.05;
   return Math.max(0, Math.min(1, 0.45 + deco + litter + CLIMATES[climate(home)].calm - crowd - home.fear));
@@ -144,8 +176,8 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
     const prod = BUILDINGS[p.type].produces;
     if (!prod) continue;
     const s = (home.stock[p.id] ??= { ready: 0, t: 0 });
-    if (s.ready >= prod.cap) continue;
-    if ((s.t += dt * prodMul) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap, s.ready + prod.amount); }
+    if (s.ready >= prod.cap + (lvl(p) - 1) * 2) continue;
+    if ((s.t += dt * prodMul * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
   }
   for (const iso of home.isopods) { if (!lifecycle(home, iso, dt, rng)) walk(home, iso, dt, rng, hungerMul, phase); }
   breed(home, dt, rng);

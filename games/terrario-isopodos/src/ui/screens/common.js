@@ -81,11 +81,13 @@ export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">
 
 // Reloj del día (como el de Cult of the Lamb): esfera oscura con el tramo de noche en rojo, una aguja que da
 // la vuelta con el reloj (0 = amanecer, arriba) y el número de día.
-export const DayClock = ({ day, clock = 0, label }) => html`<div class="day-clock" role="img" aria-label=${label}>
+// Con `onSleep`, el reloj es el botón de dormir (una luna lo avisa).
+export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep ? 'button' : 'div'} class=${`day-clock${onSleep ? ' can-sleep' : ''}`}
+  role=${onSleep ? null : 'img'} aria-label=${onSleep ? `${label} · ${t('home.sleep', 'Dormir hasta el alba')}` : label} onClick=${onSleep}>
   <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" />
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
     <line x1="20" y1="20" x2=${20 + 15 * Math.sin(clock * 6.283)} y2=${20 - 15 * Math.cos(clock * 6.283)} /></svg>
-  <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span></div>`;
+  <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
