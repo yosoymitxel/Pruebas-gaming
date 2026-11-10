@@ -9,7 +9,11 @@ import { box } from '../core/physics.js';
 
 export const GATHER_TIME = 45;
 export const LEVEL_H = 0.5; // alto de un escalón en el mundo
-const SIDE = 15, SPEED = 3.4, PICK = 0.7, JUMP = { v: 5.3, g: 18 }, FALL_COST = 2.5;
+const SIDE = 15, SPEED = 3.6, ACCEL = 28, AIR_ACCEL = 14, PICK = 0.7, FALL_COST = 2.5;
+// Salto de plataformas: subida rápida, caída más pesada, altura según cuánto se mantiene el botón,
+// margen tras salir del borde (coyote) y pulsación recordada justo antes de tocar suelo (buffer).
+const JUMP = { v: 6.2, g: 20, fallMul: 1.7, cut: 0.45, coyote: 0.1, buffer: 0.13 };
+const CHAIN = { window: 2, bonus: 0.4 }; // recoger seguido: cada eslabón desde el 2.º suma tiempo
 
 // Nivel de altura de cada celda según la forma: null = hueco.
 function terrain(shape, rng) {
@@ -66,7 +70,8 @@ export function newGather(island) {
   const p0 = { x: start.i + 0.5, y: start.j + 0.5 };
   return {
     island, shape, grid, levels, side: SIDE, nodes, lost, time: GATHER_TIME, done: false, falls: 0,
-    player: { ...p0, z: start.h * LEVEL_H, vz: 0, vx: 0, vy: 0, air: false, safe: { ...p0, z: start.h * LEVEL_H }, falling: 0 },
+    player: { ...p0, z: start.h * LEVEL_H, vz: 0, vx: 0, vy: 0, air: false, safe: { ...p0, z: start.h * LEVEL_H }, falling: 0, coyote: 0, buf: 0, cut: false },
+    chain: { n: 0, t: 0 },
     got: {}, rescued: false, yield: WEATHERS[island.weather].yield,
   };
 }
@@ -94,25 +99,30 @@ export const levelAt = (g, x, y) => {
   return i < 0 || j < 0 || i >= g.side || j >= g.side ? null : g.levels[j * g.side + i];
 };
 
-// move: {x, y}; jump: pulsado este fotograma.
-export function tickGather(g, dt, move = {}, jump = false) {
+// move: {x, y}; jump: pulsado este fotograma; held: botón aún mantenido (corta el salto al soltar).
+export function tickGather(g, dt, move = {}, jump = false, held = true) {
   if (g.done) return;
   g.time = Math.max(0, g.time - dt);
   const p = g.player;
+  g.chain.t = Math.max(0, g.chain.t - dt);
+  if (!g.chain.t) g.chain.n = 0;
   if (p.falling > 0) { // cayendo al vacío: vuelve al último sitio seguro
     p.falling -= dt; p.z -= dt * 8;
-    if (p.falling <= 0) Object.assign(p, { x: p.safe.x, y: p.safe.y, z: p.safe.z, vz: 0, air: false });
+    if (p.falling <= 0) Object.assign(p, { x: p.safe.x, y: p.safe.y, z: p.safe.z, vz: 0, vx: 0, vy: 0, air: false });
     return;
   }
-  const mx = move.x ?? 0, my = move.y ?? 0, len = Math.hypot(mx, my);
-  p.vx = len ? (mx / Math.max(1, len)) * SPEED : 0;
-  p.vy = len ? (my / Math.max(1, len)) * SPEED : 0;
-  if (jump && !p.air) { p.vz = JUMP.v; p.air = true; g.jumped = (g.jumped ?? 0) + 1; }
+  const mx = move.x ?? 0, my = move.y ?? 0, len = Math.hypot(mx, my), k = len ? SPEED / Math.max(1, len) : 0;
+  const acc = (p.air ? AIR_ACCEL : ACCEL) * dt, toward = (v, goal) => v + Math.max(-acc, Math.min(acc, goal - v));
+  p.vx = toward(p.vx, mx * k); p.vy = toward(p.vy, my * k);
+  p.coyote = p.air ? Math.max(0, p.coyote - dt) : JUMP.coyote;
+  p.buf = jump ? JUMP.buffer : Math.max(0, p.buf - dt);
+  if (p.buf > 0 && p.coyote > 0) { p.vz = JUMP.v; p.air = true; p.coyote = p.buf = 0; p.cut = false; g.jumped = (g.jumped ?? 0) + 1; }
+  if (p.air && !held && !p.cut && p.vz > 0) { p.vz *= JUMP.cut; p.cut = true; }
   // Cada eje por separado: una pared (escalón alto) frena ese eje y deja deslizar por el otro.
   for (const axis of ['x', 'y']) {
     const nx = axis === 'x' ? p.x + p.vx * dt : p.x, ny = axis === 'y' ? p.y + p.vy * dt : p.y;
     const lv = levelAt(g, nx, ny);
-    if (lv !== null && lv * LEVEL_H > p.z + 0.12) continue; // escalón más alto de lo que se alcanza
+    if (lv !== null && lv * LEVEL_H > p.z + 0.12) { if (axis === 'x') p.vx = 0; else p.vy = 0; continue; }
     p.x = nx; p.y = ny;
   }
   // piedras
@@ -122,7 +132,7 @@ export function tickGather(g, dt, move = {}, jump = false) {
   const ground = levelAt(g, p.x, p.y);
   if (p.air || ground === null || ground * LEVEL_H < p.z - 0.01) {
     p.air = true;
-    p.vz -= JUMP.g * dt; p.z += p.vz * dt;
+    p.vz -= JUMP.g * (p.vz < 0 ? JUMP.fallMul : 1) * dt; p.z += p.vz * dt;
     if (ground !== null && p.z <= ground * LEVEL_H) { p.z = ground * LEVEL_H; p.vz = 0; p.air = false; }
     else if (ground === null && p.z < -0.6) { p.falling = 0.5; g.falls++; g.time = Math.max(0, g.time - FALL_COST); }
   }
@@ -131,6 +141,8 @@ export function tickGather(g, dt, move = {}, jump = false) {
     if (!n.taken && Math.hypot(n.x - p.x, n.y - p.y) < PICK && Math.abs(n.h * LEVEL_H - p.z) < 0.6) {
       n.taken = true;
       g.got[n.res] = (g.got[n.res] ?? 0) + 1;
+      g.chain.n++; g.chain.t = CHAIN.window;
+      if (g.chain.n > 1) { g.time += CHAIN.bonus; g.chained = (g.chained ?? 0) + 1; }
     }
   }
   if (g.lost && !g.lost.taken && Math.hypot(g.lost.x - p.x, g.lost.y - p.y) < PICK && Math.abs(g.lost.h * LEVEL_H - p.z) < 0.6) { g.lost.taken = true; g.rescued = true; }
