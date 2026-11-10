@@ -2,7 +2,7 @@
 // los globos que flotan sobre las piezas (mejorable, comedero vacío).
 import { PALETTES } from '../data/palettes.js';
 
-const INK = PALETTES.cozy.ink, PAPER = PALETTES.cozy.paper, AMBER = PALETTES.cozy.amber;
+const INK = PALETTES.cozy.ink, PAPER = PALETTES.cozy.paper, AMBER = PALETTES.cozy.amber, RUST = PALETTES.cozy.rust;
 
 // Moho: pelusa blanca verdosa de bordes deshilachados.
 function mold(c, w, h) {
@@ -28,24 +28,26 @@ function crack(c, w, h) {
 }
 
 // Globo con icono: flecha de mejora (ámbar) o comedero vacío.
-function bubble(c, w, h, draw, fill = PAPER) {
-  c.fillStyle = fill; c.strokeStyle = INK; c.lineWidth = 6;
-  c.beginPath(); c.arc(w / 2, h * 0.42, w * 0.38, 0, 7); c.fill(); c.stroke();
-  c.beginPath(); c.moveTo(w * 0.42, h * 0.76); c.lineTo(w / 2, h * 0.96); c.lineTo(w * 0.58, h * 0.76); c.fill(); c.stroke();
+// Globo con icono, en la misma ficha que los recursos listos: disco de papel con filo fino de color y un
+// piquito hacia la pieza. Flecha de mejora (ámbar) o comedero vacío (óxido).
+function bubble(c, w, h, draw, rim) {
+  c.fillStyle = PAPER; c.strokeStyle = rim; c.lineWidth = 5; c.lineJoin = 'round';
+  c.beginPath(); c.arc(w / 2, h * 0.42, w * 0.4, 0, 7); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(w * 0.42, h * 0.8); c.lineTo(w / 2, h * 0.95); c.lineTo(w * 0.58, h * 0.8); c.fillStyle = rim; c.fill();
   draw();
 }
 function up(c, w, h) {
   bubble(c, w, h, () => {
-    c.strokeStyle = INK; c.lineWidth = 9; c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath(); c.moveTo(w / 2, h * 0.62); c.lineTo(w / 2, h * 0.24); c.moveTo(w * 0.34, h * 0.4); c.lineTo(w / 2, h * 0.24); c.lineTo(w * 0.66, h * 0.4); c.stroke();
+    c.strokeStyle = AMBER; c.lineWidth = 9; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(w / 2, h * 0.6); c.lineTo(w / 2, h * 0.26); c.moveTo(w * 0.35, h * 0.4); c.lineTo(w / 2, h * 0.25); c.lineTo(w * 0.65, h * 0.4); c.stroke();
   }, AMBER);
 }
 function hungry(c, w, h) {
   bubble(c, w, h, () => {
-    c.strokeStyle = INK; c.lineWidth = 6;
-    c.beginPath(); c.ellipse(w / 2, h * 0.46, w * 0.22, h * 0.09, 0, 0, Math.PI); c.closePath(); c.stroke(); // cuenco vacío
-    c.lineWidth = 7; c.beginPath(); c.moveTo(w * 0.3, h * 0.2); c.lineTo(w * 0.7, h * 0.62); c.stroke();
-  });
+    c.strokeStyle = INK; c.lineWidth = 4.5;
+    c.beginPath(); c.ellipse(w / 2, h * 0.45, w * 0.22, h * 0.09, 0, 0, Math.PI); c.closePath(); c.stroke(); // cuenco vacío
+    c.strokeStyle = RUST; c.lineWidth = 6; c.lineCap = 'round'; c.beginPath(); c.moveTo(w * 0.3, h * 0.22); c.lineTo(w * 0.7, h * 0.62); c.stroke();
+  }, RUST);
 }
 
 export const CARE_SPRITES = {

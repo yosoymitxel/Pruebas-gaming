@@ -250,8 +250,8 @@ export class HomeView extends GridScene {
     // Globos sobre las piezas: comedero vacío (sin hojarasca) y mejora que ya se puede pagar.
     if (!this.extra) for (const p of Object.values(this.grid.pieces)) {
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2), bob = Math.sin(time * 3 + p.id) * 0.08;
-      if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 1, lift: 1 + bob });
-      else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.85, lift: 1.3 + bob });
+      if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 0.75 + bob });
+      else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.55, lift: 0.95 + bob });
     }
     for (const [id, ring] of this.rings ?? []) if (!ready.has(id)) { this.group.remove(ring); ring.geometry.dispose(); this.rings.delete(id); }
     this.actors.sync([...list, ...(this.extra?.(time) ?? [])], this.stage.yaw);

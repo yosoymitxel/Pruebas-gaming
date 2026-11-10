@@ -380,6 +380,9 @@ export class Session {
     this.stage.setTime(this.clock);
     this.view?.setNight?.(this.phase === 'noche');
     if (input.turn) this.stage.rotate(input.turn * dt * 1.6);
+    // Giro lento del diorama en el terrario (se quita en el panel de cámara): se para mientras tocás, con algo
+    // seleccionado o construyendo, y vuelve a los 4 s.
+    if (this.mode === 'home' && this.settings.autoSpin !== false && !this.settings.reduceMotion && this.selIso == null && !this.build && !this.paused && this.time - (this.touched ?? -9) > 4) this.stage.rotate(dt * 0.07);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
     else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }

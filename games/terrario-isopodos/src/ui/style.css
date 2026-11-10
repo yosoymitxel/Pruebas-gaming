@@ -948,3 +948,16 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 /* Reloj: número centrado en letra de datos (la manuscrita se iba de lado). */
 .day-clock span { display: flex !important; align-items: center; justify-content: center; }
 .day-clock b { font: 800 15px/1 var(--sans) !important; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; transform: translateY(0.5px); }
+
+/* Rociar: la espera es un relleno que baja sobre el botón, sin cifra. */
+.btn.mist { overflow: hidden; }
+.btn.mist::after { background: linear-gradient(to top, rgb(79 143 214 / 0.35) calc(var(--cd, 0) * 100%), var(--face) 0) !important; }
+.btn.mist:disabled { opacity: 1; }
+/* Medidor de humedad anguloso como el resto. */
+.gauge { border-radius: 0 !important; }
+.gauge .track { border-radius: 0 !important; border-width: 0 !important; transform: skewX(-18deg); box-shadow: inset 0 0 0 1px rgb(29 26 22 / 0.35); }
+.gauge .needle { border-radius: 0 !important; }
+.gauge-moho, .gauge-seco { animation-name: attn !important; }
+/* Aviso de logro: etiqueta de tinta angulosa en vez de píldora. */
+.ach-toast { border-radius: 0 !important; border: 0 !important; clip-path: polygon(0 6px, 6px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); box-shadow: inset 0 0 0 1px var(--amber) !important; }
+.ach-ico { border-radius: 0 !important; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }

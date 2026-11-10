@@ -9,10 +9,11 @@ import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { ColonyList, IsoHub } from './colony.js';
 import { pieceThumb } from '../../view/thumbs.js';
-import { CLIMATES, HUMIDITY } from '../../data/substrate.js';
+import { CLIMATES, HUMIDITY, ZEN } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
 
-const drag = { x: 0, y: 0, moved: false, down: false };
+const drag = { x: 0, y: 0, moved: false, down: false, pts: new Map(), pinch: 0 };
+const pinchDist = () => { const [a, b] = [...drag.pts.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]) || 1; };
 const half = (cost) => Object.fromEntries(Object.entries(cost).map(([r, n]) => [r, Math.floor(n / 2)]).filter(([, n]) => n > 0));
 // Lo que gana una pieza al subir de nivel (game/home.js: producción +35 % por nivel, camas por nivel).
 const gainOf = (b) => (b.produces ? `+35 % ${RESOURCES[b.produces.res].name.toLowerCase()}` : b.beds ? `+${b.beds} ${t('home.beds', 'camas')}` : b.calm ? `+${t('home.calm', 'calma')}` : '');
@@ -38,8 +39,13 @@ export function Home({ s }) {
   const toggle = (p) => { if (s.build) s.cancelBuild(); if (s.selIso != null) s.selectIso(null); setPanel(panel === p ? null : p); };
 
   // Arrastrar gira la cámara; tocar sin arrastrar coloca o recoge.
-  const onDown = (e) => { Object.assign(drag, { x: e.clientX, y: e.clientY, moved: false, down: true }); e.currentTarget.setPointerCapture(e.pointerId); };
+  // Dos dedos: pellizcar acerca o aleja (como una foto); mientras hay dos dedos no se gira ni se toca.
+  const onDown = (e) => { s.touched = s.time; drag.pts.set(e.pointerId, [e.clientX, e.clientY]); if (drag.pts.size === 2) { drag.pinch = pinchDist(); drag.moved = true; }
+    else Object.assign(drag, { x: e.clientX, y: e.clientY, moved: false, down: true }); e.currentTarget.setPointerCapture(e.pointerId); };
   const onMove = (e) => {
+    if (drag.pts.has(e.pointerId)) drag.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (drag.pts.size === 2 && drag.pinch) { const d = pinchDist(); s.stage.zoom(drag.pinch / d); drag.pinch = d; s.touched = s.time; return; }
+    if (drag.down) s.touched = s.time;
     if (drag.down && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8) drag.moved = true;
     if (drag.down && drag.moved) {
       if (s.freeCam) { // desplazar: el arrastre mueve el punto que mira la cámara, según hacia dónde mira
@@ -50,7 +56,7 @@ export function Home({ s }) {
     }
     if (s.build) { const c = s.view.cellAt(e); if (c) s.hoverBuild(c.i, c.j); }
   };
-  const onUp = (e) => { const tap = drag.down && !drag.moved; drag.down = false; if (tap) onTap(e); };
+  const onUp = (e) => { drag.pts.delete(e.pointerId); if (drag.pts.size < 2) drag.pinch = 0; if (drag.pts.size) return; const tap = drag.down && !drag.moved; drag.down = false; if (tap) onTap(e); };
   const onTap = (e) => {
     const c = s.view.cellAt(e);
     if (!c) return;
@@ -62,7 +68,7 @@ export function Home({ s }) {
   const sel = s.selPiece ? home.grid.pieces[s.selPiece] : null;
 
   return html`<main class="screen home">
-    <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
+    <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onPointerCancel=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">
@@ -113,7 +119,7 @@ export function Home({ s }) {
     <nav class="hud-bottom">
       <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> <span>${t('home.build', 'Construir')}</span></button>
       <button class=${`btn${panel === 'comp' ? ' active' : ''}`} onClick=${() => toggle('comp')}><${Icon} name="layers" /> <span>${t('home.terrarium', 'Terrario')}</span></button>
-      <button class="btn" disabled=${home.mistCd > 0} onClick=${() => s.mist()} aria-label=${t('home.mist', 'Rociar')}><${Icon} name="items" /> <span>${home.mistCd > 0 ? `${Math.ceil(home.mistCd)} s` : t('home.mist', 'Rociar')}</span></button>
+      <button class="btn mist" disabled=${home.mistCd > 0} onClick=${() => s.mist()} aria-label=${t('home.mist', 'Rociar')} style=${{ '--cd': home.mistCd > 0 ? home.mistCd / ZEN.mistCooldown : 0 }}><${Icon} name="items" /> <span>${t('home.mist', 'Rociar')}</span></button>
       <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> <span>${t('home.colony', 'Colonia')}</span></button>
       <button class="btn primary" aria-label=${t('home.out', 'Archipiélago')} onClick=${() => s.goArchipelago()}><${Icon} name="out" /> <span class="long">${t('home.out', 'Archipiélago')}</span><span class="short">${t('home.outShort', 'Islas')}</span></button>
       <button class="btn ghost icon" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>

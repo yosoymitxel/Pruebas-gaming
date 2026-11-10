@@ -81,6 +81,7 @@ export function CamControls({ s }) {
     <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
     <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
     ${s.mode === 'home' && html`
+    <button class=${`btn icon${s.settings.autoSpin !== false ? ' active' : ''}`} aria-pressed=${s.settings.autoSpin !== false} onClick=${() => s.setSetting('autoSpin', s.settings.autoSpin === false)} aria-label=${t('ui.autoSpin', 'Giro automático')}><${Icon} name="turnRight" /></button>
     <button class=${`btn icon${s.freeCam ? ' active' : ''}`} aria-pressed=${!!s.freeCam} onClick=${() => { s.freeCam = !s.freeCam; s.emit(); }} aria-label=${t('ui.freeCam', 'Cámara libre: arrastra para desplazar')}><${Icon} name="pan" /></button>
     <button class=${`btn icon${s.moveMode ? ' active' : ''}`} aria-pressed=${!!s.moveMode} onClick=${() => { s.moveMode = !s.moveMode; s.selPiece = null; s.emit(); }} aria-label=${t('ui.moveMode', 'Mover piezas: toca una')}><${Icon} name="move" /></button>`}`}
   </div>`;
