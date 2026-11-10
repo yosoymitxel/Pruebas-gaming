@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mulberry32 } from '../src/core/rng.js';
-import { newGame, visit } from '../src/game/game.js';
+import { newGame, visit, tickClock, dayPhase, sleep } from '../src/game/game.js';
 import { build, tickHome, collect, expand, calm, beds, climate, humidity, upgradeLayer, homeEffects } from '../src/game/home.js';
 import { blocked } from '../src/game/grid.js';
 import { newGather, tickGather, gatherLoot } from '../src/game/gather.js';
@@ -134,4 +134,20 @@ test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus
 test('trampas: quedarse quieto, machacar, rodar sin parar o huir no ganan', async () => {
   const { exploits } = await import('../tools/exploits-selfcheck.mjs');
   for (const r of exploits(6)) assert.ok(r.ok, `${r.name} vs ${r.foe}: ${r.rate}`);
+});
+
+test('día y noche: el reloj avanza, de noche se produce menos, dormir lleva al amanecer de otro día', () => {
+  const g = newGame(5);
+  assert.equal(dayPhase(g), 'dia');
+  tickClock(g, 0.7 * 300);
+  assert.equal(dayPhase(g), 'noche');
+  const islands = g.islands;
+  sleep(g);
+  assert.equal(g.day, 2);
+  assert.equal(dayPhase(g), 'amanecer');
+  assert.notDeepEqual(g.islands, islands);
+  const nest = g.islands.find((i) => i.kind === 'nido');
+  const before = g.clock;
+  visit(g, nest.id);
+  assert.ok(g.clock > before, 'un viaje gasta tiempo');
 });

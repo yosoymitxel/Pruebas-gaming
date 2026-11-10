@@ -145,24 +145,40 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .climate-chip { font: 700 18px/1 var(--hand); background: var(--paper); border: var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; pointer-events: auto; color: var(--ink); }
 @media (max-width: 560px) { .comp-side { grid-template-columns: 96px 1fr; } .cross { width: 96px; } .layers li { grid-template-columns: 18px 1fr; } .layers li .btn, .layers li > small { grid-column: 2; justify-self: start; } }
 
-/* Menú (patrón KureiChaosChess: diorama vivo + columna) */
-.menu { display: grid; grid-template-columns: 1fr minmax(300px, 440px); align-items: center; padding: 4vh 4vw; pointer-events: none; }
-.menu-col { grid-column: 2; display: grid; gap: 18px; pointer-events: auto; background: color-mix(in srgb, var(--paper) 86%, transparent);
-  border: var(--line); border-radius: 14px; padding: 22px; box-shadow: 6px 6px 0 var(--ink); animation: rise 320ms var(--ease-out); }
-.logo h1 { font-size: clamp(44px, 6vw, 72px); }
-.logo .lead { margin: 6px 0 0; max-width: 40ch; }
-.menu-actions { display: grid; gap: 10px; }
+/* Menú: logo arriba a la izquierda, lista vertical debajo; el diorama vivo a la derecha (abajo en móvil). */
+.menu { display: grid; grid-template-rows: auto 1fr auto; justify-items: start; gap: 18px; padding: max(5vh, env(safe-area-inset-top)) 5vw 3vh; pointer-events: none; }
+.menu .logo { color: var(--paper); text-shadow: 0 2px 0 var(--ink), 0 0 14px var(--night); max-width: 520px; animation: rise 420ms var(--ease-out); }
+.logo h1 { margin: 4px 0 0; font: 700 clamp(48px, 7vw, 88px)/0.92 var(--hand); }
+.logo .lead { margin: 10px 0 0; max-width: 40ch; opacity: 0.9; }
+.menu-list { align-self: center; width: min(100%, 340px); pointer-events: auto; }
+.menu-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.menu-list li { animation: rise 360ms var(--ease-out) both; }
+.menu-list li:nth-child(2) { animation-delay: 50ms; } .menu-list li:nth-child(3) { animation-delay: 100ms; }
+.menu-list li:nth-child(4) { animation-delay: 150ms; } .menu-list li:nth-child(5) { animation-delay: 200ms; }
+.menu-item { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 16px; text-align: left; cursor: pointer;
+  font: 700 24px/1 var(--hand); color: var(--ink); background: var(--paper); border: var(--line); border-radius: var(--radius); box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out); }
+.menu-item span { display: grid; gap: 3px; }
+.menu-item small { font: 500 13px/1 var(--sans); opacity: 0.75; }
+.menu-item:hover, .menu-item:focus-visible { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.menu-item:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.menu-item.primary { background: var(--rust); color: var(--paper); }
+.menu-item.danger { background: var(--ink); color: var(--paper); }
+.menu-foot { color: var(--paper); font-size: 12px; pointer-events: none; }
 .btn.wide { width: 100%; justify-content: flex-start; min-height: 56px; font-size: 17px; }
 .btn.danger { background: var(--rust); color: var(--paper); }
-.menu-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .howto { text-align: left; }
 .howto ol { padding-left: 20px; margin: 0; display: grid; gap: 6px; }
 @media (max-width: 720px) {
-  .menu { grid-template-columns: 1fr; align-items: end; padding: 12px; }
-  .menu-col { grid-column: 1; padding: 16px; gap: 12px; }
-  .logo h1 { font-size: 40px; }
-  .logo .lead { font-size: 14px; }
+  .menu { grid-template-rows: auto 1fr auto auto; padding: max(16px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom)); gap: 10px; }
+  .logo h1 { font-size: 44px; }
+  .logo .lead { display: none; }
+  .menu-list { grid-row: 3; width: 100%; }
+  .menu-list ul { gap: 8px; }
+  .menu-item { min-height: 50px; font-size: 21px; }
+  .menu-foot { display: none; }
 }
+@media (prefers-reduced-motion: reduce) { .menu .logo, .menu-list li { animation: none; } }
 
 /* Ajustes */
 .settings { background: color-mix(in srgb, var(--paper) 92%, transparent); pointer-events: auto; overflow: auto; }
@@ -197,11 +213,13 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .isle-label.done button { opacity: 0.45; cursor: default; }
 /* Mapa exterior: título en cinta, como el cartel de región de Cult of the Lamb. */
 .title-block.row { display: flex; align-items: center; gap: 10px; }
+.title-block .sleep { pointer-events: auto; text-shadow: none; min-height: 40px; }
 .day-clock { position: relative; width: 54px; height: 54px; flex: none; color: var(--paper); text-shadow: none; }
 .day-clock svg { position: absolute; inset: 0; }
 .day-clock circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
-.day-clock path { fill: var(--rust); }
-.day-clock span { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1; }
+.day-clock path.night { fill: var(--rust); opacity: 0.85; }
+.day-clock line { stroke: var(--paper); stroke-width: 2.2; stroke-linecap: round; }
+.day-clock span { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1; text-shadow: 0 0 3px var(--ink), 0 0 3px var(--ink); }
 .day-clock small { font: 600 9px/1 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; }
 .day-clock b { font: 700 20px/1 var(--hand); }
 .islands .title-block { margin: 0 auto; text-align: center; padding: 4px 34px; background: var(--paper); color: var(--ink); text-shadow: none;
@@ -384,3 +402,27 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Pausa */
+.pause-btn { pointer-events: auto; }
+.combat .pause-btn { position: absolute; top: max(var(--gap), env(safe-area-inset-top)); right: max(var(--gap), env(safe-area-inset-right)); z-index: var(--z-hud); }
+.overlay { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: 16px; pointer-events: auto;
+  background: color-mix(in srgb, var(--night) 70%, transparent); backdrop-filter: blur(2px); }
+.panel.pause { width: min(100%, 420px); max-height: calc(100dvh - 32px); overflow: auto; display: grid; gap: 12px; padding: 18px;
+  background: var(--paper); border: var(--line); border-radius: var(--radius); box-shadow: 5px 5px 0 var(--ink); }
+.panel.pause h1 { margin: 0; text-align: center; font: 700 34px/1 var(--hand); }
+.pause-toggles { display: grid; gap: 6px; }
+.pause-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pause-grid .wide, .panel.pause .wide { grid-column: 1 / -1; }
+.pause-grid .btn { justify-content: flex-start; min-height: 48px; }
+@media (max-width: 420px) { .pause-grid { grid-template-columns: 1fr; } }
+@media (max-width: 400px) { .hud-bottom .btn { font-size: 12px; padding-inline: 4px; gap: 3px; } }
+.room-map { position: absolute; z-index: var(--z-hud); top: calc(max(var(--gap), env(safe-area-inset-top)) + 56px); right: max(var(--gap), env(safe-area-inset-right));
+  display: flex; flex-direction: column-reverse; align-items: center; list-style: none; margin: 0; padding: 6px 8px; background: color-mix(in srgb, var(--night) 80%, transparent); border-radius: 6px; pointer-events: none; }
+.room-map li { width: 16px; height: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--paper) 25%, transparent); border: 1.5px solid var(--paper); color: var(--rust); }
+.room-map li { width: 14px; height: 10px; }
+.room-map li + li { margin-bottom: 6px; position: relative; }
+.room-map li + li::before { content: ''; position: absolute; top: 100%; width: 2px; height: 6px; background: var(--paper); opacity: 0.6; }
+.room-map li.done { background: var(--paper); }
+.room-map li.here { background: var(--rust); border-color: var(--paper); transform: scale(1.25); }
+.room-map li:last-child { width: 20px; height: 16px; background: var(--ink); }

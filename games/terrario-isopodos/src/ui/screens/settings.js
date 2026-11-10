@@ -6,13 +6,15 @@ import { LANGS, LANG } from '../../i18n/index.js';
 import { FILTERS } from '../../view/ink.js';
 import { serialize, deserialize, save } from '../../game/save.js';
 import { Icon } from '../icons.js';
+import { DIFFICULTIES } from '../../data/difficulty.js';
+import { FullscreenToggle } from './pause.js';
 
-const Toggle = ({ on, onChange, label, hint }) => html`<label class="toggle">
+export const Toggle = ({ on, onChange, label, hint }) => html`<label class="toggle">
   <span><b>${label}</b>${hint && html`<small>${hint}</small>`}</span>
   <input type="checkbox" role="switch" checked=${on} onChange=${(e) => onChange(e.target.checked)} />
 </label>`;
 
-const Segmented = ({ value, options, onChange, label }) => html`<div class="segmented" role="group" aria-label=${label}>
+export const Segmented = ({ value, options, onChange, label }) => html`<div class="segmented" role="group" aria-label=${label}>
   ${options.map(([id, name]) => html`<button class=${value === id ? 'on' : ''} aria-pressed=${value === id} onClick=${() => onChange(id)}>${name}</button>`)}
 </div>`;
 
@@ -53,6 +55,7 @@ export function Settings({ s }) {
       <section class="panel set-card">
         <h2>${t('settings.sound', 'Sonido')}</h2>
         <${Toggle} on=${st.sound !== false} onChange=${set('sound')} label=${t('settings.sfx', 'Efectos de sonido')} hint=${t('settings.sfxHint', 'Golpes, recogidas, interfaz y avisos')} />
+        <${Toggle} on=${st.music !== false} onChange=${set('music')} label=${t('settings.music', 'Música')} hint=${t('settings.musicHint', 'Un ambiente por hora: día, noche y nido')} />
         <${Segmented} label=${t('settings.volume', 'Volumen')} value=${st.volume ?? 'normal'} onChange=${set('volume')}
           options=${[['suave', t('settings.volSoft', 'Suave')], ['normal', t('settings.volNormal', 'Normal')], ['fuerte', t('settings.volLoud', 'Fuerte')]]} />
       </section>
@@ -60,11 +63,16 @@ export function Settings({ s }) {
         <h2>${t('settings.screen', 'Pantalla')}</h2>
         <${Segmented} label=${t('settings.filter', 'Filtro')} value=${st.filter ?? 'tinta'} onChange=${set('filter')}
           options=${FILTERS.map((f) => [f, { tinta: t('settings.filterInk', 'Tinta'), crt: 'CRT', papel: t('settings.filterPaper', 'Papel viejo') }[f]])} />
+        <${Toggle} on=${st.fx !== false} onChange=${set('fx')} label=${t('settings.fx', 'Efectos extra (clima, luciérnagas…)')} hint=${t('settings.fxHint', 'Lluvia, niebla y motas sobre el diorama')} />
+        <${FullscreenToggle} />
         <${Toggle} on=${st.shake !== false} onChange=${set('shake')} label=${t('settings.shake', 'Temblor de cámara')} hint=${t('settings.shakeHint', 'Golpes fuertes y aturdimientos sacuden la escena')} />
         <${Toggle} on=${!!st.reduceMotion} onChange=${set('reduceMotion')} label=${t('settings.motion', 'Movimiento reducido')} hint=${t('settings.motionHint', 'Sin pausas de impacto ni animaciones de interfaz')} />
       </section>
       <section class="panel set-card">
         <h2>${t('settings.combat', 'Combate')}</h2>
+        <${Segmented} label=${t('settings.difficulty', 'Dificultad')} value=${st.difficulty ?? 'normal'} onChange=${set('difficulty')}
+          options=${Object.entries(DIFFICULTIES).map(([id, d]) => [id, d.name])} />
+        <p class="muted">${t('settings.difficultyHint', 'Cambia la vida y el daño de las aberraciones desde el próximo combate.')}</p>
         <${Segmented} label=${t('settings.tactical', 'Pausa táctica')} value=${st.tactical ?? 'pausa'} onChange=${set('tactical')}
           options=${[['pausa', t('settings.tacticalStop', 'Detiene el tiempo')], ['lento', t('settings.tacticalSlow', 'Cámara lenta')]]} />
         <p class="muted">${t('settings.tacticalHint', 'Detenerlo se juega como por turnos; la cámara lenta deja la acción corriendo al 10 %.')}</p>

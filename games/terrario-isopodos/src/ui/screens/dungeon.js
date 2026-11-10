@@ -9,7 +9,7 @@ import { CLASSES } from '../../data/isopods.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
 import { nextNodes, enemiesFor, LAYERS } from '../../game/dungeon.js';
 import { portraitURL } from '../../view/sprites.js';
-import { Bar, Loot, ResIcon } from './common.js';
+import { Bar, Loot, ResIcon, PauseButton } from './common.js';
 import { Icon, IconAt } from '../icons.js';
 
 const X = (n) => 10 + n.x * 80, Y = (n) => 93 - (n.layer / (LAYERS - 1)) * 84;
@@ -50,6 +50,7 @@ export function Dungeon({ s }) {
   return html`<main class="screen dungeon">
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${t('dungeon.kicker', 'Nido')} · ${t('dungeon.layer', 'capa')} ${(d.at === null ? 0 : d.nodes[d.at].layer + 1)}/${LAYERS}</span><h2>${BIOMES[run.island.biome].name}</h2></div>
+      <${PauseButton} s=${s} />
     </header>
     <div class="party-mini">${run.party.map((p, k) => html`<div class=${k === 0 ? 'lead' : ''}>
       <img src=${portraitURL(`iso:${p.shell}`)} alt="" />

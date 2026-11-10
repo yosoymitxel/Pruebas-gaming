@@ -1,9 +1,9 @@
-// Entrada unificada: teclado (WASD/flechas, J atacar, K/espacio rodar, L/Tab táctico, 1–3 cambiar, Q/E girar) y
+// Entrada unificada: teclado (WASD/flechas, J atacar, K/espacio rodar, L/Tab táctico, Esc/P pausa, 1–3 cambiar, Q/E girar) y
 // palanca táctil. read() devuelve el estado del fotograma; los pulsados se consumen al leerlos.
 const keys = new Set();
 const pressed = new Set();
 const stick = { x: 0, y: 0 };
-const BIND = { KeyJ: 'attack', KeyK: 'roll', Space: 'roll', KeyL: 'tactical', Tab: 'tactical', Digit1: 'p1', Digit2: 'p2', Digit3: 'p3', Escape: 'tactical' };
+const BIND = { KeyJ: 'attack', KeyK: 'roll', Space: 'roll', KeyL: 'tactical', Tab: 'tactical', Digit1: 'p1', Digit2: 'p2', Digit3: 'p3', Escape: 'pause', KeyP: 'pause' };
 
 export function bindKeyboard(target = window) {
   target.addEventListener('keydown', (e) => {

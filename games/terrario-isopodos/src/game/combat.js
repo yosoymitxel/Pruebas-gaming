@@ -256,6 +256,7 @@ function knock(target, from, force) {
 
 function hurtAlly(c, a, amount, from) {
   if (a.invuln > 0) { emit(c, 'dodge', { id: a.id }); return { dodged: true }; }
+  amount *= c.mods.enemyDamageMul ?? 1;
   const absorbed = Math.min(a.shield, amount);
   a.shield -= absorbed;
   const dmg = Math.round(amount - absorbed);

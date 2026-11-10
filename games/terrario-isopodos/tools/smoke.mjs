@@ -68,6 +68,15 @@ check(await s(() => Object.keys(window.__terrario.game.home.grid.pieces).length)
 await shot('04-colocar');
 await page.getByRole('button', { name: 'Listo' }).click();
 
+// Pausa (Esc): congela el reloj y ofrece las salidas.
+const clock0 = await s(() => window.__terrario.game.clock);
+await page.keyboard.press('Escape');
+await wait(600);
+check(await page.getByRole('dialog', { name: 'Pausa' }).isVisible(), 'abrir la pausa con Esc');
+check(await s(() => window.__terrario.game.clock) === clock0, 'la pausa detiene el reloj del día');
+await shot('04b-pausa');
+await page.getByRole('button', { name: 'Seguir jugando' }).click();
+
 await page.getByRole('button', { name: 'Archipiélago' }).click();
 await wait(400);
 await shot('05-archipielago');

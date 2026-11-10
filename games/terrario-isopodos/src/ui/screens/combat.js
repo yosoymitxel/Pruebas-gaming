@@ -7,8 +7,9 @@ import { ABILITIES, ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
 import { press } from '../input.js';
-import { Bar, Stick, CamControls, FxLayer } from './common.js';
+import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
 import { portraitURL } from '../../view/sprites.js';
+import { LAYERS } from '../../game/dungeon.js';
 import { Icon } from '../icons.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
@@ -27,6 +28,8 @@ export function Combat({ s }) {
   return html`<main class=${`screen combat${s.tactical ? ' tactical' : ''}${low ? ' low-hp' : ''}`}>
     <${Stick} />
     <${CamControls} s=${s} />
+    <${PauseButton} s=${s} />
+    ${s.run && html`<${RoomMap} dungeon=${s.run.dungeon} layers=${LAYERS} />`}
     <header class="foes">${shown.map((e) => html`<div class="foe">
       <b>${ABERRATIONS[e.kind].name}</b>
       ${e.staggered > 0 ? html`<em class="tag stag">${t('combat.staggered', 'Aturdida')}</em>` : e.pressured > 0 ? html`<em class="tag press">${t('combat.pressured', 'Presionada')}</em>` : null}

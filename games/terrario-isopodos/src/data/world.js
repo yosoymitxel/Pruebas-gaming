@@ -32,6 +32,17 @@ export const WEATHERS = localize('weathers', {
   lluvia: { name: 'Lluvia', yield: 1.5, gloom: 0.3 },
 });
 
+// Fases del día (reloj 0–1, 0 = amanecer). De noche las piezas producen la mitad, la colonia se inquieta
+// y cada viaje cuesta tiempo (TRIP_COST); dormir salta al amanecer siguiente.
+export const DAY_PHASES = localize('dayPhases', {
+  amanecer: { name: 'Amanecer', until: 0.08, prodMul: 1, fear: 0 },
+  dia: { name: 'Día', until: 0.6, prodMul: 1, fear: 0 },
+  atardecer: { name: 'Atardecer', until: 0.72, prodMul: 1, fear: 0 },
+  noche: { name: 'Noche', until: 1, prodMul: 0.5, fear: 0.002 },
+});
+export const DAY_SECONDS = 300;
+export const TRIP_COST = { recoleccion: 0.12, nido: 0.25 };
+
 // `icon`: nombre en src/ui/icons.js.
 export const NODE_TYPES = localize('nodeTypes', {
   combate: { desc: 'Larvas de tinta: dos o tres.', name: 'Combate', icon: 'combate' },

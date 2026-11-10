@@ -1,6 +1,8 @@
 // Sesión de juego: dueña del estado, del bucle y de las transiciones entre pantallas. La interfaz llama
 // a sus métodos y se suscribe con on(); las escenas 3D solo leen.
-import { newGame, visit } from '../game/game.js';
+import { newGame, visit, tickClock, dayPhase, sleep } from '../game/game.js';
+import { DAY_PHASES } from '../data/world.js';
+import { DIFFICULTIES } from '../data/difficulty.js';
 import { tickHome, collect, build, expand, recruit, upgradeLayer } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
@@ -12,7 +14,7 @@ import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
 import { HomeView, GatherView, CombatView, MenuView } from '../view/scenes.js';
 import { newHome } from '../game/home.js';
-import { playSfx, setSound } from './sfx.js';
+import { playSfx, setSound, setMusic, playMusic } from './sfx.js';
 import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
@@ -31,6 +33,8 @@ export class Session {
     this.settings = loadSettings();
     stage.setFilter(this.settings.filter ?? 'tinta');
     setSound(this.settings.sound !== false, this.settings.volume ?? 'normal');
+    setMusic(this.settings.music !== false);
+    this.paused = false;
     this.time = 0;
     this.hitstop = 0;
     this.fx = [];
@@ -54,8 +58,29 @@ export class Session {
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
+    view?.setFx?.(this.settings.fx !== false);
+    if (view) view.still = !!this.settings.reduceMotion;
+    this.paused = false;
+    this.syncMusic();
     this.emit();
   }
+
+  // Hora que se ve: la de la partida (o la del guardado en el menú); en el nido, luz neutra.
+  get clock() { return this.mode === 'dungeon' || this.mode === 'combat' ? null : (this.game ?? this.saved)?.clock ?? 0.3; }
+  get phase() { return this.clock === null ? null : dayPhase({ clock: this.clock }); }
+  syncMusic() { playMusic(this.mode === 'dungeon' || this.mode === 'combat' ? 'nido' : this.phase === 'noche' ? 'noche' : 'dia'); }
+
+  // Pausa (como en KureiChaosChess): congela el bucle de juego y abre el panel; el render sigue.
+  pause() { if (this.mode === 'menu' || this.mode === 'settings' || this.mode === 'result') return; this.paused = true; this.sfx('open'); this.emit(); }
+  resume() { this.paused = false; this.sfx('close'); this.emit(); }
+  // Volver al terrario desde cualquier pantalla de juego: en el nido equivale a retirarse con el botín.
+  leaveToHome() {
+    this.paused = false;
+    if (this.run) { if (this.combat) finishCombat(this.run, this.combat); this.combat = null; this.retreat(); }
+    else if (this.mode === 'gather') this.endGather();
+    else this.goHome();
+  }
+  sleep() { sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }
 
   newGame() { this.game = newGame(); this.persist(); this.goHome(); }
   continueGame() { this.game = this.saved; this.goHome(); }
@@ -149,7 +174,8 @@ export class Session {
   enter(nodeId) {
     if (!enterNode(this.run, nodeId)) return;
     if (this.run.state === 'combat') {
-      this.combat = createCombat(combatSetup(this.run));
+      const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
+      this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg } });
       this.tactical = false;
       this.sfx(this.run.node.type === 'jefe' ? 'boss' : 'open');
       this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1, this.run.island.weather);
@@ -179,6 +205,8 @@ export class Session {
   setSetting(k, v) {
     this.settings[k] = v;
     if (k === 'filter') this.stage.setFilter(v);
+    if (k === 'music') setMusic(v !== false);
+    if (k === 'fx') this.view?.setFx?.(v !== false);
     if (k === 'sound' || k === 'volume') { setSound(this.settings.sound !== false, this.settings.volume ?? 'normal'); this.sfx('click'); }
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings)); } catch {}
     this.emit();
@@ -190,10 +218,20 @@ export class Session {
     this.last = now;
     this.time += dt;
     const input = read();
+    if (input.pause) { if (this.paused) this.resume(); else this.pause(); }
+    if (this.paused) { this.stage.render(this.time, 0); requestAnimationFrame((t) => this.frame(t)); return; }
+    if (this.game && (this.mode === 'home' || this.mode === 'islands' || this.mode === 'gather')) {
+      const before = this.phase, day = this.game.day;
+      tickClock(this.game, dt);
+      if (this.phase !== before) this.syncMusic();
+      if (this.game.day !== day && this.mode === 'islands') this.goArchipelago(); // amaneció: islas nuevas
+    }
+    this.stage.setTime(this.clock);
+    this.view?.setNight?.(this.phase === 'noche');
     if (input.turn) this.stage.rotate(input.turn * dt * 1.6);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
-    else if (this.mode === 'home') { tickHome(this.game.home, dt, this.rng); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
+    else if (this.mode === 'home') { tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) { tickGather(this.gather, dt, input.move); if (this.gather.done) this.emit(); }
     else if (this.mode === 'combat') this.tickCombat(dt, input);
     this.view?.update(this.time, dt);

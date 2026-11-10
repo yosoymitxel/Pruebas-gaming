@@ -8,7 +8,7 @@ import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from '.
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { CLIMATES } from '../../data/substrate.js';
-import { WEATHERS } from '../../data/world.js';
+import { WEATHERS, DAY_PHASES } from '../../data/world.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -41,7 +41,9 @@ export function Home({ s }) {
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">
-      <div class="title-block row"><${DayClock} day=${s.game.day} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`} /><h2>${t('home.title', 'Tu terrario')}</h2></div>
+      <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`} />
+        <div><span class="kicker">${DAY_PHASES[s.phase].name}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
+        ${(s.phase === 'atardecer' || s.phase === 'noche') && html`<button class="btn sleep" title=${t('home.sleepHint', 'Dormir hasta el alba: empieza otro día con islas nuevas')} onClick=${() => s.sleep()}><${Icon} name="refugio" size="18" />${t('home.sleep', 'Dormir')}</button>`}</div>
       <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />
@@ -81,7 +83,7 @@ export function Home({ s }) {
       <button class=${`btn${panel === 'comp' ? ' active' : ''}`} onClick=${() => toggle('comp')}><${Icon} name="layers" /> <span>${t('home.terrarium', 'Terrario')}</span></button>
       <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> <span>${t('home.colony', 'Colonia')}</span></button>
       <button class="btn primary" aria-label=${t('home.out', 'Archipiélago')} onClick=${() => s.goArchipelago()}><${Icon} name="out" /> <span class="long">${t('home.out', 'Archipiélago')}</span><span class="short">${t('home.outShort', 'Islas')}</span></button>
-      <button class="btn ghost icon" onClick=${() => s.goMenu()} aria-label=${t('ui.menu', 'Menú')}><${Icon} name="menu" /></button>
+      <button class="btn ghost icon" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>
     </nav>
   </main>`;
 }

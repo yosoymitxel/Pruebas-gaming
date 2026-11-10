@@ -36,6 +36,19 @@ const DRAW = {
 };
 export const FLORA = Object.keys(DRAW);
 
+// Vaivén con el viento (como las plantas de pixel-plays): solo la parte alta se mueve. Un reloj compartido
+// que avanzan las escenas; con movimiento reducido se queda quieto.
+export const sway = { value: 0 };
+const windy = (mat) => {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uSway = sway;
+    sh.vertexShader = 'uniform float uSway;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float sw = sin(uSway * 1.7 + instanceMatrix[3].x * 1.3 + instanceMatrix[3].z * 0.7) * 0.07 * position.y;
+      transformed.x += sw; transformed.z += sw * 0.5;`);
+  };
+  return mat;
+};
+
 const textures = {};
 function texture(kind) {
   if (textures[kind]) return textures[kind];
@@ -61,7 +74,8 @@ export function flora(points) {
   for (const kind of FLORA) {
     const list = points.filter((p) => p[4] === kind);
     if (!list.length) continue;
-    const mat = new THREE.MeshBasicMaterial({ map: texture(kind), alphaTest: 0.5, side: THREE.DoubleSide }); // plano, como un recorte pintado
+    // Medio autoiluminada: se lee plana como un recorte pintado, pero se apaga con la noche.
+    const mat = windy(new THREE.MeshLambertMaterial({ map: texture(kind), emissiveMap: texture(kind), emissive: 0xffffff, emissiveIntensity: 0.45, alphaTest: 0.5, side: THREE.DoubleSide }));
     const inst = new THREE.InstancedMesh(geo, mat, list.length);
     list.forEach(([x, y, z, k, , r], i) => inst.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z), q.setFromAxisAngle(up, r), new THREE.Vector3(k, k, k))));
     group.add(inst);

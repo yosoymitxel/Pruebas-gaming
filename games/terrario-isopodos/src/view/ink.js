@@ -56,7 +56,7 @@ export function createInkPass() {
         float h = hash(cell + floor(time * 8.) * step(.5, gloom) * 7.);
         vec2 f = fract(cellPx) - .5;
         // Punteado solo en las sombras hondas; en la base casi nada (el color manda), en el nido más.
-        float dotMask = step(length(f), .32) * step(h, pow(max(dark - .58, 0.), 1.2) * 2.6) * (1. - blur * .6) * mix(.35, .7, gloom);
+        float dotMask = step(length(f), .32) * step(h, pow(max(dark - .62, 0.), 1.2) * 2.6) * (1. - blur * .6) * mix(.35, .45, gloom);
         float grain = hash(floor(gl_FragCoord.xy / dpr)) * .03;
         vec3 washed = mix(paper, col * mix(vec3(1.), paper * 1.08, .12), wash) - grain;
         vec3 outc = mix(washed, ink, max(edge, dotMask * .85));

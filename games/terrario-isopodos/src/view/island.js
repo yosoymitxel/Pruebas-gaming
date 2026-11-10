@@ -132,7 +132,7 @@ function pathDecal(grid, worn, rng) {
 export function arena(radius, seed = 1) {
   const rng = mulberry32(seed), n = noise2(seed, 2.5);
   const group = new THREE.Group();
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 2.1, radius + 2.1, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.grass).lerp(new THREE.Color(PALETTES.terror.path), 0.35)));
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 2.1, radius + 2.1, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.grass).lerp(new THREE.Color(PALETTES.terror.path), 0.35).lerp(new THREE.Color(PALETTES.terror.stone), 0.35)));
   floor.receiveShadow = true;
   group.add(floor);
   const ring = [];

@@ -34,6 +34,7 @@ export function unlockAudio() {
   noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  if (music.mood) playMusic(music.mood, true);
 }
 
 export function setSound(on, level) {
@@ -71,4 +72,47 @@ export function playSfx(name, pitch = 1) {
     src.start(t0);
     src.stop(t1 + 0.02);
   }
+}
+
+// Música de ambiente sintetizada: un colchón de tres voces que respira y cambia de acorde cada pocos segundos.
+// Un acorde por ambiente (terrario de día, de noche, nido); se funde al cambiar.
+const MOODS = {
+  dia: [[196, 247, 294], [175, 220, 262], [165, 208, 247], [175, 220, 294]],
+  noche: [[147, 175, 220], [131, 165, 196], [123, 147, 185], [131, 156, 196]],
+  nido: [[73, 78, 110], [69, 82, 104], [65, 78, 98], [69, 73, 104]],
+};
+export const MUSIC_MOODS = Object.keys(MOODS);
+let music = { on: true, mood: null, bus: null, voices: [], timer: null, step: 0 };
+
+export function setMusic(on) { music.on = on; if (!on) stopMusic(); else if (music.mood) playMusic(music.mood, true); }
+
+function stopMusic() {
+  clearInterval(music.timer);
+  if (!ctx || !music.bus) return;
+  const bus = music.bus, voices = music.voices;
+  bus.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.6);
+  setTimeout(() => { voices.forEach((o) => o.stop()); bus.disconnect(); }, 2500);
+  music.bus = null; music.voices = [];
+}
+
+export function playMusic(mood, force = false) {
+  if (mood === music.mood && !force) return;
+  music.mood = mood;
+  if (!ctx || !music.on || !MOODS[mood]) return;
+  stopMusic();
+  const bus = ctx.createGain(), lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = mood === 'nido' ? 500 : 900;
+  bus.gain.value = 0.0001; bus.gain.setTargetAtTime(0.09, ctx.currentTime, 1.5);
+  bus.connect(lp).connect(master);
+  const chords = MOODS[mood];
+  music.voices = chords[0].map((f, k) => {
+    const o = ctx.createOscillator(); o.type = k === 0 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = (k - 1) * 6;
+    o.connect(bus); o.start(); return o;
+  });
+  music.bus = bus; music.step = 0;
+  music.timer = setInterval(() => {
+    if (!ctx || !music.bus) return;
+    music.step = (music.step + 1) % chords.length;
+    music.voices.forEach((o, k) => o.frequency.setTargetAtTime(chords[music.step][k], ctx.currentTime, 0.8));
+  }, 6000);
 }
