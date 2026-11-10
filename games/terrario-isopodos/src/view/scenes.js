@@ -218,9 +218,8 @@ export class HomeView extends GridScene {
     for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
       l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
       const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
-      list.push({ id: l.id, sprite: 'res:hojarasca', ...w, height: 0.42, lift: (1 - l.t) * 3.2, spin: Math.sin(l.t * 7) * 0.6 * (1 - l.t) });
+      if (l.t < 1) list.push({ id: l.id, sprite: 'res:hojarasca', ...w, height: 0.42, lift: (1 - l.t) * 3.2, spin: Math.sin(l.t * 7) * 0.6 * (1 - l.t) });
     }
-    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
     // Seleccionado: la cámara lo sigue y una flecha lo marca. Distintivo (banderín) y «zzz» del que duerme.
     for (const iso of this.home.isopods) {
       const w = this.toWorld(iso.x, iso.y), top = iso.baby > 0 ? 0.35 : 0.6;
@@ -231,6 +230,9 @@ export class HomeView extends GridScene {
     }
     // Marcadores (interfaz, no sprites): hambre sobre la cabeza, recurso listo sobre la pieza, comedero vacío.
     const marks = [];
+    // Hojas caídas y mudas en el suelo: ficha pequeña sin piquito, que se toca para recoger.
+    for (const l of this.home.leaves ?? []) if (l.t >= 1) { const w = this.toWorld(l.x, l.y); marks.push({ id: `l${l.id}`, kind: 'pickup', icon: resourceIconURL('hojarasca'), x: w.x, y: w.y + 0.12, z: w.z, at: { x: l.x, y: l.y } }); }
+    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); marks.push({ id: `m${m.id}`, kind: 'pickup', icon: resourceIconURL('cal'), x: w.x, y: w.y + 0.12, z: w.z, at: { x: m.x, y: m.y } }); }
     for (const iso of this.home.isopods) {
       if (iso.hunger >= 0.35 || iso.rest > 0 || iso.id === this.selIso) continue;
       const w = this.toWorld(iso.x, iso.y);
@@ -430,13 +432,13 @@ export class CombatView {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
         const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
         const squash = a.state === 'attack' && a.phase === 'windup' ? 0.86 : a.state === 'roll' ? 0.7 : breathe * (1 - f * 0.18);
-        const balled = a.state === 'roll' && speciesOf(a.shell).rolls;
-        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash, flip: Math.cos(a.facing) < 0,
+        const balled = a.state === 'roll'; // al rodar siempre se ve la bolita girando: se entiende el esquive
+        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash: balled ? 1 : squash, flip: Math.cos(a.facing) < 0,
           spin: balled ? -time * 18 * (Math.cos(a.facing) < 0 ? -1 : 1) : 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
         if (a.state === 'roll' && (this.ghostT = (this.ghostT ?? 0) - dt) <= 0) { // estela del rodar
           this.ghostT = 0.04;
-          this.ghosts.push({ id: `g${this.ghostN = (this.ghostN ?? 0) + 1}`, sprite: `iso:${a.shell}`, x: a.x, z: a.y, height: 1.05, squash: 0.7, flip: Math.cos(a.facing) < 0, t: 0 });
+          this.ghosts.push({ id: `g${this.ghostN = (this.ghostN ?? 0) + 1}`, sprite: `ball:${a.shell}`, x: a.x, z: a.y, height: 0.7, flip: Math.cos(a.facing) < 0, t: 0 });
         }
       } else {
         const def = ABERRATIONS[a.kind], wind = a.state === 'windup';
