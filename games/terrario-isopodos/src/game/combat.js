@@ -171,6 +171,9 @@ function tickEnemy(c, e, dt) {
   if (e.state === 'recover') { e.vx = e.vy = 0; if ((e.timer -= dt) <= 0) e.state = 'idle'; return; }
 
   const taunting = allies(c).find((a) => alive(a) && a.taunt > 0);
+  // Si su objetivo huye lejos y otro isópodo le pega de cerca, se vuelve contra ese: huir no sale gratis.
+  const near = allies(c).filter((a) => alive(a) && dist(e, a) < e.r + 2.2).sort((a, b) => dist(e, a) - dist(e, b))[0];
+  if (!taunting && near && e.target && dist(e, e.target) > 5) e.target = near;
   if (taunting || !e.target || !alive(e.target)) e.target = taunting ?? pickTarget(c);
   const target = e.target;
   if (!target) return;

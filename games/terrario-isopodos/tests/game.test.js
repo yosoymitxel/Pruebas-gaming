@@ -110,7 +110,7 @@ test('guardado: ida y vuelta, y uno corrupto no pisa ni carga', () => {
 });
 
 test('combate: cada aberración es vencible y no es un paseo', () => {
-  for (const r of selfcheck(8)) assert.ok(r.ok, `${r.id}: ${JSON.stringify(r)}`);
+  for (const r of selfcheck(20)) assert.ok(r.ok, `${r.id}: ${JSON.stringify(r)}`);
 });
 
 test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus efectos', () => {
@@ -129,4 +129,9 @@ test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus
   assert.equal(climate(home), 'humedo', 'el carbón contiene el moho');
   assert.ok(calm(home) > calmMoho);
   assert.ok(humidity(home) <= 1);
+});
+
+test('trampas: quedarse quieto, machacar, rodar sin parar o huir no ganan', async () => {
+  const { exploits } = await import('../tools/exploits-selfcheck.mjs');
+  for (const r of exploits(6)) assert.ok(r.ok, `${r.name} vs ${r.foe}: ${r.rate}`);
 });
