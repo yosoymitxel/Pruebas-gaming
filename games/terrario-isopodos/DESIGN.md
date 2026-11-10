@@ -13,6 +13,8 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
   viñeta, puntos que tiemblan).
 - **Personajes:** recortes de papel de pie sobre el diorama. Isópodos dibujados en código con el mismo trazo;
   aberraciones = los dibujos escaneados, rectos y sin papel.
+- **Fondo:** el vacío nunca es plano: papel con grano y la textura del clima (motas, lluvia, niebla; venas de
+  tinta en los nidos).
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en el menú.
 - **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
   ≥ 48 px, foco visible, movimiento reducido respetado.

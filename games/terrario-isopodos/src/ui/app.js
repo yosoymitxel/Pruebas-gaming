@@ -10,6 +10,8 @@ import { Islands } from './screens/islands.js';
 import { Gather } from './screens/gather.js';
 import { Dungeon } from './screens/dungeon.js';
 import { Combat } from './screens/combat.js';
+import { Settings } from './screens/settings.js';
+import { unlockAudio, playSfx } from './sfx.js';
 import { Loot } from './screens/common.js';
 
 const OUTCOME = {
@@ -29,13 +31,14 @@ function Result({ s }) {
   </section></main>`;
 }
 
-const SCREENS = { menu: Menu, home: Home, islands: Islands, gather: Gather, dungeon: Dungeon, combat: Combat, result: Result };
+const SCREENS = { settings: Settings, menu: Menu, home: Home, islands: Islands, gather: Gather, dungeon: Dungeon, combat: Combat, result: Result };
 
 function App({ s }) {
   const [, force] = useState(0);
   useEffect(() => s.on(() => force((n) => n + 1)), []);
   const Screen = SCREENS[s.mode];
-  return html`<${Screen} s=${s} />`;
+  // Al cambiar de pantalla, una mancha de tinta barre la vista (se omite con movimiento reducido).
+  return html`<${Screen} s=${s} />${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}`;
 }
 
 export function start() {
@@ -43,6 +46,10 @@ export function start() {
   for (const [k, v] of Object.entries(PALETTES.cozy)) root.setProperty(`--${k}`, v);
   for (const [k, v] of Object.entries(PALETTES.terror)) root.setProperty(`--terror-${k}`, v);
   bindKeyboard();
+  // Audio al primer gesto; y un clic suave en cada botón de la interfaz.
+  addEventListener('pointerdown', unlockAudio, { once: true });
+  addEventListener('keydown', unlockAudio, { once: true });
+  document.getElementById('ui').addEventListener('click', (e) => { if (e.target.closest('button:not(.pad)')) playSfx('click'); });
   const stage = new Stage(document.getElementById('stage'));
   const session = new Session(stage);
   window.__terrario = session;

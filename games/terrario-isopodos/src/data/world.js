@@ -34,10 +34,10 @@ export const WEATHERS = localize('weathers', {
 
 // `icon`: nombre en src/ui/icons.js.
 export const NODE_TYPES = localize('nodeTypes', {
-  combate: { name: 'Combate', icon: 'combate' },
-  elite: { name: 'Élite', icon: 'elite' },
-  botin: { name: 'Botín', icon: 'botin' },
-  refugio: { name: 'Refugio', icon: 'refugio' },
-  carta: { name: 'Carta', icon: 'carta' },
-  jefe: { name: 'Guardiana', icon: 'jefe' },
+  combate: { desc: 'Larvas de tinta: dos o tres.', name: 'Combate', icon: 'combate' },
+  elite: { desc: 'Una aberración de élite del bioma.', name: 'Élite', icon: 'elite' },
+  botin: { desc: 'Recursos y, a veces, un isópodo perdido.', name: 'Botín', icon: 'botin' },
+  refugio: { desc: 'Un hueco seco: el equipo recupera la mitad de la vida.', name: 'Refugio', icon: 'refugio' },
+  carta: { desc: 'Elige una carta entre tres para el resto del nido.', name: 'Carta', icon: 'carta' },
+  jefe: { desc: 'La guardiana del nido. Si cae, el nido es tuyo.', name: 'Guardiana', icon: 'jefe' },
 });

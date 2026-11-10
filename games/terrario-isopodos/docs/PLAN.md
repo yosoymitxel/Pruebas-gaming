@@ -24,6 +24,9 @@ Referencia de calidad y organización del código: KureiChaosChess.
 - Combate: ATB, rodar, presión, aturdimiento, retroceso; pausa táctica que detiene el tiempo (o cámara lenta).
 - 4 aberraciones + larva, cartas, guardado. Efectos de tinta, clima visible, fondo vivo, filtros (tinta, CRT,
   papel viejo), iconos SVG. Pruebas en Node y recorrido en navegador (PC y 360×800).
+- Menú con el terrario vivo y ajustes por secciones (patrón KureiChaosChess); sonido sintetizado; fondo del
+  vacío con textura según clima; elegir equipo con cartas y huecos; nido como página con vista previa del
+  nodo; recogibles en 3D; cámara cercana que sigue; tajos, cartel de jefe, viñeta de vida baja, transiciones.
 
 ## Pendiente
 
