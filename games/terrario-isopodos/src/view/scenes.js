@@ -233,11 +233,19 @@ export class HomeView extends GridScene {
       const w = this.toWorld(iso.x, iso.y);
       list.push({ id: `b${iso.id}`, sprite: 'res:hojarasca', ...w, height: 0.42, lift: 0.95 + Math.sin(time * 4 + iso.id) * 0.06 });
     }
+    const ready = new Set();
     for (const p of Object.values(this.grid.pieces)) {
       const s = this.home.stock[p.id];
       if (!s?.ready) continue;
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
-      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.08 });
+      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.5, lift: 0.72 + Math.sin(time * 3 + p.id) * 0.06, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.06 });
+      ready.add(p.id);
+      // Anillo en el suelo bajo la pieza: marca qué tocar para recoger (como los aros de la recolección).
+      let ring = (this.rings ??= new Map()).get(p.id);
+      if (!ring) { ring = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40), new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2; this.group.add(ring); this.rings.set(p.id, ring); }
+      const k = Math.max(f.w, f.h) * 0.62 * (1 + Math.sin(time * 4 + p.id) * 0.06);
+      ring.scale.set(k, k, 1); ring.position.set(w.x, this.floorOf(p.x, p.y, f) + 0.04, w.z); ring.material.opacity = 0.55 + Math.sin(time * 4 + p.id) * 0.25;
     }
     // Globos sobre las piezas: comedero vacío (sin hojarasca) y mejora que ya se puede pagar.
     if (!this.extra) for (const p of Object.values(this.grid.pieces)) {
@@ -245,6 +253,7 @@ export class HomeView extends GridScene {
       if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 1, lift: 1 + bob });
       else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.85, lift: 1.3 + bob });
     }
+    for (const [id, ring] of this.rings ?? []) if (!ready.has(id)) { this.group.remove(ring); ring.geometry.dispose(); this.rings.delete(id); }
     this.actors.sync([...list, ...(this.extra?.(time) ?? [])], this.stage.yaw);
   }
 }

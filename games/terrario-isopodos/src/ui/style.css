@@ -930,3 +930,21 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .btn.ghost { --slab: rgb(29 26 22 / 0.3); }
 .slot { --slab: rgb(29 26 22 / 0.2); }
 .hud-bottom .btn { filter: drop-shadow(0 4px 6px rgb(10 8 6 / 0.35)); }
+/* Paneles centrados: nunca partir en columnas (con alto máximo, el wrap mandaba el botín fuera de vista). */
+.drawer.center { flex-wrap: nowrap !important; max-height: min(86vh, 640px); }
+.loot.big { grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)) !important; justify-items: stretch; }
+
+/* Limpieza: menos tinta suelta. Sin barras laterales ni botones torcidos; la losa de tinta solo en lo principal,
+   lo activo y al pasar el dedo; el resto es una cara de papel con un filo de 1 px. */
+.drawer, .panel, .note, .node-preview, .tactic-menu, .boss-card, .reward, .panel.pause, .panel.set-card,
+.resources, .climate-chip, .party-mini > div, .run-bar, .build-bar, .toast, .hint.floating, .member, .chip { box-shadow: none !important; }
+.drawer, .panel, .note, .node-preview, .tactic-menu, .boss-card, .reward, .panel.pause, .panel.set-card { padding-left: var(--s4) !important; }
+.hud-bottom .btn, .hud-bottom .btn:nth-child(odd), .hud-bottom .btn:nth-child(even) { rotate: 0deg; }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .slot, .pause-btn)::before { opacity: 0; transition: opacity 160ms, translate 160ms; }
+:is(.btn.primary, .btn.active, .menu-item.primary, .iso-card.on, .skill.got, .slot.full, .tab.on)::before,
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::before { opacity: 1; }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .tab.on, .slot, .pause-btn)::after { inset: 0 !important; box-shadow: inset 0 0 0 1px rgb(29 26 22 / 0.22); }
+:is(.btn.primary, .btn.active, .iso-card.on, .skill.got, .slot.full, .tab.on, .menu-item.primary)::after { inset: 0 2px 2px 0 !important; }
+/* Reloj: número centrado en letra de datos (la manuscrita se iba de lado). */
+.day-clock span { display: flex !important; align-items: center; justify-content: center; }
+.day-clock b { font: 800 15px/1 var(--sans) !important; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; transform: translateY(0.5px); }

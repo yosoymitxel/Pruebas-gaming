@@ -99,8 +99,8 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
   role=${onSleep ? null : 'img'} aria-label=${onSleep ? `${label} · ${t('home.sleep', 'Dormir hasta el alba')}` : label} onClick=${onSleep}>
   <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" />
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
-    <line x1=${20 + 9 * Math.sin(clock * 6.283)} y1=${20 - 9 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
-    <circle class="hub" cx="20" cy="20" r="8.5" /></svg>
+    <line x1=${20 + 11 * Math.sin(clock * 6.283)} y1=${20 - 11 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
+    <circle class="hub" cx="20" cy="20" r="10" /></svg>
   <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
