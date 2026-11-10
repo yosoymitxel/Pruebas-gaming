@@ -34,4 +34,5 @@ Táctil: palanca en la mitad izquierda, botones a la derecha; en el terrario, ar
 npm test          # lógica, registros y combate vencible
 npm run check     # registros completos + tasa de victoria por aberración
 npx vite --port 5199 & npm run smoke   # recorrido entero en PC y 360×800, capturas en artifacts/visual
+npm run build && npx vite preview --port 5200 & node tools/perf.mjs   # carga y fluidez en móvil emulado
 ```
