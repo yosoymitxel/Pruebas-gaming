@@ -42,6 +42,40 @@ function Preview({ node, biome, onEnter, onClose }) {
   </section>`;
 }
 
+// Piso del nivel (como el minimapa de salas de Cult of the Lamb): casillas unidas por pasillos, la actual con
+// estandarte; se va por las puertas de la sala actual (tocar una sala vecina o su botón).
+const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items' };
+const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia') };
+const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
+
+function FloorMap({ s }) {
+  const run = s.run, f = run.floor, cur = f.rooms[f.at];
+  const xs = f.rooms.map((r) => r.x), ys = f.rooms.map((r) => r.y);
+  const [x0, y0] = [Math.min(...xs), Math.min(...ys)], W = (Math.max(...xs) - x0 + 1) * 2, H = (Math.max(...ys) - y0 + 1) * 2;
+  const P = (r) => [(r.x - x0) * 2 + 1, (r.y - y0) * 2 + 1];
+  const near = new Set(cur.links);
+  const icon = (r) => (r.final ? NODE_TYPES[run.node.type].icon : ROOM_ICON[r.type]);
+  return html`<section class="floor" aria-label=${t('floor.title', 'Salas del nivel')}>
+    <h3>${NODE_TYPES[run.node.type].name} · ${t('floor.rooms', 'salas')} ${f.rooms.filter((r) => r.done).length}/${f.rooms.length}</h3>
+    <svg class="floor-map" viewBox=${`0 0 ${W} ${H}`}>
+      ${f.rooms.flatMap((a) => a.links.filter((id) => id > a.id).map((id) => { const b = f.rooms[id], [ax, ay] = P(a), [bx, by] = P(b);
+        return html`<line class=${a.done && b.done ? 'done' : ''} x1=${ax} y1=${ay} x2=${bx} y2=${by} />`; }))}
+      ${f.rooms.map((r) => { const [x, y] = P(r), go = near.has(r.id);
+        return html`<g class=${`room room-${r.type}${r.final ? ' final' : ''}${r.done ? ' done' : ''}${r.id === f.at ? ' here' : ''}${go ? ' go' : ''}`}
+          role=${go ? 'button' : null} tabindex=${go ? 0 : -1} aria-label=${r.final ? NODE_TYPES[run.node.type].name : ROOM_NAME[r.type]()}
+          onClick=${() => go && s.enterRoom(r.id)} onKeyDown=${(e) => go && e.key === 'Enter' && s.enterRoom(r.id)}>
+          <rect x=${x - 0.6} y=${y - 0.45} width="1.2" height="0.9" rx="0.12" />
+          <${IconAt} name=${icon(r)} x=${x} y=${y} size=${0.62} />
+          ${r.id === f.at && html`<path class="banner" d=${`M${x - 0.22} ${y - 1.05}h0.44v0.5l-0.22 -0.13 -0.22 0.13z`} />`}
+        </g>`; })}
+    </svg>
+    <div class="doors">${cur.links.map((id) => f.rooms[id]).map((r) => html`<button class=${`btn door${r.done ? ' ghost' : ''}`} onClick=${() => s.enterRoom(r.id)}>
+      <span class="dir">${DIR(cur, r)}</span><${Icon} name=${icon(r)} size="18" />${r.final ? NODE_TYPES[run.node.type].name : ROOM_NAME[r.type]()}${r.done ? ` · ${t('floor.visited', 'vista')}` : ''}</button>`)}</div>
+    ${run.last?.type === 'reliquia' && run.last.card && html`<p class="note">${t('floor.relic', 'Reliquia')}: <b>${CARDS[run.last.card].name}</b> — ${CARDS[run.last.card].desc}</p>`}
+    ${run.last?.type === 'botin' && html`<div class="note"><p>${t('dungeon.found', 'Encontráis:')}</p><${Loot} loot=${run.last.found} /></div>`}
+  </section>`;
+}
+
 export function Dungeon({ s }) {
   const run = s.run, d = run.dungeon;
   const [sel, setSel] = useState(null);
@@ -58,7 +92,7 @@ export function Dungeon({ s }) {
       <span><b>${k === 0 ? '★ ' : ''}${p.name}</b><small>${CLASSES[p.cls].name} · ${p.hp}/${p.maxHp}</small><${Bar} value=${p.hp} max=${p.maxHp} label=${t('ui.hp', 'Vida')} /></span>
     </div>`)}</div>
 
-    <section class="map-page" aria-label=${t('dungeon.map', 'Mapa del nido')}>
+    ${s.run.floor ? html`<${FloorMap} s=${s} />` : html`<section class="map-page" aria-label=${t('dungeon.map', 'Mapa del nido')}>
       <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         ${d.edges.map(([a, b]) => html`<line class=${d.nodes[a].done && (d.nodes[b].done || reach.has(b)) ? 'walked' : ''} x1=${X(d.nodes[a])} y1=${Y(d.nodes[a])} x2=${X(d.nodes[b])} y2=${Y(d.nodes[b])} />`)}
         ${runes(run.island.seed ?? 1).map((r) => html`<text class="rune" x=${r.x} y=${r.y} transform=${`rotate(${r.a} ${r.x} ${r.y})`}>${r.r}</text>`)}
@@ -72,9 +106,9 @@ export function Dungeon({ s }) {
         </g>`)}
       </svg>
       <ul class="legend">${['combate', 'elite', 'botin', 'refugio', 'carta', 'jefe'].map((k) => html`<li><${Icon} name=${NODE_TYPES[k].icon} size="14" />${NODE_TYPES[k].name}</li>`)}</ul>
-    </section>
+    </section>`}
 
-    <${Note} last=${run.last} />
+    ${!run.floor && html`<${Note} last=${run.last} />`}
     ${node && html`<${Preview} node=${node} biome=${run.island.biome} onClose=${() => setSel(null)} onEnter=${() => { setSel(null); s.enter(node.id); }} />`}
 
     <footer class="run-bar">

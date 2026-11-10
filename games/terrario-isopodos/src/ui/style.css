@@ -413,15 +413,6 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .pause-grid .btn { justify-content: flex-start; min-height: 48px; }
 @media (max-width: 420px) { .pause-grid { grid-template-columns: 1fr; } }
 @media (max-width: 400px) { .hud-bottom .btn { font-size: 12px; padding-inline: 4px; gap: 3px; } }
-.room-map { position: absolute; z-index: var(--z-hud); top: calc(max(var(--gap), env(safe-area-inset-top)) + 56px); right: max(var(--gap), env(safe-area-inset-right));
-  display: flex; flex-direction: column-reverse; align-items: center; list-style: none; margin: 0; padding: 6px 8px; background: color-mix(in srgb, var(--night) 80%, transparent); border-radius: 6px; pointer-events: none; }
-.room-map li { width: 16px; height: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--paper) 25%, transparent); border: 1.5px solid var(--paper); color: var(--rust); }
-.room-map li { width: 14px; height: 10px; }
-.room-map li + li { margin-bottom: 6px; position: relative; }
-.room-map li + li::before { content: ''; position: absolute; top: 100%; width: 2px; height: 6px; background: var(--paper); opacity: 0.6; }
-.room-map li.done { background: var(--paper); }
-.room-map li.here { background: var(--rust); border-color: var(--paper); transform: scale(1.25); }
-.room-map li:last-child { width: 20px; height: 16px; background: var(--ink); }
 
 /* Combate: HUD apartado de la acción */
 .boss-bar { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: 50%; translate: -50% 0; width: min(60vw, 460px);
@@ -455,11 +446,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .combat .team { top: max(var(--gap), env(safe-area-inset-top)); bottom: auto; }
 .combat:has(.boss-bar) .team { top: calc(max(var(--gap), env(safe-area-inset-top)) + 70px); }
 @media (max-width: 720px) { .combat .cam-controls { display: none; } }
-.combat .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 84px); left: max(var(--gap), env(safe-area-inset-left)); right: auto; flex-direction: row; }
-.combat .room-map li + li { margin: 0 0 0 6px; }
-.combat .room-map li + li::before { top: auto; right: 100%; width: 6px; height: 2px; }
-.combat:has(.boss-bar) .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 154px); }
-
+.combat .combat 
 /* Cartas (sistema de KureiChaosChess): el marco dice el tipo, la gema y el borde la rareza. */
 .pick { z-index: var(--z-modal); }
 .pick-body { display: grid; justify-items: center; gap: 22px; width: 100%; max-width: 860px; }
@@ -531,8 +518,38 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .combat .member.main .who { font-size: 13px; color: var(--amber); }
 .combat .member.low .hp b { color: var(--sem-dano); }
 .combat .member.ready { box-shadow: 0 0 10px color-mix(in srgb, var(--sem-carga) 70%, transparent); }
-.combat .room-map { top: max(var(--gap), env(safe-area-inset-top)); }
-.combat:has(.boss-bar) .room-map { top: max(var(--gap), env(safe-area-inset-top)); }
 .cam-controls:not(.open) { gap: 0; }
 @media (max-width: 720px) { .combat .cam-controls { display: grid; } }
 .combat .member .atb { width: 100%; } .combat .member .atb i { height: 6px; border-color: var(--ink); }
+
+/* Piso de salas */
+.floor { position: relative; min-height: 0; display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; padding: 12px; color: var(--paper);
+  background: var(--terror-night); border: 2px solid color-mix(in srgb, var(--terror-stone) 40%, black); border-radius: 6px; box-shadow: inset 0 0 40px black; }
+.floor h3 { margin: 0; text-align: center; font: 700 26px/1 var(--hand); }
+.floor-map { width: 100%; height: 100%; min-height: 160px; max-height: 46vh; }
+.floor-map line { stroke: color-mix(in srgb, var(--paper) 55%, transparent); stroke-width: 0.12; stroke-dasharray: 0.18 0.12; }
+.floor-map line.done { stroke: var(--paper); stroke-dasharray: none; }
+.room rect { fill: color-mix(in srgb, var(--shade) 70%, var(--moss)); stroke: var(--paper); stroke-width: 0.06; }
+.room .icon-path { stroke: var(--ink); }
+.room.done rect { fill: color-mix(in srgb, var(--terror-stone) 60%, black); }
+.room.done .icon-path { stroke: var(--terror-shade); }
+.room.go { cursor: pointer; }
+.room.go rect { stroke: var(--rust); stroke-width: 0.12; animation: pulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.room.here rect { fill: var(--ink); stroke: var(--sem-carga); stroke-width: 0.1; }
+.room.here .icon-path { stroke: var(--paper); }
+.room.final rect { fill: var(--ink); stroke: var(--rust); }
+.room.final .icon-path { stroke: var(--rust); }
+.room-botin rect, .room-carta rect, .room-reliquia rect { fill: color-mix(in srgb, var(--amber) 55%, var(--paper)); }
+.room .banner { fill: var(--rust); stroke: var(--ink); stroke-width: 0.04; }
+.doors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.door { min-height: 48px; }
+.door .dir { font-size: 20px; font-weight: 800; }
+.floor .note { margin: 0; color: var(--paper); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .room.go rect { animation: none; } }
+.room-map { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: max(var(--gap), env(safe-area-inset-left)); height: auto; max-width: 40vw;
+  padding: 4px; background: color-mix(in srgb, var(--night) 80%, transparent); border-radius: 6px; pointer-events: none; }
+.room-map line { stroke: var(--paper); stroke-width: 0.14; opacity: 0.6; }
+.room-map rect { fill: color-mix(in srgb, var(--paper) 25%, transparent); stroke: var(--paper); stroke-width: 0.1; }
+.room-map rect.done { fill: var(--paper); }
+.room-map rect.final { fill: var(--ink); stroke: var(--rust); }
+.room-map rect.here { fill: var(--rust); }

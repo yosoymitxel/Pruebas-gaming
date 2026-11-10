@@ -131,6 +131,14 @@ check(['dungeon', 'result'].includes(await s(() => window.__terrario.mode)), 'tr
 const overflow = await s(() => document.documentElement.scrollWidth > innerWidth);
 check(!overflow, 'sin desbordamiento horizontal');
 await shot('12-tras-combate');
+// Piso del nivel: tras la primera sala hay puertas a otras (laterales o la siguiente del camino).
+if (await s(() => !!window.__terrario.run?.floor)) {
+  check(await page.locator('.door').count() > 0, 'el piso ofrece puertas');
+  await page.locator('.door').first().click();
+  await wait(600);
+  check(['combat', 'dungeon'].includes(await s(() => window.__terrario.mode)), 'cruzar una puerta lleva a otra sala');
+  await shot('13-otra-sala');
+}
 
 await browser.close();
 console.log(errors.length ? `✗ ${errors.length} error(es):\n${errors.join('\n')}` : `✓ recorrido completo (${tag})`);

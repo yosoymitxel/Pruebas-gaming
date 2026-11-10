@@ -90,11 +90,14 @@ export const DayClock = ({ day, clock = 0, label }) => html`<div class="day-cloc
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
 
-// Minimapa de salas (como el de Cult of the Lamb): una casilla por capa del nido, la actual resaltada y la
-// guardiana al final. `nodes` y `at` del nido.
-export const RoomMap = ({ dungeon, layers }) => {
-  const here = dungeon.at === null ? -1 : dungeon.nodes[dungeon.at].layer;
-  return html`<ol class="room-map" aria-label=${`${t('dungeon.layer', 'Capa')} ${here + 1}/${layers}`}>
-    ${Array.from({ length: layers }, (_, l) => html`<li class=${l < here ? 'done' : l === here ? 'here' : ''}>${l === layers - 1 ? html`<${Icon} name="jefe" size="14" />` : null}</li>`)}
-  </ol>`;
+// Minimapa del piso en combate (como el de Cult of the Lamb): una casilla por sala con sus pasillos, la actual
+// resaltada y la final marcada.
+export const RoomMap = ({ floor }) => {
+  if (!floor) return null;
+  const xs = floor.rooms.map((r) => r.x), ys = floor.rooms.map((r) => r.y), x0 = Math.min(...xs), y0 = Math.min(...ys);
+  const W = (Math.max(...xs) - x0 + 1) * 2, H = (Math.max(...ys) - y0 + 1) * 2, P = (r) => [(r.x - x0) * 2 + 1, (r.y - y0) * 2 + 1];
+  return html`<svg class="room-map" viewBox=${`0 0 ${W} ${H}`} style=${{ width: `${W * 11}px` }} aria-hidden="true">
+    ${floor.rooms.flatMap((a) => a.links.filter((id) => id > a.id).map((id) => { const [ax, ay] = P(a), [bx, by] = P(floor.rooms[id]); return html`<line x1=${ax} y1=${ay} x2=${bx} y2=${by} />`; }))}
+    ${floor.rooms.map((r) => { const [x, y] = P(r); return html`<rect class=${`${r.done ? 'done' : ''}${r.id === floor.at ? ' here' : ''}${r.final ? ' final' : ''}${r.main ? '' : ' side'}`} x=${x - 0.6} y=${y - 0.45} width="1.2" height="0.9" />`; })}
+  </svg>`;
 };

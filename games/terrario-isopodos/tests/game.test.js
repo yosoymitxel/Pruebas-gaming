@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mulberry32 } from '../src/core/rng.js';
 import { newGame, visit, tickClock, dayPhase, sleep } from '../src/game/game.js';
+import { genFloor, doors } from '../src/game/floor.js';
 import { build, tickHome, collect, expand, calm, beds, climate, humidity, upgradeLayer, homeEffects } from '../src/game/home.js';
 import { blocked } from '../src/game/grid.js';
 import { newGather, tickGather, gatherLoot } from '../src/game/gather.js';
 import { genDungeon, nextNodes, LAYERS } from '../src/game/dungeon.js';
-import { newRun, enterNode, combatSetup, finishCombat, pickCard, settleRun } from '../src/game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, settleRun } from '../src/game/run.js';
 import { createCombat, step } from '../src/game/combat.js';
 import { autopilot } from '../src/game/autopilot.js';
 import { save, load, serialize, deserialize } from '../src/game/save.js';
@@ -87,6 +88,12 @@ test('expedición completa con el piloto: se gana o se pierde y el botín vuelve
       const c = createCombat(combatSetup(run));
       while (!c.result) step(c, 1 / 60, autopilot(c, 0.9));
       finishCombat(run, c);
+      continue;
+    }
+    if (run.state === 'floor') { // primero las laterales sin hacer, después adelante por el camino
+      const ds = doors(run.floor), cur = run.floor.rooms[run.floor.at];
+      const next = ds.find((r) => !r.done && !r.main) ?? ds.find((r) => !r.done) ?? ds.find((r) => r.main && r.x > cur.x) ?? ds.find((r) => r.main) ?? ds[0];
+      assert.ok(enterRoom(run, next.id), 'hay puerta hacia delante');
       continue;
     }
     assert.ok(enterNode(run, nextNodes(run.dungeon)[0].id));
@@ -172,4 +179,15 @@ test('arenas: cada tipo deja libres las salidas, las raíces cortan el paso y la
   Object.assign(me, { x: p.x, y: p.y + 0.01 });
   step(r, 1 / 60);
   assert.ok(Math.hypot(me.x - p.x, me.y - p.y) >= p.r + me.r - 1e-6, 'la raíz empuja fuera');
+});
+
+test('pisos: camino principal hasta la sala final, laterales colgadas y todo alcanzable', () => {
+  for (let seed = 1; seed < 60; seed++) for (const type of ['combate', 'elite', 'jefe']) {
+    const f = genFloor(type, seed), finals = f.rooms.filter((r) => r.final);
+    assert.equal(finals.length, 1);
+    assert.ok(f.rooms.some((r) => !r.main), `semilla ${seed}: al menos una lateral`) ;
+    const seen = new Set([0]), todo = [0];
+    while (todo.length) for (const id of f.rooms[todo.pop()].links) if (!seen.has(id)) { seen.add(id); todo.push(id); }
+    assert.equal(seen.size, f.rooms.length, 'todo el piso conectado');
+  }
 });

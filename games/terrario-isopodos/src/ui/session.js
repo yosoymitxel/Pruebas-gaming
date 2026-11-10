@@ -5,7 +5,7 @@ import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
-import { newRun, enterNode, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
@@ -191,13 +191,23 @@ export class Session {
   }
   enter(nodeId) {
     if (!enterNode(this.run, nodeId)) return;
+    this.afterRoom();
+  }
+  // Puerta del piso: otra sala (pelea, botín, carta o reliquia).
+  enterRoom(id) {
+    if (!enterRoom(this.run, id)) return;
+    this.sfx('open');
+    this.afterRoom();
+  }
+  afterRoom() {
     if (this.run.state === 'combat') {
       const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
       this.combo = null; this.cleared = null; this.hurtAt = null; this.slowmo = 0;
       this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg } });
       this.tactical = false;
-      this.sfx(this.run.node.type === 'jefe' ? 'boss' : 'open');
-      const bossFoe = this.run.node.type === 'jefe' && this.combat.actors.find((a) => a.side === 'enemy');
+      const bossRoom = this.run.node.type === 'jefe' && this.run.room?.final;
+      this.sfx(bossRoom ? 'boss' : 'open');
+      const bossFoe = bossRoom && this.combat.actors.find((a) => a.side === 'enemy');
       this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1, this.run.island.weather);
       if (bossFoe) this.stage.pixfx.spawn('boss', bossFoe.x, 0.05, bossFoe.y);
     } else this.emit();
