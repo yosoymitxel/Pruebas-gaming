@@ -44,20 +44,21 @@ export function Islands({ s }) {
       </li>`;
     })}</ul>
 
-    ${isl && html`<section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}>
+    ${isl && html`<div class=${`isl-wrap${isl.kind === 'nido' ? ' has-guard' : ''}`}>
+    ${isl.kind === 'nido' && html`<figure class="guard"><img src=${portraitURL(ABERRATIONS[BIOMES[isl.biome].boss].sprite)} alt="" /><figcaption>${t('islands.guard', 'Guardiana')}: ${ABERRATIONS[BIOMES[isl.biome].boss].name}</figcaption></figure>`}
+    <section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}>
       <div class="isl-head">
         <div>
           <h3><${Icon} name=${isl.kind} size="22" /> ${ISLAND_KINDS[isl.kind].name}${isl.kind !== 'hogar' ? ` · ${BIOMES[isl.biome].name}` : ''}</h3>
           <p>${ISLAND_KINDS[isl.kind].desc}</p>
           ${isl.kind !== 'hogar' && html`<p class="chips"><span class="chip">${VESSELS[isl.vessel ?? 'tanque'].name}</span><span class="chip">${WEATHERS[isl.weather].name}${WEATHERS[isl.weather].yield > 1 ? ` · ${t('islands.more', 'más recursos')}` : ''}</span></p>`}
         </div>
-        ${isl.kind === 'nido' && html`<figure class="guard"><img src=${portraitURL(ABERRATIONS[BIOMES[isl.biome].boss].sprite)} alt="" /><figcaption>${t('islands.guard', 'Guardiana')}: ${ABERRATIONS[BIOMES[isl.biome].boss].name}</figcaption></figure>`}
       </div>
       ${isl.kind !== 'hogar' && html`<${PartyPicker} s=${s} need=${need} party=${party} setParty=${setParty} />`}
       <div class="actions">
         <button class="btn ghost" onClick=${() => setSel(null)}>${t('ui.back', 'Volver')}</button>
         <button class="btn primary" disabled=${isl.kind !== 'hogar' && party.length !== need} onClick=${go}>${isl.kind === 'hogar' ? t('islands.home', 'Volver al terrario') : t('islands.go', 'Partir')}</button>
       </div>
-    </section>`}
+    </section></div>`}
   </main>`;
 }

@@ -35,7 +35,8 @@ function addAlly(c, p, i, n) {
     id: c.nextId++, side: 'ally', ref: p.id, cls: p.cls, name: p.name, shell: p.shell,
     x: (i - (n - 1) / 2) * 1.6, y: 4, vx: 0, vy: 0, r: 0.35, hp: p.hp, maxHp: p.maxHp, facing: -Math.PI / 2,
     atb: 0, state: 'idle', timer: 0, combo: 0, comboWindow: 0, invuln: 0, shield: 0, shieldT: 0, taunt: 0,
-    held: 0, rollCd: 0, damage: cls.damage * (c.mods.damageMul ?? 1), speed: cls.speed * speciesOf(p.shell).speed, dodged: null,
+    held: 0, rollCd: 0, damage: (cls.damage + (p.damageAdd ?? 0)) * (c.mods.damageMul ?? 1), speed: cls.speed * speciesOf(p.shell).speed * (p.speedMul ?? 1), dodged: null,
+    abilities: p.abilities ?? cls.abilities,
     dodge: speciesOf(p.shell).rolls ? BALL : DASH,
   });
 }
@@ -301,7 +302,7 @@ function hurtEnemy(c, e, amount, staggerMul, from) {
 export function useAbility(c, actorId, abilityId) {
   const a = c.actors.find((x) => x.id === actorId);
   const ab = ABILITIES[abilityId];
-  if (!a || !alive(a) || a.held > 0 || !ab || !CLASSES[a.cls].abilities.includes(abilityId) || a.atb < ab.atb) return false;
+  if (!a || !alive(a) || a.held > 0 || !ab || !(a.abilities ?? CLASSES[a.cls].abilities).includes(abilityId) || a.atb < ab.atb) return false;
   a.atb -= ab.atb;
   apply(c, a, ab);
   emit(c, 'ability', { id: a.id, ability: abilityId });

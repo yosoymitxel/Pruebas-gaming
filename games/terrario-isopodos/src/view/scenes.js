@@ -192,7 +192,7 @@ export class HomeView extends GridScene {
     if (this.ghost) this.group.remove(this.ghost);
     this.ghost = null;
     if (!g) return null;
-    const ok = canPlace(this.grid, g.type, g.i, g.j, g.rot);
+    const ok = canPlace(this.grid, g.type, g.i, g.j, g.rot, g.moving);
     const f = footprint(g.type, g.rot), w = this.toWorld(g.i + f.w / 2, g.j + f.h / 2);
     this.ghost = ghostMesh(g.type, g.rot, ok);
     this.ghost.position.set(w.x, this.floorOf(g.i, g.j, f) + 0.02, w.z);
@@ -219,9 +219,17 @@ export class HomeView extends GridScene {
       list.push({ id: l.id, sprite: 'res:hojarasca', ...w, height: 0.42, lift: (1 - l.t) * 3.2, spin: Math.sin(l.t * 7) * 0.6 * (1 - l.t) });
     }
     for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
+    // Seleccionado: la cámara lo sigue y una flecha lo marca. Distintivo (banderín) y «zzz» del que duerme.
+    for (const iso of this.home.isopods) {
+      const w = this.toWorld(iso.x, iso.y), top = iso.baby > 0 ? 0.35 : 0.6;
+      if (iso.id === this.selIso) { const k = this.stage.camDist * 0.2; this.stage.follow(w.x + Math.sin(this.stage.yaw) * k, w.z + Math.cos(this.stage.yaw) * k, dt, 5); // queda por encima de la ficha
+        list.push({ id: `s${iso.id}`, sprite: 'proc:sel', ...w, height: 0.55, lift: top + Math.abs(Math.sin(time * 4)) * 0.12 }); }
+      if (iso.badge != null) list.push({ id: `f${iso.id}`, sprite: `badge:${iso.badge}`, ...w, x: w.x - 0.18, height: 0.42, lift: top - 0.1 });
+      if (iso.rest > 0) list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...w, height: 0.36, lift: top + Math.sin(time * 2 + iso.id) * 0.05 });
+    }
     // Bocadillos de necesidad sobre la cabeza (como los seguidores de Cult of the Lamb): hambre.
     for (const iso of this.home.isopods) {
-      if (iso.hunger >= 0.35) continue;
+      if (iso.hunger >= 0.35 || iso.rest > 0 || iso.id === this.selIso) continue;
       const w = this.toWorld(iso.x, iso.y);
       list.push({ id: `b${iso.id}`, sprite: 'res:hojarasca', ...w, height: 0.42, lift: 0.95 + Math.sin(time * 4 + iso.id) * 0.06 });
     }
@@ -229,7 +237,7 @@ export class HomeView extends GridScene {
       const s = this.home.stock[p.id];
       if (!s?.ready) continue;
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
-      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08 });
+      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.08 });
     }
     // Globos sobre las piezas: comedero vacío (sin hojarasca) y mejora que ya se puede pagar.
     if (!this.extra) for (const p of Object.values(this.grid.pieces)) {

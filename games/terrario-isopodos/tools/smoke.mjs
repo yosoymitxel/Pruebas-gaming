@@ -98,7 +98,7 @@ await wait(500);
 
 await page.getByRole('button', { name: 'Archipiélago' }).click();
 await page.locator('.isle-nido:not(.done) button').first().dispatchEvent('click');
-await page.getByRole('button', { name: 'Equipo recomendado' }).click();
+await page.getByRole('button', { name: 'Auto' }).click();
 await shot('07b-equipo');
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(600);

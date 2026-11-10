@@ -14,6 +14,10 @@ export const ABILITIES = localize('abilities', {
   provocar: { name: 'Provocar', atb: 1, kind: 'taunt', time: 6 },
   rocio: { name: 'Rocío', atb: 1, kind: 'heal', power: 26 },
   esporas: { name: 'Nube de esporas', atb: 2, kind: 'burst', power: 22, staggerMul: 4, range: 3 },
+  // Se aprenden en el árbol de mudas (data/skills.js).
+  impacto: { name: 'Impacto', atb: 2, kind: 'strike', power: 42, staggerMul: 4, range: 2.4 },
+  muralla: { name: 'Muralla', atb: 2, kind: 'shield', power: 55, time: 8 },
+  brote: { name: 'Brote', atb: 2, kind: 'heal', power: 44 },
 });
 
 export const ITEMS = localize('items', {

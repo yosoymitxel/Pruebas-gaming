@@ -5,13 +5,13 @@ import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, fitGrid, upgradePiece, storePiece } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
-import { footprint } from '../game/grid.js';
+import { footprint, move } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
 import { HomeView, GatherView, CombatView, MenuView } from '../view/scenes.js';
@@ -110,7 +110,7 @@ export class Session {
   persist() { if (this.game) save(this.game); }
 
   goHome() {
-    this.build = null;
+    this.build = null; this.selIso = null;
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
   }
@@ -126,6 +126,8 @@ export class Session {
 
   // ——— Terrario ———
   startBuild(type) { this.build = { type, rot: 0, i: null, j: null, ok: false }; this.view.setBuildMode(true); this.emit(); }
+  // Mover una pieza ya puesta: mismo fantasma que al construir, sin coste, validando sin contarse a sí misma.
+  startMove(id) { const p = this.game.home.grid.pieces[id]; if (!p) return; this.selPiece = null; this.moveMode = false; this.build = { type: p.type, rot: p.rot, i: null, j: null, ok: false, moving: id }; this.view.setBuildMode(true); this.emit(); }
   cancelBuild() { this.build = null; this.view.setBuildMode(false); this.emit(); }
   rotateBuild() { if (this.build) { this.build.rot = (this.build.rot + 1) % 4; this.hoverBuild(this.build.i, this.build.j); } }
   hoverBuild(i, j) {
@@ -138,6 +140,11 @@ export class Session {
   confirmBuild() {
     const b = this.build;
     if (!b || b.i === null) return false;
+    if (b.moving != null) {
+      if (!move(this.game.home.grid, b.moving, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
+      const f = footprint(b.type, b.rot); this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); this.sfx('build'); this.shake(0.06);
+      this.persist(); this.cancelBuild(); return true;
+    }
     if (!build(this.game.home, b.type, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
     this.sfx('build');
     this.achieve('build');
@@ -172,6 +179,8 @@ export class Session {
       return { res: 'cal', n: 1 };
     }
     const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
+    // Primer toque: lo selecciona (la cámara lo sigue y sale su ficha); tocarlo otra vez lo asusta.
+    if (iso && this.selIso !== iso.id) { this.selectIso(iso.id); return { selected: iso.id }; }
     if (iso) {
       const what = poke(home, iso, cell), w = this.view.toWorld(iso.x, iso.y);
       this.sfx(what === 'ball' ? 'roll' : 'click');
@@ -180,6 +189,8 @@ export class Session {
       this.emit();
       return { poked: iso.id };
     }
+    if (this.selIso != null) { this.selectIso(null); return null; } // tocar el suelo suelta al seleccionado
+    if (this.moveMode) { const at = home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)]; if (at != null) this.startMove(at); return at != null ? { moving: at } : null; }
     const piece = Object.values(home.grid.pieces).find((p) => {
       const f = footprint(p.type, p.rot);
       return home.stock[p.id]?.ready && cell.x >= p.x - 0.5 && cell.x <= p.x + f.w + 0.5 && cell.y >= p.y - 0.8 && cell.y <= p.y + f.h + 0.5;
@@ -211,6 +222,33 @@ export class Session {
     this.persist(); this.emit();
     return true;
   }
+  selectIso(id) {
+    this.selIso = id ?? null; this.selPiece = null;
+    if (this.view) this.view.selIso = this.selIso;
+    this.stage.zoomK = 1; if (id != null) this.stage.zoom(0.62);
+    else this.stage.frame(this.view.camera.target, this.view.camera.distance, this.view.camera.fit);
+    this.sfx('click'); this.emit();
+  }
+  orderIso(id, what) {
+    const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
+    if (!iso) return false;
+    const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what);
+    const w = this.view.toWorld(iso.x, iso.y);
+    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!') }[what], w.x, w.z, 'note', 1); }
+    else this.sfx('hurt', 1.6);
+    this.emit();
+    return ok;
+  }
+  renameIso(id, name) { const iso = this.game.home.isopods.find((i) => i.id === id); const ok = iso && renameIso(this.game.home, iso, name); if (ok) this.persist(); this.emit(); return ok; }
+  learnSkill(id, skill) {
+    const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
+    if (!iso || !learnSkill(home, iso, skill)) { this.sfx('hurt', 1.6); return false; }
+    const w = this.view.toWorld(iso.x, iso.y);
+    this.sfx('heal'); this.view.burst('heal', iso.x, iso.y); this.shake(0.08);
+    this.floatText(t('colony.molted', '¡Muda!'), w.x, w.z, 'gain', 1.2);
+    this.persist(); this.emit(); return true;
+  }
+  badgeIso(id, k) { const iso = this.game.home.isopods.find((i) => i.id === id); if (iso) { badgeIso(this.game.home, iso, k); this.persist(); this.sfx('click'); } this.emit(); }
   upgradePiece(id) {
     const home = this.game.home, p = home.grid.pieces[id];
     if (!upgradePiece(home, id)) { this.sfx('hurt', 1.6); return false; }

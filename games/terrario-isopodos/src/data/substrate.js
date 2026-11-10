@@ -3,13 +3,13 @@
 import { localize } from '../i18n/index.js';
 
 export const LAYERS = localize('layers', {
-  grava: { name: 'Grava de drenaje', desc: 'Evita que el agua se estanque: con más grava, más humedad sin encharcar.',
+  grava: { name: 'Grava de drenaje', desc: 'Más humedad sin encharcar.',
     costs: [{ cal: 2 }, { cal: 3, ambar: 1 }] },
-  carbon: { name: 'Carbón vegetal', desc: 'Filtra y frena el moho cuando el terrario está muy húmedo.',
+  carbon: { name: 'Carbón vegetal', desc: 'Frena el moho.',
     costs: [{ esporas: 2, cal: 1 }, { esporas: 3, ambar: 1 }] },
-  tierra: { name: 'Tierra', desc: 'Sustrato vivo: las piezas producen más rápido.',
+  tierra: { name: 'Tierra', desc: 'Las piezas producen más.',
     costs: [{ musgo: 2, hojarasca: 2 }, { musgo: 3, hojarasca: 3 }, { musgo: 4, ambar: 1 }] },
-  hojarasca: { name: 'Capa de hojarasca', desc: 'Comida y escondite en el suelo: la colonia pasa menos hambre y está más tranquila.',
+  hojarasca: { name: 'Capa de hojarasca', desc: 'Menos hambre, más calma.',
     costs: [{ hojarasca: 4 }, { hojarasca: 6, musgo: 2 }] },
 });
 
@@ -26,11 +26,12 @@ export const HUMIDITY = {
 };
 
 // Efecto de cada estado en el terrario. prodMul: producción; hungerMul: hambre; calm: calma.
+// `fix`: cómo se arregla (capa a subir, piezas que añadir o pieza de la que hay demasiadas); el panel lo señala.
 export const CLIMATES = localize('climates', {
-  seco: { name: 'Seco', desc: 'Les cuesta mudar: pasan más hambre y están inquietos.', prodMul: 0.9, hungerMul: 1.5, calm: -0.15 },
-  ideal: { name: 'Ideal', desc: 'Mudan sanos: producción y calma al alza.', prodMul: 1.2, hungerMul: 1, calm: 0.1 },
-  humedo: { name: 'Muy húmedo', desc: 'Al borde del moho; el carbón lo mantiene a raya.', prodMul: 1, hungerMul: 1, calm: 0 },
-  moho: { name: 'Moho', desc: 'Sin carbón suficiente, el moho baja la producción y la calma.', prodMul: 0.75, hungerMul: 1.1, calm: -0.2 },
+  seco: { name: 'Seco', desc: 'Más hambre e inquietud.', fix: { pieces: ['charca', 'esfagno'] }, prodMul: 0.9, hungerMul: 1.5, calm: -0.15 },
+  ideal: { name: 'Ideal', desc: 'Producción y calma al alza.', prodMul: 1.2, hungerMul: 1, calm: 0.1 },
+  humedo: { name: 'Muy húmedo', desc: 'Al borde del moho.', fix: { layer: 'carbon' }, prodMul: 1, hungerMul: 1, calm: 0 },
+  moho: { name: 'Moho', desc: 'Baja producción y calma.', fix: { layer: 'carbon', less: 'charca' }, prodMul: 0.75, hungerMul: 1.1, calm: -0.2 },
 });
 
 // Gestos de cuidado (como el jardín zen de KureiChaosChess), en segundos de juego.

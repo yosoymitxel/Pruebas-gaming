@@ -25,9 +25,10 @@ const OUTCOME = {
 
 function Result({ s }) {
   const r = s.result;
-  return html`<main class="screen result"><section class="drawer center">
+  return html`<main class=${`screen result out-${r.outcome}`}><section class="drawer center reward">
+    <i class="rays" aria-hidden="true"></i>
     <h3>${OUTCOME[r.outcome]()}</h3>
-    <${Loot} loot=${r.loot} />
+    <${Loot} loot=${r.loot} big />
     ${r.rescued > 0 && html`<p>${t('result.rescued', 'Isópodos rescatados')}: <b>${r.rescued}</b></p>`}
     <button class="btn primary" onClick=${() => s.goHome()}>${t('islands.home', 'Volver al terrario')}</button>
   </section></main>`;

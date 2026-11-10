@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { spriteTexture } from './sprites.js';
 import { PALETTES } from '../data/palettes.js';
+import { TILT } from './stage.js';
 
 const LEAN = -0.45;
 const plane = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
@@ -32,7 +33,10 @@ export class ActorLayer {
       const h = a.height, w = (a.width ?? h * aspect);
       const sq = a.squash ?? 1; // aplastar conserva el volumen: más bajo, más ancho
       it.card.scale.set(w * (a.flip ? -1 : 1) / Math.sqrt(sq), h * sq, 1);
-      it.card.position.y = a.lift ?? 0;
+      // El recorte se adelanta hacia la cámara por su rayo de visión: en pantalla no se mueve, pero deja de
+      // atravesar la pared o el escalón que tiene detrás.
+      const pull = w * 0.45;
+      it.card.position.set(0, (a.lift ?? 0) + pull * Math.cos(TILT), pull * Math.sin(TILT));
       it.card.rotation.z = a.spin ?? 0; // bolita que rueda
       it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8, 1, Math.min(w, h) * 0.35);
       it.root.position.set(a.x, a.y ?? 0, a.z);
