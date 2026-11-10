@@ -26,10 +26,15 @@ Luego se sustituye la partida de ejemplo por la mecánica real siguiendo [framew
 | `scripts/` | Generador de juegos y mantenimiento de skills. |
 | `.agents/skills/` | Skills locales del marco (orquestador y esqueleto). |
 
-## Juegos
+## Enlaces directos
 
-- [Terrario de isópodos](games/terrario-isopodos/README.md): terror acogedor alrededor de un terrario.
+| | Jugar | Código |
+|---|---|---|
+| Portada | [https://yosoymitxel.github.io/Pruebas-gaming/](https://yosoymitxel.github.io/Pruebas-gaming/) | [index.html](index.html) |
+| Terrario de isópodos | [Jugar](https://yosoymitxel.github.io/Pruebas-gaming/games/terrario-isopodos/) | [games/terrario-isopodos](games/terrario-isopodos/README.md) |
+| Plantilla | se prueba en local (`npx vite`) | [games/_plantilla](games/_plantilla/README.md) |
 
-## Publicación
+Otros: [Actions](https://github.com/yosoymitxel/Pruebas-gaming/actions) · [Pull requests](https://github.com/yosoymitxel/Pruebas-gaming/pulls) ·
+[Método](framework/README.md) · [Puertas de calidad](framework/QUALITY-GATES.md) · [Catálogo de referencias](docs/CATALOGO.md)
 
-GitHub Pages construye cada juego y publica el sitio desde `main`: https://yosoymitxel.github.io/Pruebas-gaming/
+Todos los juegos con su enlace: [games/README.md](games/README.md). GitHub Pages construye cada juego del catálogo y publica el sitio desde `main`.
