@@ -1,0 +1,48 @@
+name: Refresh local skills
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 8 1 * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.20.0"
+      - name: Refresh skill snapshots
+        run: bash scripts/install-skills.sh
+      - name: Validate and index local skills
+        run: |
+          bash scripts/validate-skills.sh
+          bash scripts/index-skills.sh
+      - name: Open review PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: refresh local skill snapshots"
+          title: "chore: refresh local skill snapshots"
+          body: |
+            Automated monthly refresh of the skills catalogued by this framework.
+
+            Review required before merging:
+            - inspect upstream changes and source provenance
+            - verify licenses and attribution
+            - inspect skill instructions for unsafe or irrelevant commands
+            - review duplicates and compatibility
+            - confirm the index matches the local snapshot
+          branch: automation/refresh-local-skills
+          delete-branch: true
+          add-paths: |
+            .agents/skills/**
+            .claude/skills/**
+            skills/INDEX.md

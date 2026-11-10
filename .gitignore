@@ -1,0 +1,7 @@
+# Local execution artifacts
+node_modules/
+.npm/
+*.log
+.DS_Store
+
+# Do not ignore .agents/skills or .claude/skills: project skills must be versioned.

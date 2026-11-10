@@ -1,0 +1,99 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "games/**"
+      - "index.html"
+      - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/terrario-mvp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-deployment
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/terrario-isopodos
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Audit dependency tree
+        run: npm audit --audit-level=high
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser interaction smoke test
+        run: |
+          npx vite --port 5199 --strictPort &
+          for i in $(seq 30); do curl -sf http://localhost:5199/ >/dev/null && break; sleep 1; done
+          npm run smoke
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terrario-pages-evidence-${{ github.sha }}
+          path: |
+            games/terrario-isopodos/artifacts/visual/
+            games/terrario-isopodos/package-lock.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build every published game
+        run: |
+          for id in $(node -p "require('./games/catalog.json').games.map((g) => g.id).join(' ')"); do
+            (cd "games/$id" && npm install && npm audit --audit-level=high && npm run build)
+          done
+      - name: Assemble complete Pages site
+        run: |
+          mkdir site
+          git archive HEAD | tar -x -C site
+          rm -rf site/games/_plantilla
+          for id in $(node -p "require('./games/catalog.json').games.map((g) => g.id).join(' ')"); do
+            rm -rf "site/games/$id"/* && cp -a "games/$id/dist/." "site/games/$id/"
+          done
+          touch site/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
