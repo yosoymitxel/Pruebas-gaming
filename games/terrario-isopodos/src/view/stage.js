@@ -14,7 +14,11 @@ export class Stage {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    // Resolución adaptativa (web-performance): empieza en min(dpr, 1.5) y baja o sube según el tiempo de
+    // fotograma medido; el pase de tinta es caro por píxel y en móvil manda la GPU.
+    this.maxRatio = Math.min(devicePixelRatio, 1.5);
+    this.renderer.setPixelRatio(this.maxRatio);
+    this.frameMs = 16; this.frames = 0;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
     container.appendChild(this.renderer.domElement);
@@ -31,7 +35,7 @@ export class Stage {
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
     sun.position.set(-7, 16, -4);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 50 });
     sun.shadow.bias = -0.0015;
     this.scene.add(sun, sun.target, new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.1));
@@ -106,7 +110,18 @@ export class Stage {
 
   shake(amount) { this.shakeT = Math.max(this.shakeT, amount); }
 
-  render(time) {
+  // Cada segundo: si el fotograma medio pasa de 24 ms baja la resolución un 20 %; si va holgado (< 13 ms), sube.
+  adapt(dt) {
+    this.frameMs += (dt * 1000 - this.frameMs) * 0.1;
+    if ((this.frames += dt) < 1) return;
+    this.frames = 0;
+    const r = this.renderer.getPixelRatio();
+    const next = this.frameMs > 24 ? Math.max(0.75, r * 0.8) : this.frameMs < 13 ? Math.min(this.maxRatio, r * 1.15) : r;
+    if (Math.abs(next - r) > 0.01) { this.renderer.setPixelRatio(next); this.resize(); }
+  }
+
+  render(time, dt = 1 / 60) {
+    this.adapt(dt);
     const u = this.ink.material.uniforms;
     if (this.shakeT > 0) {
       this.frame([this.target.x, this.target.z], this.distance, this.fit);

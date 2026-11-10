@@ -198,7 +198,7 @@ export class Session {
     else if (this.mode === 'combat') this.tickCombat(dt, input);
     this.view?.update(this.time, dt);
     if (this.fx.length) this.fx = this.fx.filter((f) => this.time - f.at < 0.9);
-    this.stage.render(this.time);
+    this.stage.render(this.time, dt);
     this.hudTimer = (this.hudTimer ?? 0) + dt;
     if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }
     requestAnimationFrame((t) => this.frame(t));

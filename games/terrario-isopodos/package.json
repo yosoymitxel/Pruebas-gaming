@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "check": "node tools/check-registry.mjs && node tools/combat-selfcheck.mjs",
+    "check": "node tools/check-registry.mjs && node tools/combat-selfcheck.mjs && node tools/exploits-selfcheck.mjs",
     "smoke": "node tools/smoke.mjs && node tools/smoke.mjs --mobile"
   },
   "dependencies": {
