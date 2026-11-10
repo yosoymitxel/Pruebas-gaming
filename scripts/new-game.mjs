@@ -27,4 +27,11 @@ const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 catalog.games.push({ id, name, category: 'Por definir', status: 'Prototipo', description: `${name}: en desarrollo.`, path: `./games/${id}/`, art: 'none' });
 writeFileSync(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`);
 
+// Fila en la tabla de enlaces de games/README.md (después de la última fila existente).
+const readmePath = join(root, 'games/README.md');
+const lines = readFileSync(readmePath, 'utf8').split('\n');
+const last = lines.findLastIndex((l) => l.startsWith('| ') && l.includes('[Jugar]'));
+lines.splice(last + 1, 0, `| ${name} | [Jugar](https://yosoymitxel.github.io/Pruebas-gaming/games/${id}/) | [${id}/](${id}/README.md) |`);
+writeFileSync(readmePath, lines.join('\n'));
+
 console.log(`Creado games/${id}. Siguiente:\n  cd games/${id} && npm install && npm test && npx vite`);

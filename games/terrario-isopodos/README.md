@@ -3,6 +3,8 @@
 Terror acogedor alrededor de un terrario: cuidas una colonia de isópodos en su tanque, viajas entre terrarios
 flotantes a recoger recursos y bajas a nidos a combatir aberraciones dibujadas a tinta.
 
+**Jugar:** [https://yosoymitxel.github.io/Pruebas-gaming/games/terrario-isopodos/](https://yosoymitxel.github.io/Pruebas-gaming/games/terrario-isopodos/) · [Portada](https://yosoymitxel.github.io/Pruebas-gaming/)
+
 Plan y decisiones en [docs/PLAN.md](docs/PLAN.md); dirección visual en [DESIGN.md](DESIGN.md).
 
 ## Jugar

@@ -2,6 +2,8 @@
 
 Una línea: de qué va el juego y qué lo hace distinto.
 
+**Jugar:** [https://yosoymitxel.github.io/Pruebas-gaming/games/__ID__/](https://yosoymitxel.github.io/Pruebas-gaming/games/__ID__/) (tras integrar en `main`) · [Portada](https://yosoymitxel.github.io/Pruebas-gaming/)
+
 Plan y decisiones en [docs/PLAN.md](docs/PLAN.md); dirección visual en [DESIGN.md](DESIGN.md).
 
 ## Jugar
