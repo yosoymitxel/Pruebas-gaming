@@ -28,6 +28,7 @@ export function createInkPass() {
         vec2 uv = vUv;
         if (look == 1) { vec2 c = uv * 2. - 1.; c *= 1. + dot(c.yx, c.yx) * .045; uv = c * .5 + .5; }
         if (uv.x < 0. || uv.y < 0. || uv.x > 1. || uv.y > 1.) { gl_FragColor = vec4(ink * .5, 1.); return; }
+        if (texture2D(tDepth, uv).x >= .99999) { gl_FragColor = vec4(0.); return; } // vacío: lo pinta el CSS
         vec3 col = texture2D(tColor, uv).rgb;
         if (look == 1) { col.r = texture2D(tColor, uv + vec2(px.x * 2. * dpr, 0.)).r; col.b = texture2D(tColor, uv - vec2(px.x * 2. * dpr, 0.)).b; }
         float d = depthAt(uv);

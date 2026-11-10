@@ -83,7 +83,16 @@ const RES = {
   },
 };
 
-export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva } };
+// Bocadillo de aviso (isópodo perdido, algo para recoger).
+function alert(ctx, w, h) {
+  ctx.fillStyle = PALETTES.cozy.paper; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(w / 2, h * 0.42, w * 0.36, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w * 0.42, h * 0.72); ctx.lineTo(w / 2, h * 0.95); ctx.lineTo(w * 0.58, h * 0.72); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = INK; ctx.font = `bold ${h * 0.5}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('!', w / 2, h * 0.44);
+}
+
+export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert } };
 const SIZES = { iso: [256, 160], res: [128, 128] };
 
 const cache = new Map();
@@ -128,4 +137,21 @@ export function resourceIconURL(res) {
     cache.set(key, canvas.toDataURL());
   }
   return cache.get(key);
+}
+
+// Imagen (URL) del mismo dibujo para la interfaz: retratos de isópodos, aberraciones y larvas.
+export function portraitURL(key) {
+  const [kind, arg] = key.split(':');
+  if (kind !== 'iso' && kind !== 'proc') return spriteURL(key);
+  const ck = `portrait:${key}`;
+  if (!cache.has(ck)) {
+    const [w, h] = kind === 'proc' ? [PROC_SPRITES[arg].w, PROC_SPRITES[arg].h] : SIZES.iso;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineJoin = 'round';
+    if (kind === 'iso') isopod(ctx, w, h, arg); else PROC_SPRITES[arg].draw(ctx, w, h);
+    cache.set(ck, canvas.toDataURL());
+  }
+  return cache.get(ck);
 }

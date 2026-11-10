@@ -66,3 +66,9 @@ export const CamControls = ({ s }) => html`<div class="cam-controls" role="group
   <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
   <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
 </div>`;
+
+// Textos flotantes del mundo (daño, «+1 musgo», avisos): suben y se desvanecen sobre su punto 3D.
+export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">${s.fx.map((f) => {
+  const p = s.stage.project(f.x, (f.y ?? 1.6) + (s.time - f.at) * 1.4, f.z);
+  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px`, opacity: 1 - (s.time - f.at) / 0.9 }}>${f.text}</span>`;
+})}</div>`;

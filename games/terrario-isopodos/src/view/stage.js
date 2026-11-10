@@ -6,12 +6,14 @@ import { PALETTES } from '../data/palettes.js';
 import { createBackdrop } from './backdrop.js';
 
 const TILT = 0.95; // radianes desde la vertical
+export const DEFAULT_YAW = 0.35;
 const ZOOM = [0.55, 1.35];
 
 export class Stage {
   constructor(container) {
     this.container = container;
-    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
@@ -52,16 +54,22 @@ export class Stage {
     u.paper.value.copy(paper); u.ink.value.copy(ink);
     u.wash.value = 0.8 - 0.45 * m;
     u.gloom.value = m;
-    this.scene.background = paper;
   }
 
   // `fit`: ancho del mundo (celdas) que debe caber a lo ancho; en vertical aleja la cámara lo justo.
   setScene(group, { target = [0, 0], distance = 22, fit = 0 } = {}) {
     this.root.clear();
     this.root.add(group);
-    this.yaw = 0.35;
+    this.backdrop.group.visible = group.children.length > 0;
+    this.yaw = DEFAULT_YAW;
     this.zoomK = 1;
     this.frame(target, distance, fit);
+  }
+
+  // Seguir un punto del suelo con suavidad (k por segundo); la cámara puede dejar parte de la escena fuera.
+  follow(x, z, dt, k = 4) {
+    const a = 1 - Math.exp(-k * dt);
+    this.frame([this.target.x + (x - this.target.x) * a, this.target.z + (z - this.target.z) * a], this.distance, this.fit);
   }
 
   // Girar alrededor del centro y acercar/alejar (la cámara siempre mira al diorama desde arriba).
@@ -90,6 +98,9 @@ export class Stage {
     u.res.value.set(w * dpr, h * dpr); u.dpr.value = dpr;
     this.frame([this.target.x, this.target.z], this.distance, this.fit);
   }
+
+  // Fondo vacío: lo pinta el CSS de #stage según clima y ánimo (el lienzo es transparente donde no hay nada).
+  setSky(weather, mood = 'cozy') { Object.assign(this.container.dataset, { weather, mood }); }
 
   setFilter(name) { this.ink.material.uniforms.look.value = Math.max(0, FILTERS.indexOf(name)); }
 

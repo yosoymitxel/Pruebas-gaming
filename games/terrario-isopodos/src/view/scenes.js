@@ -7,6 +7,8 @@ import { mulberry32 } from '../core/rng.js';
 import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
 import { Vfx, Weather } from './vfx.js';
+import { pickupMesh, animatePickup } from './pickups.js';
+import { DEFAULT_YAW } from './stage.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { PALETTES } from '../data/palettes.js';
@@ -136,7 +138,23 @@ export class HomeView extends GridScene {
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08 });
     }
-    this.actors.sync(list, this.stage.yaw);
+    this.actors.sync([...list, ...(this.extra?.(time) ?? [])], this.stage.yaw);
+  }
+}
+
+// Menú: el terrario del jugador (o uno de muestra) con la colonia viva y una aberración asomada al vidrio.
+// La cámara se desplaza para dejar sitio a la columna del menú (a la derecha en horizontal, abajo en vertical).
+export class MenuView extends HomeView {
+  get camera() {
+    const c = super.camera, side = Math.sqrt(this.openCount) + 2, wide = this.stage.camera.aspect > 1;
+    const [dx, dz] = wide ? [Math.cos(DEFAULT_YAW), -Math.sin(DEFAULT_YAW)] : [Math.sin(DEFAULT_YAW), Math.cos(DEFAULT_YAW)];
+    const k = wide ? side * 0.55 : side * 0.45;
+    return { ...c, target: [dx * k, dz * k], distance: c.distance * (wide ? 1.12 : 0.8) };
+  }
+
+  extra(time) {
+    const side = Math.sqrt(this.openCount) / 2 + 1.6;
+    return [{ id: 'lurker', sprite: 'el-bufon.webp', x: -side * 0.6 + Math.sin(time * 0.3) * 0.4, z: -side - 0.8, y: -0.4, height: 4.2 }];
   }
 }
 
@@ -145,20 +163,35 @@ export class GatherView extends GridScene {
     super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather });
     this.g = gather;
     this.syncProps();
+    this.pickups = gather.nodes.map((n) => {
+      const m = pickupMesh(n.res), w = this.toWorld(n.x, n.y);
+      m.position.set(w.x, w.y, w.z);
+      this.group.add(m);
+      return m;
+    });
   }
 
-  get camera() { const r = this.island.span + 0.6; return { target: [0, 0.4], distance: r * 2.2 + 6, fit: r * 2.3 }; }
+  // Cerca y siguiendo al explorador: la isla puede salirse de la pantalla.
+  get camera() { const p = this.toWorld(this.g.player.x, this.g.player.y); return { target: [p.x, p.z], distance: 13, fit: 9 }; }
 
   update(time, dt) {
     this.tick(dt);
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
-    for (const n of this.g.nodes) if (n.taken && !n.shown) { n.shown = true; this.burst('pickup', n.x, n.y); }
-    if (this.g.lost?.taken && !this.g.lost.shown) { this.g.lost.shown = true; this.burst('heal', this.g.lost.x, this.g.lost.y); }
-    const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05;
-    const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...this.toWorld(p.x, p.y), height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
-    for (const n of this.g.nodes) if (!n.taken) list.push({ id: `n${n.id}`, sprite: `res:${n.res}`, ...this.toWorld(n.x, n.y), height: 0.55, lift: 0.15 + Math.sin(time * 2.5 + n.id) * 0.06 });
+    const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05, pw = this.toWorld(p.x, p.y);
+    this.stage.follow(pw.x, pw.z, dt);
+    this.g.nodes.forEach((n, k) => {
+      const m = this.pickups[k];
+      if (n.taken && m.visible) { m.visible = false; this.burst('pickup', n.x, n.y); this.onPick?.(n); }
+      if (m.visible) animatePickup(m, time, k);
+    });
+    const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...pw, height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
     const l = this.g.lost;
-    if (l && !l.taken) list.push({ id: 'lost', sprite: 'iso:leche', ...this.toWorld(l.x, l.y), height: 0.6, flash: 0.5 + Math.sin(time * 4) * 0.3 });
+    if (l?.taken && !l.shown) { l.shown = true; this.burst('heal', l.x, l.y); this.onPick?.({ lost: true, x: l.x, y: l.y }); }
+    if (l && !l.taken) {
+      const w = this.toWorld(l.x, l.y);
+      list.push({ id: 'lost', sprite: 'iso:leche', ...w, height: 0.75, lift: Math.abs(Math.sin(time * 5)) * 0.1 });
+      list.push({ id: 'lost-alert', sprite: 'proc:alert', ...w, height: 0.55, lift: 1 + Math.sin(time * 3) * 0.1 });
+    }
     this.actors.sync(list, this.stage.yaw);
   }
 }
@@ -176,12 +209,25 @@ export class CombatView {
     this.weather = new Weather(this.group, weather, ARENA_R + 1.5, 3);
     this.tele = new Map();
     this.rolling = new Set();
+    this.swung = new Set();
+    this.slashes = [];
     this.flash = new Map();
   }
 
-  get camera() { return { target: [0, 0.6], distance: 19, fit: ARENA_R * 2 + 3 }; }
+  get camera() { return { target: [0, 0.6], distance: 15, fit: 10 }; }
 
   hit(id) { this.flash.set(id, 1); }
+
+  // Tajo: arco de tinta delante del isópodo que golpea (el combo 3 lo hace más grande).
+  slash(a) {
+    const big = a.combo === 2, arc = big ? 2.4 : 1.6;
+    const geo = new THREE.RingGeometry(0.55, big ? 1.35 : 1.05, 18, 1, -arc / 2, arc).rotateX(-Math.PI / 2);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: PALETTES.cozy.ink, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+    mesh.position.set(a.x, 0.45, a.y);
+    mesh.rotation.y = -a.facing;
+    this.group.add(mesh);
+    this.slashes.push({ mesh, t: 0 });
+  }
 
   burst(kind, id) {
     const a = this.c.actors.find((x) => x.id === id);
@@ -190,12 +236,24 @@ export class CombatView {
 
   update(time, dt) {
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
+    const main = this.c.actors.find((a) => a.id === this.c.main);
+    if (main) this.stage.follow(main.x * 0.55, main.y * 0.55 + 0.6, dt, 3);
     this.vfx.update(dt);
     this.weather.update(dt);
     for (const a of this.c.actors) {
       if (a.state === 'roll' && !this.rolling.has(a.id)) { this.rolling.add(a.id); this.vfx.burst('dust', a.x, 0.1, a.y); }
       else if (a.state !== 'roll') this.rolling.delete(a.id);
+      const swing = a.side === 'ally' && a.state === 'attack' && a.phase === 'recover';
+      if (swing && !this.swung.has(a.id)) { this.swung.add(a.id); this.slash(a); }
+      else if (!swing) this.swung.delete(a.id);
     }
+    this.slashes = this.slashes.filter((sl) => {
+      sl.t += dt;
+      sl.mesh.material.opacity = Math.max(0, 0.85 - sl.t * 4.5);
+      sl.mesh.scale.setScalar(1 + sl.t * 1.5);
+      if (sl.t > 0.2) { this.group.remove(sl.mesh); return false; }
+      return true;
+    });
     const list = [];
     for (const a of this.c.actors) {
       if (a.side === 'enemy' && a.hp <= 0) continue;

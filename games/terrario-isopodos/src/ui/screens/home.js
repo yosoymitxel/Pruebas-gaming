@@ -4,7 +4,7 @@ import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, beds, canAfford, nextExpansion, climate, humidity } from '../../game/home.js';
-import { Resources, Cost, Bar, ResIcon, CamControls } from './common.js';
+import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { CLIMATES } from '../../data/substrate.js';
@@ -38,6 +38,7 @@ export function Home({ s }) {
   return html`<main class="screen home">
     <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
     <${CamControls} s=${s} />
+    <${FxLayer} s=${s} />
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
       <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
