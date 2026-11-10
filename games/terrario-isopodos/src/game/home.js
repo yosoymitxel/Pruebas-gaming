@@ -7,7 +7,7 @@ import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
-import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES } from '../data/substrate.js';
+import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN } from '../data/substrate.js';
 
 const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
 const WALK = 1.1;
@@ -113,6 +113,7 @@ export const layer = (home, id) => home.layers?.[id] ?? START_LAYERS[id];
 // De dónde sale: [{ source: 'base' | 'weather' | <pieza>, amount }], para explicarlo en la interfaz.
 export function humidityParts(home) {
   const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: HUMIDITY.weather[home.weather] ?? 0 }];
+  if (home.mist > 0) parts.push({ source: 'rocio', amount: HUMIDITY.mist * Math.min(1, home.mist / ZEN.mistTime) });
   for (const p of Object.values(home.grid.pieces)) if (HUMIDITY.pieces[p.type]) parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] });
   return parts;
 }
@@ -172,6 +173,9 @@ export function collect(home, pieceId) {
 // `phase`: efectos de la hora (DAY_PHASES): de noche se produce menos y sube el miedo.
 export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   home.clockT = (home.clockT ?? 0) + dt;
+  if (home.mist > 0) home.mist = Math.max(0, home.mist - dt);
+  if (home.mistCd > 0) home.mistCd = Math.max(0, home.mistCd - dt);
+  dropLeaf(home, dt, rng);
   home.fear = Math.min(1, Math.max(0, home.fear - dt / 600 + phase.fear * dt));
   const { hungerMul } = homeEffects(home), prodMul = homeEffects(home).prodMul * phase.prodMul;
   for (const p of Object.values(home.grid.pieces)) {
@@ -217,6 +221,32 @@ function breed(home, dt, rng) {
   recruit(home, rng, undefined, mom.shell);
   const baby = home.isopods[home.isopods.length - 1];
   Object.assign(baby, { baby: BEHAVIOR.growTime, x: mom.x, y: mom.y + 0.3 });
+}
+
+// Como el jardín zen de KureiChaosChess: gestos de cuidado. Rociar sube la humedad un rato (con espera) y
+// de la rama caen hojas que se recogen a mano como hojarasca.
+export function mist(home) {
+  if (home.mistCd > 0) return false;
+  home.mist = ZEN.mistTime; home.mistCd = ZEN.mistCooldown;
+  return true;
+}
+function dropLeaf(home, dt, rng) {
+  if ((home.leafT = (home.leafT ?? 0) + dt) < ZEN.leafEvery) return;
+  home.leafT = 0;
+  home.leaves ??= [];
+  if (home.leaves.length >= ZEN.leafMax) return;
+  const g = home.grid;
+  for (let k = 0; k < 30; k++) {
+    const i = Math.floor(rng() * g.w), j = Math.floor(rng() * g.h);
+    if (g.open[j * g.w + i] && g.cells[j * g.w + i] === null) { home.leaves.push({ id: `l${Math.floor(home.clockT)}`, x: i + 0.5, y: j + 0.5, t: 0 }); return; }
+  }
+}
+export function takeLeaf(home, id) {
+  const i = (home.leaves ?? []).findIndex((l) => l.id === id);
+  if (i < 0) return false;
+  home.leaves.splice(i, 1);
+  home.resources.hojarasca = (home.resources.hojarasca ?? 0) + 1;
+  return true;
 }
 
 // Tocar un isópodo: los que pueden se hacen bolita; los demás salen corriendo.

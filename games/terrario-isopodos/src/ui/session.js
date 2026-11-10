@@ -3,7 +3,9 @@
 import { newGame, visit, tickClock, dayPhase, sleep } from '../game/game.js';
 import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
+import { ABERRATIONS } from '../data/aberrations.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -31,6 +33,7 @@ export class Session {
     this.saved = load();
     this.rng = mulberry32(Date.now() % 1e9);
     this.settings = loadSettings();
+    this.meta = loadMeta();
     stage.setFilter(this.settings.filter ?? 'tinta');
     setSound(this.settings.sound !== false, this.settings.volume ?? 'normal');
     setMusic(this.settings.music !== false);
@@ -44,6 +47,26 @@ export class Session {
   }
 
   sfx(name, pitch) { playSfx(name, pitch); }
+  // Logros (como KureiChaosChess): se otorgan en caliente y asoman en un cartel.
+  achieve(id, need) {
+    const a = need ? tally(this.meta, id, need) : award(this.meta, id);
+    saveMeta(this.meta);
+    if (!a) return;
+    this.toastAch = { ...a, at: this.time };
+    this.sfx('win');
+  }
+  // Galería de especies, crías y coleccionista: se mira la colonia una vez por segundo.
+  trackColony() {
+    if ((this.colonyT = (this.colonyT ?? 0) + 1) % 60) return;
+    const isos = this.game.home.isopods, kinds = new Set(isos.map((i) => i.shell));
+    let fresh = false;
+    for (const k of kinds) if (!this.meta.species[k]) { this.meta.species[k] = true; fresh = true; }
+    if (fresh) saveMeta(this.meta);
+    if (kinds.size >= 5) this.achieve('species5');
+    if (isos.some((i) => i.baby > 0)) this.achieve('baby');
+  }
+  closeGallery() { if (this.back?.mode === 'menu') this.goMenu(); else this.setMode(this.back?.mode ?? 'menu', this.view, 0); }
+  goGallery() { this.back = { mode: this.mode }; this.setMode('gallery', this.view, 0); this.stage.setScene(this.view?.group ?? new Group(), this.view?.camera); }
   floatText(text, x, z, kind = 'note', y) { this.fx.push({ id: Math.random(), text, x, z, y, kind, at: this.time }); }
   // Temblor solo si los ajustes lo permiten.
   shake(amount) { if (this.settings.shake !== false && !this.settings.reduceMotion) this.stage.shake(amount); }
@@ -80,7 +103,7 @@ export class Session {
     else if (this.mode === 'gather') this.endGather();
     else this.goHome();
   }
-  sleep() { sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }
+  sleep() { this.achieve('sleep'); sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }
 
   newGame() { this.game = newGame(); this.persist(); this.goHome(); }
   continueGame() { this.game = this.saved; fitGrid(this.game.home); this.goHome(); }
@@ -124,6 +147,7 @@ export class Session {
     }
     if (!build(this.game.home, b.type, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
     this.sfx('build');
+    this.achieve('build');
     {
       const f = footprint(b.type, b.rot), bd = BUILDINGS[b.type], w = this.view.toWorld(b.i + f.w / 2, b.j + f.h / 2);
       this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); this.shake(0.1);
@@ -137,8 +161,17 @@ export class Session {
   tapHome(cell) {
     const home = this.game.home;
     // Primero lo vivo: una muda para recoger o un isópodo al que tocar (bolita o huida).
+    const leaf = (home.leaves ?? []).find((l) => Math.hypot(l.x - cell.x, l.y - cell.y) < 0.7);
+    if (leaf && takeLeaf(home, leaf.id)) {
+      const w = this.view.toWorld(leaf.x, leaf.y);
+      this.sfx('pickup'); this.view.burst('pickup', leaf.x, leaf.y);
+      this.floatText(`+1 ${RESOURCES.hojarasca.name}`, w.x, w.z, 'gain');
+      this.persist(); this.emit();
+      return { res: 'hojarasca', n: 1 };
+    }
     const molt = (home.molts ?? []).find((m) => Math.hypot(m.x - cell.x, m.y - cell.y) < 0.7);
     if (molt && takeMolt(home, molt.id)) {
+      this.achieve('molt');
       const w = this.view.toWorld(molt.x, molt.y);
       this.sfx('pickup'); this.view.burst('pickup', molt.x, molt.y);
       this.floatText(`+1 ${RESOURCES.cal.name}`, w.x, w.z, 'gain');
@@ -151,6 +184,7 @@ export class Session {
     if (iso) {
       const what = poke(home, iso, cell), w = this.view.toWorld(iso.x, iso.y);
       this.sfx(what === 'ball' ? 'roll' : 'click');
+      if (what === 'ball') this.achieve('ball');
       this.floatText(what === 'ball' ? t('home.ball', '¡Bolita!') : what === 'molting' ? t('home.molting', 'Mudando…') : t('home.run', '¡Corre!'), w.x, w.z, 'note', 1.2);
       this.emit();
       return { poked: iso.id };
@@ -177,6 +211,16 @@ export class Session {
     this.floatText(`+${n} ${RESOURCES[BUILDINGS[piece.type].produces.res].name}`, w.x, w.z, 'gain');
     this.persist(); this.emit();
     return { res: BUILDINGS[piece.type].produces.res, n };
+  }
+  mist() {
+    const home = this.game.home;
+    if (!mist(home)) { this.sfx('hurt', 1.6); return false; }
+    this.sfx('heal', 1.3); this.achieve('mist');
+    const c = home.grid.w / 2;
+    for (let k = 0; k < 5; k++) this.view.burst('heal', c - 3 + Math.random() * 6, c - 3 + Math.random() * 6);
+    this.floatText(t('home.misted', '+ humedad'), 0, 0, 'gain', 1.6);
+    this.persist(); this.emit();
+    return true;
   }
   selectIso(id) {
     this.selIso = id ?? null; this.selPiece = null;
@@ -210,6 +254,7 @@ export class Session {
     if (!upgradePiece(home, id)) { this.sfx('hurt', 1.6); return false; }
     const f = footprint(p.type, p.rot), w = this.view.toWorld(p.x + f.w / 2, p.y + f.h / 2);
     this.sfx('heal'); this.view.burst('heal', p.x + f.w / 2, p.y + f.h / 2); this.shake(0.12);
+    this.achieve('upgrade'); if (p.level >= 3) this.achieve('maxed');
     this.floatText(`${BUILDINGS[p.type].name} · ${t('home.level', 'nivel')} ${p.level}`, w.x, w.z, 'gain', 1.4);
     this.persist(); this.emit();
     return true;
@@ -224,7 +269,7 @@ export class Session {
     return true;
   }
   upgradeLayer(id) { const ok = upgradeLayer(this.game.home, id); if (ok) this.persist(); this.emit(); return ok; }
-  expandHome() { const ok = expand(this.game.home); if (ok) this.persist(); this.emit(); return ok; }
+  expandHome() { const ok = expand(this.game.home); if (ok) { this.persist(); this.achieve('expand'); this.sfx('build'); this.shake(0.2); } this.emit(); return ok; }
 
   // ——— Recolección ———
   startGather(island, isoId) {
@@ -235,12 +280,14 @@ export class Session {
     view.onPick = (n) => {
       const w = view.toWorld(n.x, n.y);
       this.sfx(n.lost ? 'heal' : 'pickup', 0.9 + Math.random() * 0.25);
+      if (n.lost) this.achieve('rescue'); else if (n.res === 'ambar' && n.h >= 2) this.achieve('top');
       this.floatText(n.lost ? t('gather.found', '¡Encontrado!') : `+1 ${RESOURCES[n.res].name}`, w.x, w.z, 'gain', 1);
     };
     this.setMode('gather', view, WEATHER_MOOD[island.weather], island.weather);
   }
   endGather() {
     const g = this.gather, loot = gatherLoot(g);
+    if (!g.falls && Object.keys(g.got).length) this.achieve('nofall');
     for (const [r, n] of Object.entries(loot)) this.game.home.resources[r] = (this.game.home.resources[r] ?? 0) + n;
     if (g.rescued) recruit(this.game.home, this.rng);
     visit(this.game, g.island.id);
@@ -264,11 +311,16 @@ export class Session {
   // Puerta del piso: otra sala (pelea, botín, carta o reliquia).
   enterRoom(id) {
     if (!enterRoom(this.run, id)) return;
+    const room = this.run.floor?.rooms[id];
+    if (room && !room.main && room.visits !== true) { room.visits = true; this.achieve('side', 3); }
+    if (this.run.last?.type === 'reliquia' && this.run.last.card) this.achieve('relic');
     this.sfx('open');
     this.afterRoom();
   }
   afterRoom() {
     if (this.run.state === 'combat') {
+      for (const k of this.run.encounter.enemies) this.meta.seen[k] = true;
+      saveMeta(this.meta);
       const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
       this.combo = null; this.cleared = null; this.hurtAt = null; this.slowmo = 0;
       this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg } });
@@ -330,7 +382,7 @@ export class Session {
     if (input.turn) this.stage.rotate(input.turn * dt * 1.6);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
-    else if (this.mode === 'home') { tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
+    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air;
       tickGather(g, dt, input.move, input.roll);
@@ -344,7 +396,8 @@ export class Session {
     if (this.fx.length) this.fx = this.fx.filter((f) => this.time - f.at < 0.9);
     this.stage.render(this.time, dt);
     this.hudTimer = (this.hudTimer ?? 0) + dt;
-    if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }
+    if (this.toastAch && this.time - this.toastAch.at < 3.4) this.hudTimer += 0.1; // que el cartel se vaya a tiempo
+    if (this.hudTimer > 0.08 && (this.toastAch || this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -365,7 +418,7 @@ export class Session {
         this.view.burst(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', ev.id);
         this.sfx(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', 0.9 + Math.random() * 0.2);
         this.fx.push({ id: Math.random(), x: a.x, z: a.y, text: ev.amount, kind: a.side, at: this.time, big: ev.staggered });
-        if (a.side === 'enemy') this.combo = { n: this.combo && this.time - this.combo.at < 1.4 ? this.combo.n + 1 : 1, at: this.time };
+        if (a.side === 'enemy') { this.combo = { n: this.combo && this.time - this.combo.at < 1.4 ? this.combo.n + 1 : 1, at: this.time }; if (this.combo.n >= 10) this.achieve('combo10'); }
         else this.hurtAt = this.time;
         if (!this.settings.reduceMotion) {
           if (a.side === 'enemy') { this.hitstop = ev.staggered ? 0.09 : 0.05; this.shake(ev.amount >= 20 ? 0.3 : 0.08); }
@@ -376,6 +429,9 @@ export class Session {
         this.view.burst('death', ev.id); this.sfx('death');
         const foe = c.actors.find((x) => x.id === ev.id);
         if (foe?.side === 'enemy') {
+          this.meta.beaten[foe.kind] = (this.meta.beaten[foe.kind] ?? 0) + 1; saveMeta(this.meta);
+          const role = ABERRATIONS[foe.kind].role;
+          if (role === 'elite') this.achieve('elite'); else if (role === 'jefe') this.achieve('boss');
           const last = !c.actors.some((x) => x.side === 'enemy' && x.hp > 0);
           if (!this.settings.reduceMotion) { this.slowmo = last ? 0.7 : 0.22; this.shake(last ? 0.5 : 0.3); }
           if (last) { this.cleared = this.time; this.sfx('win'); for (let k = 0; k < 3; k++) this.stage.pixfx.spawn('pickup', foe.x + (k - 1) * 0.8, 0, foe.y + (k % 2) * 0.5); }

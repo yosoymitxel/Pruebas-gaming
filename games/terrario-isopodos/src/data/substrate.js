@@ -20,6 +20,7 @@ export const HUMIDITY = {
   base: 0.4,
   weather: { claro: -0.05, niebla: 0.05, lluvia: 0.15 },
   pieces: { charca: 0.18, huerto: 0.05, esfagno: 0.12, corcho: 0.02, tronco: 0.03 },
+  mist: 0.15, // rociar (dura ZEN.mistTime y se va apagando)
   perGrava: 0.05, // la grava deja subir el techo sin encharcar
   dry: 0.45, wet: 0.8, flood: 0.9,
 };
@@ -32,3 +33,6 @@ export const CLIMATES = localize('climates', {
   humedo: { name: 'Muy húmedo', desc: 'Al borde del moho.', fix: { layer: 'carbon' }, prodMul: 1, hungerMul: 1, calm: 0 },
   moho: { name: 'Moho', desc: 'Baja producción y calma.', fix: { layer: 'carbon', less: 'charca' }, prodMul: 0.75, hungerMul: 1.1, calm: -0.2 },
 });
+
+// Gestos de cuidado (como el jardín zen de KureiChaosChess), en segundos de juego.
+export const ZEN = { mistTime: 120, mistCooldown: 40, leafEvery: 35, leafMax: 4 };

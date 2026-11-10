@@ -141,7 +141,6 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .layers li { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; }
 .layers p { margin: 2px 0 0; font-size: 13px; opacity: 0.8; }
 .swatch { width: 18px; height: 18px; border: 1.5px solid var(--ink); border-radius: 3px; }
-.climate-chip { font: 700 18px/1 var(--hand); background: var(--paper); border: var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; pointer-events: auto; color: var(--ink); }
 @media (max-width: 560px) { .comp-side { grid-template-columns: 96px 1fr; } .cross { width: 96px; } .layers li { grid-template-columns: 18px 1fr; } .layers li .btn, .layers li > small { grid-column: 2; justify-self: start; } }
 
 /* Menú: logo arriba a la izquierda, lista vertical debajo; el diorama vivo a la derecha (abajo en móvil). */
@@ -390,7 +389,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   h2 { font-size: 24px; }
   .resources { gap: 2px 8px; padding: 4px 8px; font-size: 13px; }
   .res-icon { width: 18px; height: 18px; }
-  .hud-bottom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 44px; gap: 4px; width: auto; }
+  .hud-bottom { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 44px; gap: 4px; width: auto; }
   .hud-bottom .btn span { text-align: center; line-height: 1.1; }
   .hud-bottom .long { display: none; }
   .hud-bottom .short { display: inline; }
@@ -572,6 +571,38 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .gather-pad { grid-template-areas: 'attack'; grid-template-columns: auto; }
 .gather .hint.floating { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 100px); max-width: min(80vw, 420px); }
 
+/* Galería y logros */
+.gallery .tabs { margin: 0 auto 10px; width: min(100%, 480px); }
+.gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; align-content: start; }
+.gal-card { display: grid; gap: 4px; padding: 12px; text-align: left; animation: lift 240ms var(--ease-out) both; }
+.gal-card img { width: 100%; height: 110px; object-fit: contain; }
+.gal-card h3 { margin: 0; font: 700 24px/1 var(--hand); }
+.gal-card p { margin: 0; font-size: 13px; }
+.gal-card.unseen img { filter: brightness(0) opacity(0.55); }
+.ach-group { grid-column: 1 / -1; }
+.ach { display: flex; gap: 10px; align-items: center; padding: 6px 0; opacity: 0.45; }
+.ach.got { opacity: 1; }
+.ach span:last-child { display: grid; } .ach small { opacity: 0.75; }
+.ach-ico { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); }
+.ach.got .ach-ico, .ach-toast .ach-ico { background: var(--amber); }
+.ach-toast { position: fixed; z-index: calc(var(--z-modal) + 1); top: max(12px, env(safe-area-inset-top)); left: 50%; translate: -50% 0; display: flex; gap: 10px; align-items: center;
+  padding: 8px 18px 8px 10px; background: var(--ink); color: var(--paper); border: 2px solid var(--amber); border-radius: 999px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+  pointer-events: none; animation: toast 3.2s var(--ease-out) both; }
+.ach-toast span:last-child { display: grid; } .ach-toast small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); }
+.ach-toast b { font: 700 22px/1 var(--hand); }
+@keyframes toast { 0% { opacity: 0; transform: translateY(-30px) scale(0.9); } 10% { opacity: 1; transform: none; } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-20px); } }
+@media (prefers-reduced-motion: reduce) { .ach-toast, .gal-card { animation: none; } }
+
+/* Medidor de humedad (sin texto): franjas de color semántico y aguja */
+.gauge { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; pointer-events: auto; }
+.gauge .track { position: relative; width: 110px; height: 10px; border: 1.5px solid var(--ink); border-radius: 5px; overflow: hidden; }
+.gauge .track i { position: absolute; top: 0; bottom: 0; }
+.gauge .z-seco { background: var(--sem-hambre); } .gauge .z-ideal { background: var(--sem-vida); } .gauge .z-humedo { background: var(--sem-calma); } .gauge .z-moho { background: var(--sem-peligro); }
+.gauge .needle { position: absolute; top: -3px; bottom: -3px; width: 4px; translate: -50% 0; background: var(--ink); border-radius: 2px; box-shadow: 0 0 0 1.5px var(--paper); transition: left 400ms var(--ease-out); }
+.gauge-moho { animation: pulse 1.4s ease-in-out infinite; } .gauge-seco { animation: pulse 2s ease-in-out infinite; }
+.calm { display: flex; align-items: center; gap: 6px; }
+.calm .bar { width: 110px; }
+@media (prefers-reduced-motion: reduce) { .gauge-moho, .gauge-seco { animation: none; } }
 /* Piel: angulosa como los menús de Persona 3/5, sin esquinas redondas. Los botones son dos recortes en capas
    (losa de tinta detrás, cara delante) con cuadriláteros asimétricos que se tuercen y tiemblan al tocarlos. Los
    paneles son papel traslúcido con esquinas cortadas (clip-path: no rompe el scroll). Acento: verde de charca.
@@ -583,13 +614,13 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   --cut-s: polygon(0 4px, 4px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
   --q1: polygon(0.6% 0, 100% 3%, 99.2% 100%, 0 96%); --q2: polygon(0 3.5%, 99.4% 0, 100% 97%, 0.8% 100%);
   --q3: polygon(1% 1.5%, 100% 0, 99% 98.5%, 0 100%); --q4: polygon(0 0, 99% 4%, 100% 100%, 0.6% 97%); }
-.drawer, .panel, .hud-bottom, .resources, .note, .build-bar, .toast, .hint.floating, .climate-chip, .menu-item, .node-preview,
+.drawer, .panel, .hud-bottom, .resources, .note, .build-bar, .toast, .hint.floating, .climate-chip, .gauge, .menu-item, .node-preview,
 .party-mini > div, .run-bar, .tactic-menu, .boss-card, .member, .pause-btn, .settings, .cam-controls, .chip {
   --paper: var(--ui-bg); --line: 1px solid var(--ui-edge); color: var(--ui-fg); }
 .drawer, .panel, .note, .node-preview, .tactic-menu, .boss-card, .reward, .panel.pause, .panel.set-card {
   background: var(--ui-bg) !important; backdrop-filter: blur(8px); border: 0 !important; border-radius: 0 !important; border-image: none !important;
   clip-path: var(--cut); box-shadow: inset 4px 0 0 var(--ui-fg) !important; padding: var(--s3) var(--s4) var(--s4) calc(var(--s3) + 4px) !important; }
-.resources, .climate-chip, .party-mini > div, .run-bar, .build-bar, .toast, .hint.floating, .member, .chip {
+.resources, .climate-chip, .gauge, .party-mini > div, .run-bar, .build-bar, .toast, .hint.floating, .member, .chip {
   background: var(--ui-bg) !important; backdrop-filter: blur(6px); border: 0 !important; border-radius: 0 !important; border-image: none !important;
   clip-path: var(--cut-s); box-shadow: inset 3px 0 0 var(--ui-fg) !important; }
 .hud-bottom { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; gap: var(--s2); clip-path: none; }
@@ -759,7 +790,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .layers li .lv { opacity: 0.6; font-variant-numeric: tabular-nums; }
 .layers li.fix-target { background: rgb(194 65 47 / 0.14); box-shadow: inset 0 0 0 1px rgb(194 65 47 / 0.55); }
 .layers p { margin: 0; }
-@media (prefers-reduced-motion: reduce) { .climate-chip, .layers li.fix-target { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .climate-chip, .gauge, .layers li.fix-target { animation: none !important; } }
 .cost { white-space: nowrap; flex-wrap: nowrap !important; }
 @media (hover: none) { .member kbd { display: none; } }
 .combat .member .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

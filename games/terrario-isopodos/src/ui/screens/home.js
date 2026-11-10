@@ -9,13 +9,26 @@ import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { ColonyList, IsoHub } from './colony.js';
 import { pieceThumb } from '../../view/thumbs.js';
-import { CLIMATES } from '../../data/substrate.js';
+import { CLIMATES, HUMIDITY } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
 
 const drag = { x: 0, y: 0, moved: false, down: false };
 const half = (cost) => Object.fromEntries(Object.entries(cost).map(([r, n]) => [r, Math.floor(n / 2)]).filter(([, n]) => n > 0));
 // Lo que gana una pieza al subir de nivel (game/home.js: producción +35 % por nivel, camas por nivel).
 const gainOf = (b) => (b.produces ? `+35 % ${RESOURCES[b.produces.res].name.toLowerCase()}` : b.beds ? `+${b.beds} ${t('home.beds', 'camas')}` : b.calm ? `+${t('home.calm', 'calma')}` : '');
+
+// Medidor de humedad: franjas seco · ideal · húmedo · moho con una aguja; se entiende sin leer.
+const ZONES = [['seco', HUMIDITY.dry], ['ideal', HUMIDITY.wet], ['humedo', HUMIDITY.flood], ['moho', 1]];
+const CLIMATE_ICON = { seco: 'refugio', ideal: 'leaf', humedo: 'items', moho: 'nido' };
+function HumidityGauge({ home, onClick }) {
+  const h = humidity(home), kind = climate(home);
+  let from = 0;
+  return html`<button class=${`gauge gauge-${kind}`} onClick=${onClick} aria-label=${`${CLIMATES[kind].name} · ${Math.round(h * 100)} %`} title=${CLIMATES[kind].desc}>
+    <${Icon} name=${CLIMATE_ICON[kind]} size="18" />
+    <span class="track">${ZONES.map(([z, to]) => { const el = html`<i class=${`z-${z}`} style=${{ left: `${from * 100}%`, width: `${(to - from) * 100}%` }}></i>`; from = to; return el; })}
+      <b class="needle" style=${{ left: `${Math.min(1, h) * 100}%` }}></b></span>
+  </button>`;
+}
 
 export function Home({ s }) {
   const home = s.game.home;
@@ -56,8 +69,7 @@ export function Home({ s }) {
       <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
           onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
         <div class="calm"><h2>${t('home.title', 'Tu terrario')}</h2><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div></div>
-      <button class=${`climate-chip clim-${climate(home)}`} onClick=${() => toggle('comp')} aria-label=${`${CLIMATES[climate(home)].name} · ${t('home.humidity', 'Humedad')}`}>
-        <${Icon} name="items" size="16" />${Math.round(humidity(home) * 100)} %</button>
+      <${HumidityGauge} home=${home} onClick=${() => toggle('comp')} />
       <${Resources} have=${home.resources} />
     </header>
 
@@ -101,6 +113,7 @@ export function Home({ s }) {
     <nav class="hud-bottom">
       <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> <span>${t('home.build', 'Construir')}</span></button>
       <button class=${`btn${panel === 'comp' ? ' active' : ''}`} onClick=${() => toggle('comp')}><${Icon} name="layers" /> <span>${t('home.terrarium', 'Terrario')}</span></button>
+      <button class="btn" disabled=${home.mistCd > 0} onClick=${() => s.mist()} aria-label=${t('home.mist', 'Rociar')}><${Icon} name="items" /> <span>${home.mistCd > 0 ? `${Math.ceil(home.mistCd)} s` : t('home.mist', 'Rociar')}</span></button>
       <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> <span>${t('home.colony', 'Colonia')}</span></button>
       <button class="btn primary" aria-label=${t('home.out', 'Archipiélago')} onClick=${() => s.goArchipelago()}><${Icon} name="out" /> <span class="long">${t('home.out', 'Archipiélago')}</span><span class="short">${t('home.outShort', 'Islas')}</span></button>
       <button class="btn ghost icon" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>

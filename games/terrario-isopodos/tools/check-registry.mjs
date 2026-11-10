@@ -11,6 +11,7 @@ import { CARDS } from '../src/data/cards.js';
 import { BIOMES, WEATHERS, NODE_TYPES, ISLAND_KINDS, VESSELS, VESSEL_BY_KIND } from '../src/data/world.js';
 import { PALETTES } from '../src/data/palettes.js';
 import { SPECIES } from '../src/data/species.js';
+import { ACHIEVEMENTS, ACHIEVEMENT_GROUPS } from '../src/data/achievements.js';
 
 import { PROC_SPRITES } from '../src/view/sprites.js';
 import { ICONS } from '../src/ui/icons.js';
@@ -84,6 +85,13 @@ export function checkRegistry() {
     for (const [, n] of text.matchAll(/name="([a-zA-Z]+)"/g)) if (!ICONS[n]) fail(`${rel}: icono "${n}" no existe`);
   }
 
+  // Logros: cada uno con grupo e icono válidos y otorgado en algún sitio (como en KureiChaosChess).
+  const session = readFileSync(new URL('../src/ui/session.js', import.meta.url), 'utf8');
+  for (const a of ACHIEVEMENTS) {
+    if (!ACHIEVEMENT_GROUPS.includes(a.group)) fail(`logro ${a.id}: grupo ${a.group} desconocido`);
+    if (!ICONS[a.icon]) fail(`logro ${a.id}: icono ${a.icon} no existe`);
+    if (!session.includes(`achieve('${a.id}'`)) fail(`logro ${a.id}: nadie lo otorga`);
+  }
   const keys = Object.keys(PALETTES.cozy).sort().join();
   for (const [id, p] of Object.entries(PALETTES)) {
     if (Object.keys(p).sort().join() !== keys) fail(`paleta ${id}: no tiene los mismos tokens que cozy`);
