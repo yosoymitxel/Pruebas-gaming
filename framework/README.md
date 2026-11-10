@@ -1,39 +1,65 @@
-# Game Quality Framework
+# Método
 
-Este directorio define el contrato operativo del framework. No es una lista pasiva de skills: fija fases, filtros obligatorios, criterios de salida y evidencias exigidas.
+Cómo se hace un juego en este repo. La plantilla (`games/_plantilla/`) ya cumple todo esto; el terrario de
+isópodos es el ejemplo grande.
 
-## Principio de funcionamiento
-Las skills aportan procedimientos especializados; el framework controla el orden, las decisiones y las puertas de calidad. Una skill no puede saltarse una puerta ni declarar aprobado su propio trabajo sin evidencia.
+## Estructura de un juego
 
-## Pipeline obligatorio
+```
+games/<id>/
+  index.html            entrada (Vite)
+  src/data/             registros: lo que crece (enemigos, objetos, mapas, paleta, textos base)
+  src/game/             lógica pura: reglas, combate, guardado. Se prueba en Node
+  src/core/             utilidades sin juego: PRNG con semilla, física 2D
+  src/view/             Three.js + pase de tinta: dibuja el estado, nunca decide
+  src/ui/               Preact + htm: sesión (bucle y pantallas), entrada, iconos, estilos
+  tools/                check-registry (registros completos), smoke (recorrido en navegador), selfchecks
+  tests/                node --test
+  README.md AGENTS.md DESIGN.md docs/PLAN.md
+```
 
-INTAKE → INSPECT → PLAN → IMPLEMENT → CODE_GATE → GAMEPLAY_GATE → DESIGN_GATE → INTEGRATION_GATE → REPORT
+**Reglas que hacen fácil crecer**
 
-Las puertas se aplican según el alcance, pero **Código, Gaming y Diseño siempre tienen un filtro de calidad**. Si una dimensión no cambia, se registra como NOT_APPLICABLE con motivo; nunca se omite silenciosamente.
+- Contenido nuevo = una entrada en `src/data/`. `tools/check-registry.mjs` falla si queda a medias (arte que
+  no existe, coste con un recurso inventado, icono sin dibujar). Amplíalo con cada registro.
+- Una sola fuente de verdad: `game/` decide; `view/` y `ui/` leen. Ninguna animación decide un golpe o una victoria.
+- Colores solo en `palettes.js` (la UI los recibe como tokens CSS); textos por `t()`; iconos en `ui/icons.js`.
+- Archivos < 400 líneas; se parten por responsabilidad.
 
-1. Intake: convertir la petición en requisitos y criterios de aceptación comprobables.
-2. Inspect: revisar repo, arquitectura, instrucciones, assets, dependencias, estado Git y pruebas actuales.
-3. Plan: elegir skills según la matriz de tareas; explicar qué aporta cada una y definir pruebas antes de tocar código.
-4. Implement: ejecutar cambios pequeños y conservar mecánicas y assets existentes salvo necesidad justificada.
-5. Code gate: lint/tests/build relevantes, errores, seguridad de dependencias y revisión del diff.
-6. Gameplay gate: comprobar flujo real, reglas, controles, estados, reinicio, victoria/derrota y errores de consola que correspondan.
-7. Design gate: comprobar jerarquía, consistencia, legibilidad, estados, accesibilidad y responsive; capturas reales para cambios visuales.
-8. Integration gate: verificar que la solución funciona en conjunto y que no rompe sistemas existentes.
-9. Report: registrar pruebas ejecutadas, evidencia, resultado por puerta y riesgos pendientes.
+## Sistemas base (ya en la plantilla)
 
-## Estados permitidos
-- PASS: criterio satisfecho con evidencia.
-- FAIL: hay un fallo reproducible; no se aprueba la entrega.
-- BLOCKED: no se pudo comprobar por falta de entorno, credenciales o herramienta.
-- NOT_APPLICABLE: no corresponde al alcance y hay una justificación escrita.
+| Sistema | Dónde |
+|---|---|
+| Menú, pantallas, pausa | `ui/app.js`, `ui/session.js` |
+| Bucle con `dt` acotado | `Session.frame` |
+| Entrada: teclado, palanca táctil, cámara relativa | `ui/input.js` |
+| Cámara de diorama que gira y acerca | `view/stage.js` |
+| Estilo a tinta y filtros (tinta, CRT, papel viejo) | `view/ink.js` |
+| Guardado validado y versionado | `game/save.js` |
+| Ajustes persistentes | `Session.setSetting` |
+| Idiomas | `i18n/index.js` (`t`, `localize`) |
+| Iconografía | `ui/icons.js` |
+| Movimiento reducido | CSS + ajuste |
 
-Un build exitoso no equivale a juego funcional. Una captura no demuestra que la interacción funcione. Una revisión de código no demuestra que el resultado visual sea correcto.
+Del terrario se pueden copiar cuando hagan falta: combate en tiempo real con ATB y pausa táctica
+(`src/game/combat.js` + piloto automático y selfcheck), rejilla con colisiones (`grid.js`), mapas por capas
+(`dungeon.js`), efectos de tinta y clima (`view/vfx.js`), recipientes y dioramas (`view/vessel.js`,
+`view/island.js`), fondo vivo (`view/backdrop.js`).
 
-## Contratos por dimensión
-- [Orquestación](ORCHESTRATION.md)
-- [Puertas de calidad](QUALITY-GATES.md)
-- [Perfiles de tarea](TASK-PROFILES.md)
-- [Formato de informe](REPORT-TEMPLATE.md)
+## Flujo de trabajo
 
-## Extensibilidad
-Los perfiles declaran skills sugeridas y pruebas mínimas. Las skills externas se leen completas cuando se activan. Si dos skills se contradicen, prevalece este contrato del framework, luego los requisitos del proyecto y después la recomendación más específica y verificable.
+1. Escribe en `docs/PLAN.md` qué se decide y qué queda (corto; se reescribe, no se acumula).
+2. Datos primero (`src/data/`), luego lógica con pruebas (`src/game/`, `tests/`), luego vista e interfaz.
+3. Si hay combate o reto, un selfcheck que juegue solo y demuestre que es vencible y no trivial.
+4. `npm test`, `npm run check`, `npm run smoke` (PC 1280×800 y móvil 360×800) y mirar las capturas.
+5. Commit pequeño y claro; PR a `main`.
+
+## Skills por tarea
+
+| Tarea | Skill o referencia |
+|---|---|
+| Arrancar o auditar un juego | `.agents/skills/game-project-orchestrator`, `game-project-skeleton` |
+| Código mínimo y limpio | ponytail, antislop |
+| Interfaz y accesibilidad | impeccable, taste, web-design-guidelines, emil-design-eng |
+| Sensación de juego, cámara, IA | awesome-gamedev-agent-skills (`game-feel`, `camera-systems`, `game-ai`) |
+| Arte, VFX, iconos | `docs/CATALOGO.md` (pixelfx, svgsilh, claude-pxl, dioramas) |

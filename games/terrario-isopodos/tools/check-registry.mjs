@@ -8,9 +8,11 @@ import { ABERRATIONS, ROLES } from '../src/data/aberrations.js';
 import { ABILITIES, ITEMS } from '../src/data/abilities.js';
 import { CLASSES, SHELLS } from '../src/data/isopods.js';
 import { CARDS } from '../src/data/cards.js';
-import { BIOMES, WEATHERS, NODE_TYPES, ISLAND_KINDS } from '../src/data/world.js';
+import { BIOMES, WEATHERS, NODE_TYPES, ISLAND_KINDS, VESSELS, VESSEL_BY_KIND } from '../src/data/world.js';
 import { PALETTES, SHELL_COLORS } from '../src/data/palettes.js';
 import { PROC_SPRITES } from '../src/view/sprites.js';
+import { ICONS } from '../src/ui/icons.js';
+import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES } from '../src/data/substrate.js';
 
 const ATTACK_KINDS = ['slash', 'charge', 'scream', 'stomp', 'grab', 'summon'];
 const ABILITY_KINDS = ['strike', 'burst', 'heal', 'shield', 'taunt'];
@@ -51,6 +53,19 @@ export function checkRegistry() {
     for (const r of b.loot) if (!RESOURCES[r]) fail(`bioma ${id}: botín "${r}" no es un recurso`);
     for (const k of ['boss', 'elite']) if (!ABERRATIONS[b[k]]) fail(`bioma ${id}: ${k} "${b[k]}" no existe`);
   }
+  for (const [id, n] of Object.entries(NODE_TYPES)) if (!ICONS[n.icon]) fail(`nodo ${id}: icono "${n.icon}" no existe`);
+  for (const k of Object.keys(ISLAND_KINDS)) {
+    if (!ICONS[k]) fail(`isla ${k}: sin icono`);
+    for (const v of VESSEL_BY_KIND[k] ?? []) if (!VESSELS[v]) fail(`isla ${k}: recipiente "${v}" no existe`);
+  }
+  for (const [id, l] of Object.entries(LAYERS)) {
+    if (!l.name || !l.desc) fail(`capa ${id}: falta nombre o descripción`);
+    l.costs.forEach((c, i) => costs(`capa ${id} nivel ${i + 1}`, c));
+    if (!(id in START_LAYERS)) fail(`capa ${id}: sin nivel inicial`);
+  }
+  for (const id of Object.keys(HUMIDITY.pieces)) if (!BUILDINGS[id]) fail(`humedad: pieza "${id}" no existe`);
+  for (const id of Object.keys(HUMIDITY.weather)) if (!WEATHERS[id]) fail(`humedad: clima "${id}" no existe`);
+  for (const id of ['seco', 'ideal', 'humedo', 'moho']) if (!CLIMATES[id]) fail(`clima interior "${id}" sin definir`);
   for (const [id, c] of Object.entries(CARDS)) if (!c.desc || !c.mods) fail(`carta ${id}: falta descripción o efecto`);
 
   const keys = Object.keys(PALETTES.cozy).sort().join();

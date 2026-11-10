@@ -1,55 +1,35 @@
-# Pruebas-gaming — Framework reutilizable para videojuegos
+# Pruebas-gaming — marco para hacer juegos web
 
-El objetivo principal de este repositorio es crear un **framework de trabajo automatizado** que coordine skills de ingeniería, game development y diseño para mejorar la calidad de los juegos web.
+Un sitio con juegos web (Vite + Three.js + Preact) y el marco para crear juegos nuevos rápido y con la misma
+calidad: una plantilla que ya funciona, un generador, reglas cortas y comprobaciones automáticas.
 
-No es una colección pasiva de prompts. El framework define un proceso obligatorio, perfiles de tarea, puertas de calidad, reglas de resolución de conflictos y evidencia necesaria para considerar un trabajo terminado.
+## Crear un juego (3 pasos)
 
-## Empieza aquí
-1. [Instrucciones obligatorias para agentes](AGENTS.md)
-2. [Contrato del framework](framework/README.md)
-3. [Orquestación de skills](framework/ORCHESTRATION.md)
-4. [Puertas obligatorias de calidad](framework/QUALITY-GATES.md)
-5. [Perfiles y selección de skills](framework/TASK-PROFILES.md)
-6. [Esqueleto transversal de videojuegos](framework/BASELINE-VIDEOJUEGO.md)
-7. [Fuente única de verdad y conflictos](framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md)
-8. [Descubrimiento de skills](docs/DESCUBRIMIENTO-SKILLS.md)
-9. [Registro persistente de skills](docs/REGISTRO-SKILLS.md)
-10. [Índice de skills locales](skills/INDEX.md)
-11. [Catálogo de fuentes](docs/CATALOGO.md)
-12. [Catálogo de referencias por contexto](docs/CATALOGO-REFERENCIAS.md)
-13. [Protocolo de evidencia visual actual](docs/EVIDENCIA-VISUAL.md)
-14. [Estándares](docs/ESTANDARES.md)
-15. [Estructura prevista](docs/ESTRUCTURA.md)
-16. [Juego: Terrario de isópodos](games/terrario-isopodos/README.md)
+```sh
+node scripts/new-game.mjs mi-juego "Mi juego"     # copia games/_plantilla y lo añade al catálogo
+cd games/mi-juego && npm install && npm test      # la plantilla ya pasa sus pruebas
+npx vite                                          # ya se juega: menú, partida, pausa, filtros, guardado
+```
 
-El framework compartido vive en `framework/`, `skills/`, `.agents/skills/` y `scripts/`. Cada juego vive de forma independiente en `games/<id-del-juego>/` y contiene su propio `README.md`, `AGENTS.md`, `docs/`, código, assets y pruebas. No guardar documentación específica de un juego en el `docs/` raíz ni modificar skills compartidas para implementar un juego.
+Luego se sustituye la partida de ejemplo por la mecánica real siguiendo [framework/README.md](framework/README.md).
 
-## Filtros obligatorios
-Cada tarea debe registrar resultados para:
-- **CODE_GATE:** calidad técnica, pruebas, seguridad y revisión del diff.
-- **GAMEPLAY_GATE:** reglas, controles, estados y funcionamiento real.
-- **DESIGN_GATE:** coherencia visual, responsive, accesibilidad y animaciones.
-- **INTEGRATION_GATE:** regresión conjunta, assets, build y hosting.
+## Qué hay
 
-Si un filtro no corresponde, debe marcarse NOT_APPLICABLE con una razón. Si no se pudo probar, BLOCKED; nunca se convierte una suposición en PASS.
+| Ruta | Para qué |
+|---|---|
+| `framework/README.md` | El método: estructura de un juego, sistemas base, cómo añadir contenido, cómo probar. |
+| `framework/QUALITY-GATES.md` | Las cuatro puertas que un cambio pasa antes de darse por hecho. |
+| `docs/CATALOGO.md` | Skills, librerías y referencias, ordenadas por necesidad. |
+| `games/_plantilla/` | Juego mínimo completo: la base de cada juego nuevo. |
+| `games/<id>/` | Cada juego, autónomo (código, arte, pruebas y docs propios). |
+| `games/catalog.json` | Lo que publica la portada (`index.html`). |
+| `scripts/` | Generador de juegos y mantenimiento de skills. |
+| `.agents/skills/` | Skills locales del marco (orquestador y esqueleto). |
 
-## Skills versionadas y persistentes
-El repositorio está diseñado para mantener copias locales versionadas en .agents/skills/ y .claude/skills/, con un índice en skills/INDEX.md. Así, los agentes que tengan acceso al checkout pueden leer las skills ya guardadas sin reinstalarlas en cada tarea. Las fuentes externas y su procedencia se registran en sources/manifest.tsv y docs/CATALOGO.md.
+## Juegos
 
-Importante: tener las skills versionadas no hace que un chat nuevo de ChatGPT acceda automáticamente al repositorio. La sesión nueva debe abrir el repo o recibir su enlace/contexto. Cuando el agente ya está trabajando dentro del checkout, debe leer AGENTS.md e INDEX.md primero.
+- [Terrario de isópodos](games/terrario-isopodos/README.md): terror acogedor alrededor de un terrario.
 
-## Instalación y validación de skills
-Requiere Node.js 22.20 o posterior para el instalador actual:
+## Publicación
 
-    bash scripts/install-skills.sh
-    bash scripts/validate-skills.sh
-    bash scripts/index-skills.sh
-
-Para comprobar el framework con una sola ejecución:
-
-    bash scripts/diagnose-framework.sh
-
-La descarga e instalación efectiva de las fuentes externas aún debe ejecutarse y validarse en un entorno con acceso a GitHub. No se considera completa solo por tener un instalador o una entrada en el catálogo.
-
-## Alcance actual
-El framework se usa en `games/terrario-isopodos/` (MVP jugable); su estado y pendientes están en su `docs/PLAN.md`.
+GitHub Pages construye cada juego y publica el sitio desde `main`: https://yosoymitxel.github.io/Pruebas-gaming/

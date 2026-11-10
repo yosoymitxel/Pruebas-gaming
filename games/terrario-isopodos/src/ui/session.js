@@ -1,7 +1,7 @@
 // Sesión de juego: dueña del estado, del bucle y de las transiciones entre pantallas. La interfaz llama
 // a sus métodos y se suscribe con on(); las escenas 3D solo leen.
 import { newGame, visit } from '../game/game.js';
-import { tickHome, collect, build, expand, recruit } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -10,11 +10,13 @@ import { footprint } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
 import { HomeView, GatherView, CombatView } from '../view/scenes.js';
+import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
 import { Group } from 'three';
 
-const SLOW = 0.1;
+// Pausa táctica: «pausa» detiene el tiempo (como por turnos); «lento» lo deja al 10 %.
+const TACTICAL_SPEED = { pausa: 0, lento: 0.1 };
 
 export class Session {
   constructor(stage) {
@@ -24,6 +26,7 @@ export class Session {
     this.saved = load();
     this.rng = mulberry32(Date.now() % 1e9);
     this.settings = loadSettings();
+    stage.setFilter(this.settings.filter ?? 'tinta');
     this.time = 0;
     this.hitstop = 0;
     this.fx = [];
@@ -46,8 +49,12 @@ export class Session {
   continueGame() { this.game = this.saved; this.goHome(); }
   persist() { if (this.game) save(this.game); }
 
-  goHome() { this.build = null; this.setMode('home', new HomeView(this.stage, this.game.home), 0); }
-  goArchipelago() { this.setMode('islands', null, 0.1); }
+  goHome() {
+    this.build = null;
+    this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
+    this.setMode('home', new HomeView(this.stage, this.game.home), 0);
+  }
+  goArchipelago() { this.setMode('islands', new ArchipelagoView(this.stage, this.game), 0.1); }
   goMenu() { this.persist(); this.saved = load(); this.setMode('menu', null, 0); }
 
   // ——— Terrario ———
@@ -77,9 +84,12 @@ export class Session {
     });
     if (!piece) return null;
     const n = collect(home, piece.id);
+    const f = footprint(piece.type, piece.rot);
+    this.view.burst('pickup', piece.x + f.w / 2, piece.y + f.h / 2);
     this.persist(); this.emit();
     return { res: BUILDINGS[piece.type].produces.res, n };
   }
+  upgradeLayer(id) { const ok = upgradeLayer(this.game.home, id); if (ok) this.persist(); this.emit(); return ok; }
   expandHome() { const ok = expand(this.game.home); if (ok) this.persist(); this.emit(); return ok; }
 
   // ——— Recolección ———
@@ -111,7 +121,7 @@ export class Session {
     if (this.run.state === 'combat') {
       this.combat = createCombat(combatSetup(this.run));
       this.tactical = false;
-      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed), 1);
+      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1);
     } else this.emit();
   }
   chooseCard(id) { pickCard(this.run, id); this.emit(); }
@@ -134,7 +144,12 @@ export class Session {
   item(id) { const ok = useItem(this.combat, id); if (ok) this.setTactical(false); return ok; }
   switchTo(id) { switchMain(this.combat, id); this.emit(); }
 
-  setSetting(k, v) { this.settings[k] = v; try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings)); } catch {} this.emit(); }
+  setSetting(k, v) {
+    this.settings[k] = v;
+    if (k === 'filter') this.stage.setFilter(v);
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings)); } catch {}
+    this.emit();
+  }
 
   // ——— Bucle ———
   frame(now) {
@@ -150,7 +165,7 @@ export class Session {
     this.view?.update(this.time, dt);
     this.stage.render(this.time);
     this.hudTimer = (this.hudTimer ?? 0) + dt;
-    if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home')) { this.hudTimer = 0; this.emit(); }
+    if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -161,14 +176,20 @@ export class Session {
     for (const [k, n] of [['p1', 0], ['p2', 1], ['p3', 2]]) if (input[k]) { const a = allies(c)[n]; if (a) switchMain(c, a.id); }
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
     const from = c.events.length;
-    step(c, dt * (this.tactical ? SLOW : 1), this.tactical ? {} : input);
+    step(c, dt * (this.tactical ? TACTICAL_SPEED[this.settings.tactical ?? 'pausa'] : 1), this.tactical ? {} : input);
     for (const ev of c.events.slice(from)) {
       if (ev.type === 'hit') {
         this.view.hit(ev.id);
         const a = c.actors.find((x) => x.id === ev.id);
+        this.view.burst(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', ev.id);
         this.fx.push({ id: Math.random(), x: a.x, z: a.y, text: ev.amount, kind: a.side, at: this.time, big: ev.staggered });
-        if (a.side === 'enemy' && !this.settings.reduceMotion) this.hitstop = 0.05;
-      } else if (ev.type === 'stagger') this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.staggerFx', '¡Aturdida!'), kind: 'note', at: this.time });
+        if (!this.settings.reduceMotion) {
+          if (a.side === 'enemy') this.hitstop = 0.05;
+          if (a.side === 'ally' && ev.heavy) this.stage.shake(0.35);
+        }
+      } else if (ev.type === 'stagger') { this.view.burst('spark', ev.id); if (!this.settings.reduceMotion) this.stage.shake(0.25); this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.staggerFx', '¡Aturdida!'), kind: 'note', at: this.time }); }
+      else if (ev.type === 'death') this.view.burst('death', ev.id);
+      else if (ev.type === 'ability' || ev.type === 'item') this.view.burst(['rocio', 'gota'].includes(ev.ability ?? ev.item) ? 'heal' : 'spark', ev.id);
       else if (ev.type === 'dodge') this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.dodgeFx', 'Esquiva'), kind: 'note', at: this.time });
     }
     this.fx = this.fx.filter((f) => this.time - f.at < 0.9);

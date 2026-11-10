@@ -3,8 +3,11 @@ import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, beds, canAfford, nextExpansion } from '../../game/home.js';
+import { calm, beds, canAfford, nextExpansion, climate, humidity } from '../../game/home.js';
 import { Resources, Cost, Bar, ResIcon, CamControls } from './common.js';
+import { Icon } from '../icons.js';
+import { Composition } from './composition.js';
+import { CLIMATES } from '../../data/substrate.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -37,6 +40,7 @@ export function Home({ s }) {
     <${CamControls} s=${s} />
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
+      <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />
     </header>
@@ -59,6 +63,8 @@ export function Home({ s }) {
       </button>`}
     </section>`}
 
+    ${panel === 'comp' && html`<${Composition} s=${s} say=${say} />`}
+
     ${panel === 'colony' && html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
       <p class="muted">${home.isopods.length} / ${beds(home)} ${t('home.beds', 'camas')}</p>
       ${home.isopods.map((iso) => html`<div class="iso-row">
@@ -69,10 +75,11 @@ export function Home({ s }) {
     </section>`}
 
     <nav class="hud-bottom">
-      <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}>${t('home.build', 'Construir')}</button>
-      <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}>${t('home.colony', 'Colonia')}</button>
-      <button class="btn primary" onClick=${() => s.goArchipelago()}>${t('home.out', 'Salir al archipiélago')}</button>
-      <button class="btn ghost icon" onClick=${() => s.goMenu()} aria-label=${t('ui.menu', 'Menú')}>☰</button>
+      <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> <span>${t('home.build', 'Construir')}</span></button>
+      <button class=${`btn${panel === 'comp' ? ' active' : ''}`} onClick=${() => toggle('comp')}><${Icon} name="layers" /> <span>${t('home.terrarium', 'Terrario')}</span></button>
+      <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> <span>${t('home.colony', 'Colonia')}</span></button>
+      <button class="btn primary" aria-label=${t('home.out', 'Archipiélago')} onClick=${() => s.goArchipelago()}><${Icon} name="out" /> <span class="long">${t('home.out', 'Archipiélago')}</span><span class="short">${t('home.outShort', 'Islas')}</span></button>
+      <button class="btn ghost icon" onClick=${() => s.goMenu()} aria-label=${t('ui.menu', 'Menú')}><${Icon} name="menu" /></button>
     </nav>
   </main>`;
 }

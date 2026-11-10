@@ -16,11 +16,14 @@ Referencia de calidad y organización del código: KureiChaosChess.
   cual; versión voxel, píxel o por recortes, más adelante.
 - Nombre: «Terrario de isópodos».
 
-## Hecho (MVP)
+## Hecho
 
-Terrario (rejilla, piezas, producción, hambre, calma, ampliación) · archipiélago con recolección · nido de 7 capas
-· combate con ATB, rodar, presión y aturdimiento · 4 aberraciones + larva · cartas · guardado · pase de tinta ·
-pruebas en Node y recorrido en navegador (PC y 360×800).
+- Terrario: tanque con rejilla, piezas, producción, hambre, calma, ampliación y **composición** (grava, carbón,
+  tierra, hojarasca) que fija la humedad y el clima interior (seco, ideal, húmedo, moho) con efectos reales.
+- Archipiélago 3D de terrarios y dioramas flotantes; recolección; nido de 7 capas.
+- Combate: ATB, rodar, presión, aturdimiento, retroceso; pausa táctica que detiene el tiempo (o cámara lenta).
+- 4 aberraciones + larva, cartas, guardado. Efectos de tinta, clima visible, fondo vivo, filtros (tinta, CRT,
+  papel viejo), iconos SVG. Pruebas en Node y recorrido en navegador (PC y 360×800).
 
 ## Pendiente
 

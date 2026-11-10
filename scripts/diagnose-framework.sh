@@ -26,12 +26,10 @@ required_files=(
   README.md
   AGENTS.md
   framework/README.md
-  framework/ORCHESTRATION.md
   framework/QUALITY-GATES.md
-  framework/TASK-PROFILES.md
-  framework/REPORT-TEMPLATE.md
   docs/CATALOGO.md
-  docs/ESTANDARES.md
+  games/_plantilla/package.json
+  scripts/new-game.mjs
   .github/workflows/framework-check.yml
   scripts/validate-skills.sh
   scripts/index-skills.sh

@@ -9,4 +9,4 @@ Generado por scripts/index-skills.sh. Detecta archivos locales; no certifica lic
 
 **Total de archivos SKILL.md detectados:** 2
 
-**Skills externas identificadas para revisión, no instaladas localmente:** game-ui-ux, save-systems, input-systems. Consultar docs/DESCUBRIMIENTO-SKILLS.md.
+**Skills externas identificadas para revisión, no instaladas localmente:** game-ui-ux, save-systems, input-systems. Consultar docs/CATALOGO.md.

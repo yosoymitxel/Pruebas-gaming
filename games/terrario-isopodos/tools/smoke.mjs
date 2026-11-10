@@ -36,9 +36,14 @@ await page.getByRole('button', { name: 'Nueva partida' }).click();
 await wait(1500);
 await shot('02-terrario');
 
+await page.getByRole('button', { name: 'Terrario', exact: true }).click();
+await wait(300);
+await shot('03-composicion');
+check(await page.locator('.composition .layers li').count() === 4, 'el panel del terrario muestra sus 4 capas');
+await page.getByRole('button', { name: 'Terrario', exact: true }).click();
 await page.getByRole('button', { name: 'Construir' }).click();
 await wait(300);
-await shot('03-construir');
+await shot('03b-construir');
 await page.getByRole('button', { name: /Piedra plana/ }).click();
 const before = await s(() => Object.keys(window.__terrario.game.home.grid.pieces).length);
 // Celda libre del terrario → posición en pantalla (centro de la celda).
@@ -57,10 +62,10 @@ check(await s(() => Object.keys(window.__terrario.game.home.grid.pieces).length)
 await shot('04-colocar');
 await page.getByRole('button', { name: 'Listo' }).click();
 
-await page.getByRole('button', { name: 'Salir al archipiélago' }).click();
+await page.getByRole('button', { name: 'Archipiélago' }).click();
 await wait(400);
 await shot('05-archipielago');
-await page.locator('.isle-recoleccion').first().click();
+await page.locator('.isle-recoleccion:not(.done) button').first().click();
 await page.locator('.iso-chip').first().click();
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(1200);
@@ -76,8 +81,8 @@ await shot('07-resultado');
 await page.getByRole('button', { name: 'Volver al terrario' }).click();
 await wait(500);
 
-await page.getByRole('button', { name: 'Salir al archipiélago' }).click();
-await page.locator('.isle-nido').first().click();
+await page.getByRole('button', { name: 'Archipiélago' }).click();
+await page.locator('.isle-nido:not(.done) button').first().click();
 for (let k = 0; k < 3; k++) await page.locator('.iso-chip').nth(k).click();
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(600);

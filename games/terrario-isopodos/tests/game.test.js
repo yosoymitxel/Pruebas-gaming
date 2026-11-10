@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mulberry32 } from '../src/core/rng.js';
 import { newGame, visit } from '../src/game/game.js';
-import { build, tickHome, collect, expand, calm, beds } from '../src/game/home.js';
+import { build, tickHome, collect, expand, calm, beds, climate, humidity, upgradeLayer, homeEffects } from '../src/game/home.js';
 import { blocked } from '../src/game/grid.js';
 import { newGather, tickGather, gatherLoot } from '../src/game/gather.js';
 import { genDungeon, nextNodes, LAYERS } from '../src/game/dungeon.js';
@@ -111,4 +111,22 @@ test('guardado: ida y vuelta, y uno corrupto no pisa ni carga', () => {
 
 test('combate: cada aberración es vencible y no es un paseo', () => {
   for (const r of selfcheck(8)) assert.ok(r.ok, `${r.id}: ${JSON.stringify(r)}`);
+});
+
+test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus efectos', () => {
+  const { home } = newGame(21);
+  home.weather = 'claro';
+  assert.equal(climate(home), 'seco', 'sin agua el terrario arranca seco');
+  const dry = homeEffects(home);
+  assert.ok(build(home, 'charca', 4, 9));
+  assert.equal(climate(home), 'ideal');
+  assert.ok(homeEffects(home).prodMul > dry.prodMul && homeEffects(home).hungerMul < dry.hungerMul);
+  home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
+  build(home, 'charca', 6, 9); home.weather = 'lluvia';
+  assert.equal(climate(home), 'moho', 'demasiada agua sin carbón');
+  const calmMoho = calm(home);
+  assert.ok(upgradeLayer(home, 'carbon') && upgradeLayer(home, 'carbon'));
+  assert.equal(climate(home), 'humedo', 'el carbón contiene el moho');
+  assert.ok(calm(home) > calmMoho);
+  assert.ok(humidity(home) <= 1);
 });

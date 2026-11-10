@@ -39,7 +39,15 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 :focus-visible { outline: 3px solid var(--rust); outline-offset: 2px; }
 
+/* Iconos */
+.icon { display: inline-block; vertical-align: -0.3em; flex: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.icon-path { stroke: var(--ink); pointer-events: none; }
+.node.here .icon-path { stroke: var(--paper); }
+.pad { display: grid; place-items: center; }
+
 /* HUD */
+.short { display: none; }
 .hud-top { position: relative; z-index: var(--z-hud); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; pointer-events: none; }
 .title-block { display: grid; gap: 2px; margin-right: auto; }
 .hud-bottom { position: absolute; z-index: var(--z-hud); left: var(--gap); right: var(--gap); bottom: max(var(--gap), env(safe-area-inset-bottom));
@@ -92,6 +100,31 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .hint { font-weight: 600; margin: 4px 0; }
 .hint.floating { position: absolute; z-index: var(--z-hud); bottom: 18px; left: 50%; transform: translateX(-50%); width: max-content; max-width: 90vw; text-align: center; background: var(--paper); border: var(--line); border-radius: var(--radius); padding: 4px 10px; }
 
+/* Composición del terrario */
+.composition { flex-direction: column; flex-wrap: nowrap; max-height: 60vh; }
+.comp-side { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: start; }
+.cross { width: 140px; }
+.cross .vessel { fill: color-mix(in srgb, var(--water) 10%, transparent); stroke: var(--ink); stroke-width: 1.2; }
+.cross .plant { fill: none; stroke: var(--moss); stroke-width: 1.6; stroke-linecap: round; }
+.band { stroke: var(--ink); stroke-width: 0.4; }
+.band-grava { fill: var(--stone); background: var(--stone); }
+.band-carbon { fill: var(--ink); background: var(--ink); }
+.band-tierra { fill: var(--soil); background: var(--soil); }
+.band-hojarasca { fill: var(--amber); background: var(--amber); }
+.comp-stats p { margin: 0 0 8px; }
+.humidity { display: grid; gap: 4px; }
+.hum-bar { position: relative; display: block; height: 10px; border: 1.5px solid var(--ink); border-radius: 5px; overflow: hidden; background: var(--paper); }
+.hum-bar i { position: absolute; inset: 0 auto 0 0; background: var(--water); }
+.hum-bar em { position: absolute; top: 0; bottom: 0; border-left: 1.5px dashed var(--ink); border-right: 1.5px dashed var(--ink); }
+.effects { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
+.effects li { display: grid; grid-template-columns: 90px 1fr; align-items: center; }
+.layers { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.layers li { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; }
+.layers p { margin: 2px 0 0; font-size: 13px; opacity: 0.8; }
+.swatch { width: 18px; height: 18px; border: 1.5px solid var(--ink); border-radius: 3px; }
+.climate-chip { font: 700 18px/1 var(--hand); background: var(--paper); border: var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; pointer-events: auto; color: var(--ink); }
+@media (max-width: 560px) { .comp-side { grid-template-columns: 96px 1fr; } .cross { width: 96px; } .layers li { grid-template-columns: 18px 1fr; } .layers li .btn, .layers li > small { grid-column: 2; justify-self: start; } }
+
 /* Menú */
 .menu { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 24px; padding: 6vh 6vw; background: var(--paper); pointer-events: auto; }
 .menu-art { width: 100%; max-height: 80vh; object-fit: contain; }
@@ -106,21 +139,12 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 }
 
 /* Archipiélago */
-.islands { background: var(--paper); pointer-events: auto; }
-.sea { position: absolute; inset: 70px 0 0 0; width: 100%; height: calc(100% - 70px); }
-.isle .glass { fill: color-mix(in srgb, var(--water) 14%, transparent); stroke: var(--ink); stroke-width: 0.5; }
-.isle .soil { fill: var(--soil); }
-.isle .soil.dark { fill: var(--ink); opacity: 0.75; }
-.isle .moss { fill: var(--moss); }
-.isle .lip { fill: none; stroke: var(--amber); stroke-width: 0.6; }
-.isle .base { fill: var(--bark); }
-.isle .shadow { fill: var(--ink); opacity: 0.12; }
-.isle-hogar .glass { stroke-width: 0.7; }
-.isle text { font: 700 3.6px var(--hand); text-anchor: middle; fill: var(--ink); pointer-events: none; }
-.isle text.glyph { font-size: 5px; }
-.isle { cursor: pointer; outline: none; }
-.isle.sel .glass, .isle:focus-visible .glass { stroke-width: 1.2; }
-.isle.done { opacity: 0.35; cursor: default; }
+.isle-labels { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); }
+.isle-label { position: absolute; transform: translate(-50%, 0); }
+.isle-label button { display: inline-flex; align-items: center; gap: 4px; font: 700 18px/1 var(--hand); color: var(--ink); background: var(--paper);
+  border: var(--line); border-radius: 999px; padding: 4px 10px; box-shadow: 2px 2px 0 var(--ink); cursor: pointer; white-space: nowrap; }
+.isle-label.sel button { background: var(--ink); color: var(--paper); }
+.isle-label.done button { opacity: 0.45; box-shadow: none; cursor: default; }
 .island-info { flex-direction: column; flex-wrap: nowrap; bottom: max(var(--gap), env(safe-area-inset-bottom)); }
 .party-pick { display: flex; flex-wrap: wrap; gap: 8px; }
 .iso-chip { position: relative; display: grid; gap: 2px; text-align: left; min-width: 110px; min-height: 56px; padding: 8px 10px; border: var(--line); border-radius: var(--radius); background: var(--paper); font: inherit; color: inherit; cursor: pointer; }
@@ -210,7 +234,12 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   h2 { font-size: 24px; }
   .resources { gap: 2px 8px; padding: 4px 8px; font-size: 13px; }
   .res-icon { width: 18px; height: 18px; }
-  .hud-bottom { display: grid; grid-template-columns: 1fr 1fr 1.35fr 48px; gap: 6px; width: auto; }
+  .hud-bottom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 44px; gap: 4px; width: auto; }
+  .hud-bottom .btn span { text-align: center; line-height: 1.1; }
+  .hud-bottom .long { display: none; }
+  .hud-bottom .short { display: inline; }
+  .home .drawer, .home .build-bar { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 84px); }
+  .hud-bottom .btn { flex-direction: column; gap: 2px; font-size: 10px; padding: 4px 0; min-height: 56px; }
   .hud-bottom .btn { padding: 0 6px; font-size: 14px; }
   .route { inset: 120px 0 130px 0; height: calc(100% - 250px); }
   .team { width: 44vw; }

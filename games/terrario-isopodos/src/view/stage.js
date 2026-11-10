@@ -1,8 +1,9 @@
 // Escenario único: un renderer, una cámara inclinada de diorama y el pase de tinta. Las escenas
 // (terrario, isla, arena) son grupos que se cambian sin recrear el contexto WebGL.
 import * as THREE from 'three';
-import { createInkPass } from './ink.js';
+import { createInkPass, FILTERS } from './ink.js';
 import { PALETTES } from '../data/palettes.js';
+import { createBackdrop } from './backdrop.js';
 
 const TILT = 0.95; // radianes desde la vertical
 const ZOOM = [0.55, 1.35];
@@ -16,13 +17,15 @@ export class Stage {
     this.renderer.shadowMap.enabled = true;
     container.appendChild(this.renderer.domElement);
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(30, 1, 0.5, 120);
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.5, 160);
     this.target = new THREE.Vector3();
     this.distance = 22;
     this.yaw = 0;
     this.zoomK = 1;
+    this.shakeT = 0;
     this.root = new THREE.Group();
-    this.scene.add(this.root);
+    this.backdrop = createBackdrop();
+    this.scene.add(this.root, this.backdrop.group);
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
     sun.position.set(-7, 16, -4);
     sun.castShadow = true;
@@ -88,10 +91,22 @@ export class Stage {
     this.frame([this.target.x, this.target.z], this.distance, this.fit);
   }
 
+  setFilter(name) { this.ink.material.uniforms.look.value = Math.max(0, FILTERS.indexOf(name)); }
+
+  shake(amount) { this.shakeT = Math.max(this.shakeT, amount); }
+
   render(time) {
     const u = this.ink.material.uniforms;
+    if (this.shakeT > 0) {
+      this.frame([this.target.x, this.target.z], this.distance, this.fit);
+      this.shakeT = Math.max(0, this.shakeT - 1 / 60);
+      const k = this.shakeT * 0.6;
+      this.camera.position.x += (Math.random() - 0.5) * k; this.camera.position.y += (Math.random() - 0.5) * k;
+      if (!this.shakeT) this.frame([this.target.x, this.target.z], this.distance, this.fit);
+    }
     u.time.value = time; u.near.value = this.camera.near; u.far.value = this.camera.far;
     u.fogNear.value = this.camDist * 0.95; u.fogFar.value = this.camDist * 1.5;
+    this.backdrop.update(time);
     this.renderer.setRenderTarget(this.rt);
     this.renderer.render(this.scene, this.camera);
     this.renderer.setRenderTarget(null);

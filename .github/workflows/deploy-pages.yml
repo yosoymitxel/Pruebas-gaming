@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "games/terrario-isopodos/**"
+      - "games/**"
+      - "index.html"
       - ".github/workflows/deploy-pages.yml"
       - ".github/workflows/terrario-mvp.yml"
   workflow_dispatch:
@@ -73,18 +74,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build production game
-        working-directory: games/terrario-isopodos
+      - name: Build every published game
         run: |
-          npm install
-          npm audit --audit-level=high
-          npm run build
+          for id in $(node -p "require('./games/catalog.json').games.map((g) => g.id).join(' ')"); do
+            (cd "games/$id" && npm install && npm audit --audit-level=high && npm run build)
+          done
       - name: Assemble complete Pages site
         run: |
           mkdir site
           git archive HEAD | tar -x -C site
-          rm -rf site/games/terrario-isopodos/*
-          cp -a games/terrario-isopodos/dist/. site/games/terrario-isopodos/
+          rm -rf site/games/_plantilla
+          for id in $(node -p "require('./games/catalog.json').games.map((g) => g.id).join(' ')"); do
+            rm -rf "site/games/$id"/* && cp -a "games/$id/dist/." "site/games/$id/"
+          done
           touch site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5

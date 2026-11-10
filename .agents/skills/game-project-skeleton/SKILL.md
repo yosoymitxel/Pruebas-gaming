@@ -6,7 +6,7 @@ description: Use when starting a videogame or reviewing a prototype that lacks c
 # Game Project Skeleton
 
 ## Required reading
-Read framework/BASELINE-VIDEOJUEGO.md and framework/CONFLICTOS-Y-FUENTE-DE-VERDAD.md. Inspect the existing game before proposing replacements.
+Read framework/README.md (structure and base systems) and start from games/_plantilla via scripts/new-game.mjs. Inspect the existing game before proposing replacements.
 
 ## Workflow
 1. Identify genre, engine/runtime, target platforms, session model, offline/online needs and delivery target.

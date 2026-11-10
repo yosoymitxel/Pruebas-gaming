@@ -7,6 +7,7 @@ import { ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { nextNodes, LAYERS } from '../../game/dungeon.js';
 import { Bar, Loot } from './common.js';
+import { IconAt } from '../icons.js';
 
 function Note({ last }) {
   if (!last) return null;
@@ -32,7 +33,7 @@ export function Dungeon({ s }) {
           tabindex=${reach.has(n.id) ? 0 : -1} role="button" aria-label=${NODE_TYPES[n.type].name} aria-disabled=${!reach.has(n.id)}
           onClick=${() => reach.has(n.id) && s.enter(n.id)} onKeyDown=${(e) => e.key === 'Enter' && reach.has(n.id) && s.enter(n.id)}>
         <circle cx=${X(n)} cy=${Y(n)} r=${n.type === 'jefe' ? 5.5 : 3.6} />
-        <text x=${X(n)} y=${Y(n) + 1.4}>${NODE_TYPES[n.type].glyph}</text>
+        <${IconAt} name=${NODE_TYPES[n.type].icon} x=${X(n)} y=${Y(n)} size=${n.type === 'jefe' ? 6.5 : 4.4} />
       </g>`)}
     </svg>
     <${Note} last=${run.last} />

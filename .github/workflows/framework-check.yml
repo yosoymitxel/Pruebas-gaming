@@ -18,7 +18,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in README.md AGENTS.md framework/README.md framework/ORCHESTRATION.md framework/QUALITY-GATES.md framework/TASK-PROFILES.md framework/REPORT-TEMPLATE.md docs/CATALOGO.md docs/ESTANDARES.md; do
+          for file in README.md AGENTS.md framework/README.md framework/QUALITY-GATES.md docs/CATALOGO.md games/_plantilla/package.json scripts/new-game.mjs; do
             test -s "$file" || { echo "Missing required file: $file"; exit 1; }
           done
           for gate in CODE_GATE GAMEPLAY_GATE DESIGN_GATE INTEGRATION_GATE; do

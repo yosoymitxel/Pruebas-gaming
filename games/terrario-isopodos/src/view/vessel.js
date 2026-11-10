@@ -85,3 +85,32 @@ export function jarShine(r, height = 2.5) {
   }
   return g;
 }
+
+// Globo de cristal (nidos): esfera cortada por el suelo, con aro de base.
+export function globe(r, cx = 0, cz = 0) {
+  const g = new THREE.Group();
+  const cy = r * 0.35;
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 24, 0, Math.PI * 2, 0, Math.acos(-((GRAVEL[0] - cy) / r))), glassMat());
+  sphere.position.set(cx, cy, cz);
+  const outline = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(
+    Array.from({ length: 64 }, (_, k) => new THREE.Vector3(cx + Math.cos((k / 64) * Math.PI * 2) * r, cy, cz + Math.sin((k / 64) * Math.PI * 2) * r))), ink(0.4));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(Math.sqrt(r * r - (GRAVEL[0] - cy) ** 2), 0.12, 6, 64), lambert(P.bark));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(cx, GRAVEL[0], cz);
+  g.add(sphere, outline, ring);
+  return g;
+}
+
+// Roca flotante bajo un diorama sin vidrio: cono irregular que cuelga del borde.
+export function floatingRock(radius, depth, rng) {
+  const geo = new THREE.ConeGeometry(radius, depth, 13, 4, true);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    if (pos.getY(i) < depth / 2 - 0.01) { const k = 0.75 + rng() * 0.5; pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); }
+  }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: P.soil, side: THREE.DoubleSide }));
+  m.rotation.x = Math.PI;
+  m.position.y = GRAVEL[0] - depth / 2 + 0.05;
+  return m;
+}
