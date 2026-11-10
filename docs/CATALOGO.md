@@ -1,55 +1,40 @@
-# Catálogo de fuentes
+# Catálogo de referencias
 
-Estado inicial: catalogadas; instalación física pendiente de automatización y validación. No marcar como instalada una fuente hasta comprobar sus archivos y licencia en el repositorio.
+Primero se busca en el juego y en la plantilla; después aquí. Una URL es una referencia, no un recurso aprobado:
+antes de incorporar algo, comprobar licencia y anotar de dónde sale en el juego.
 
-## Skills y sistemas de agentes
+## Skills para agentes
 
-| Fuente | Función | Prioridad |
-|---|---|---:|
-| [Anti-Slop](https://github.com/miqdadbadjuber/anti-slop) | Calidad y reducción de resultados genéricos | P0 |
-| [Ponytail](https://github.com/dietrichgebert/ponytail) | Simplicidad y disciplina de ingeniería | P0 |
-| [Taste](https://github.com/leonxlnx/taste-skill) | Criterio y dirección visual | P0 |
-| [Impeccable](https://github.com/pbakaus/impeccable) | Pulido de interfaz | P0 |
-| [Awesome GameDev Agent Skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) | Catálogo especializado de gamedev | P0 |
-| [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) | Flujos de producción de juegos | P0 |
-| [Emil Kowalski Skills](https://github.com/emilkowalski/skills) | Animación y diseño de interacción | P0 |
-| [Emil Design Engineering](https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng) | Refinamiento de interfaz | P0 |
-| [Vercel Skills](https://github.com/vercel-labs/skills) | Instalador/ecosistema de skills | P1 |
-| [Web Design Guidelines](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) | Auditoría web y accesibilidad | P0 |
-| [LeanCTX](https://github.com/yvgude/lean-ctx) | Gestión de contexto de agentes | P1 |
+| Fuente | Para qué |
+|---|---|
+| [Ponytail](https://github.com/dietrichgebert/ponytail) | Lo mínimo que resuelve |
+| [Anti-Slop](https://github.com/miqdadbadjuber/anti-slop) | Sin relleno en código, comentarios e interfaz |
+| [Taste](https://github.com/leonxlnx/taste-skill), [Impeccable](https://github.com/pbakaus/impeccable) | Criterio visual y pulido de interfaz |
+| [Emil Kowalski](https://github.com/emilkowalski/skills) (`emil-design-eng`) | Curvas, duraciones y detalle de animación |
+| [Web Design Guidelines](https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines) | Auditoría de interfaz y accesibilidad |
+| [Awesome GameDev Agent Skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) | game-feel, cámara, IA, guardado, entrada, generación procedural |
+| [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios) | vertical-slice, playtest-report, balance-check, smoke-check |
+| [Vercel Skills](https://github.com/vercel-labs/skills) | Buscar e instalar skills que falten |
+| [lean-ctx](https://github.com/yvgude/lean-ctx) | Gastar menos contexto en la shell |
 
-## Arte, escena y VFX
+## Arte, escena y efectos
 
-| Fuente | Tipo y uso previsto | Precaución |
-|---|---|---|
-| [ClaudePxl](https://github.com/crsolver/claude-pxl) | Flujo de pixel art y sprites | Verificar formato, licencia y dependencias |
-| [o3de-diorama](https://github.com/nickschuetz/o3de-diorama) | Dioramas 2.5D para O3DE | No asumir compatibilidad web directa |
-| [Dioramas](https://github.com/blendi-remade/dioramas) | Referencias/escenas | Inspeccionar contenido y licencia |
-| [VoxPix](https://github.com/andyeswong/voxpix) | Entorno voxel y profundidad | Probar API y renderizado real |
-| [Sprite Fusion VFX](https://www.spritefusion.com/pixel-art-vfx) | Recursos/efectos pixel art | Distinguir assets de runtime |
-| [VFX-JS](https://amagi.dev/vfx-js/) | Efectos visuales web | Validar implementación y licencia |
-| [SVG Silh](https://svgsilh.com/es/) | Biblioteca de siluetas SVG | Verificar licencia por recurso |
+| Fuente | Para qué |
+|---|---|
+| [pixelfx](https://github.com/patch-gg/pixelfx) (MIT) | 244 efectos en código; ritmo de golpes (anticipación, impacto, recuperación) |
+| [Sprite Fusion VFX](https://www.spritefusion.com/pixel-art-vfx), [VFX-JS](https://amagi.dev/vfx-js/) | Efectos y distorsiones |
+| [Dioramas](https://github.com/blendi-remade/dioramas), [o3de-diorama](https://github.com/nickschuetz/o3de-diorama) | Composición y luz de diorama (O3DE no corre en web) |
+| [VoxPix](https://github.com/andyeswong/voxpix) | Escenas voxel |
+| [claude-pxl](https://github.com/crsolver/claude-pxl) | Pixel art por código |
+| [SVG Silh](https://svgsilh.com/es/) | Siluetas SVG para iconos |
 
-## UI, animación y referencias
+## Interfaz y movimiento
 
-| Fuente | Tipo | Uso |
-|---|---|---|
-| [Lightswind UI](https://github.com/codewithMUHILAN/Lightswind-UI-Library) | Componentes | Solo proyectos React compatibles |
-| [Motion](https://motion.dev/) | Biblioteca ejecutable | Animación web |
-| [SmoothUI](https://smoothui.dev/) | Catálogo de componentes | Referencias/componentes |
-| [Componentry](https://componentry.dev/) | Catálogo de componentes | Patrones UI |
-| [Prompt Motion](https://prompt-motion.com/) | Referencias | Ideas de movimiento |
-| [RareUI](https://www.rareui.com/) | Catálogo UI | Componentes y referencias |
-| [Libraries.dev](https://libraries.dev/) | Directorio | Descubrimiento de bibliotecas |
-| [Justinmind: UI de juegos](https://www.justinmind.com/es/ui-diseno/juego) | Guía | Flujos, HUD y UX |
+| Fuente | Para qué |
+|---|---|
+| [Justinmind: UI de juegos](https://www.justinmind.com/es/ui-diseno/juego), [interfaceingame.com](https://interfaceingame.com/) | HUD, menús y flujos de juegos reales |
+| [Motion](https://motion.dev/), [Prompt Motion](https://prompt-motion.com/) | Animación web |
+| [SmoothUI](https://smoothui.dev/), [Componentry](https://componentry.dev/), [RareUI](https://www.rareui.com/), [Lightswind](https://github.com/codewithMUHILAN/Lightswind-UI-Library), [recent.design](https://recent.design/) | Patrones de componentes (React/Tailwind no entran en el runtime: se toma la idea) |
+| [Libraries.dev](https://libraries.dev/) | Encontrar una librería para una necesidad concreta |
 
-## Descubrimiento de skills para capacidades faltantes
-
-Consulta [Descubrimiento de skills](DESCUBRIMIENTO-SKILLS.md). Vercel Skills es el CLI/ecosistema para buscar, listar, instalar y actualizar skills; no equivale a una única skill de diseño de juegos.
-
-## Selección contextual de referencias
-
-Usa [el catálogo de referencias por contexto](CATALOGO-REFERENCIAS.md) para decidir qué fuentes consultar según el problema. Para capturas actuales y descargas verificadas, aplica el [protocolo de evidencia visual](EVIDENCIA-VISUAL.md).
-
-## Procedencia obligatoria
-Registrar URL, versión o commit, licencia, fecha de incorporación, ruta local, método de instalación y resultado de validación. No copiar páginas ni paquetes completos a ciegas. Las fuentes web se catalogan; solo se versionan skills/componentes cuando la licencia y distribución lo permiten.
+Procedencia de skills instaladas: `sources/manifest.tsv` (`scripts/install-skills.sh`, `validate-skills.sh`, `index-skills.sh`).

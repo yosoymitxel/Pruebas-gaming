@@ -1,0 +1,31 @@
+name: Games checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "games/**"
+      - "scripts/new-game.mjs"
+      - ".github/workflows/games-check.yml"
+  workflow_dispatch:
+
+jobs:
+  games:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test and build every game (plantilla incluida)
+        run: |
+          for dir in games/*/; do
+            [ -f "$dir/package.json" ] || continue
+            echo "::group::$dir"
+            (cd "$dir" && npm install && npm test && (npm run check --if-present) && npm run build)
+            echo "::endgroup::"
+          done
+      - name: The generator produces a working game
+        run: |
+          node scripts/new-game.mjs ci-prueba "CI prueba"
+          (cd games/ci-prueba && npm install && npm test && npm run build)
