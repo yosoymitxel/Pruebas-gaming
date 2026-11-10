@@ -23,7 +23,7 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Día y noche:** el reloj del día gira la luz (alba cálida, día blanco, atardecer rojizo, noche azul con
   luciérnagas); de noche se produce menos y la colonia se inquieta; dormir pasa al alba con islas nuevas.
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en Ajustes y en la pausa.
-- **Interfaz:** paneles de tinta oscura (tono terror), borde fino y sombra suave; acento óxido para lo principal y color fijo por significado (vida, hambre, calma, clima). Iconos antes que texto, una línea por dato; títulos a mano (Caveat), datos en sans. Botones táctiles ≥ 48 px, foco visible, movimiento reducido respetado.
+- **Interfaz:** papel traslúcido con siluetas de recorte desiguales que respiran (nada de marco grueso con sombra dura); los botones flotan sueltos, sin caja; borde fino y sombra suave; acento óxido para lo principal y color fijo por significado (vida, hambre, calma, clima). Iconos antes que texto, una línea por dato; títulos a mano (Caveat), datos en sans. Botones táctiles ≥ 48 px, foco visible, movimiento reducido respetado.
 - **Colonia:** cada isópodo muestra qué hace (explora, come, duerme, hambre…); se selecciona tocándolo (la cámara lo sigue) y su ficha da órdenes (comer, dormir, bolita), nombre y distintivo.
   ≥ 48 px, foco visible, movimiento reducido respetado.
 - **Combate legible:** cada ataque enemigo se anuncia en el suelo (≥ 0,4 s) y se llena mientras carga. La
