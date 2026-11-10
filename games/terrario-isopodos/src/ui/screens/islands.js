@@ -3,7 +3,7 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { ISLAND_KINDS, BIOMES, WEATHERS, VESSELS } from '../../data/world.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
-import { CamControls } from './common.js';
+import { CamControls, PauseButton } from './common.js';
 import { PartyPicker } from './party.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
@@ -32,7 +32,7 @@ export function Islands({ s }) {
   const pos = spread(s.game.islands.map((i) => ({ id: i.id, ...s.view.labelAt(i.id) })));
 
   return html`<main class="screen islands">
-    <header class="hud-top"><div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('islands.title', 'El archipiélago')}</h2></div></header>
+    <header class="hud-top"><div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('islands.title', 'El archipiélago')}</h2></div><${PauseButton} s=${s} /></header>
     <div class="world-input" onPointerDown=${(e) => { const id = s.view.pick(e); const i = s.game.islands.find((x) => x.id === id); if (i && !done(i)) { setSel(i.id); setParty([]); } }}></div>
     <${CamControls} s=${s} />
     <ul class="isle-labels">${s.game.islands.map((i) => {

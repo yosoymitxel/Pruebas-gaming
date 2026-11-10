@@ -2,6 +2,7 @@
 // celdas y tiene el origen en el centro de la huella, a ras de suelo.
 import * as THREE from 'three';
 import { PALETTES } from '../data/palettes.js';
+import { BUILDINGS } from '../data/buildings.js';
 
 const P = PALETTES.cozy;
 const mats = new Map();
@@ -19,6 +20,11 @@ const BUILD = {
     bark.rotation.z = Math.PI / 2; bark.material.side = THREE.DoubleSide;
     g.add(bark);
     g.add(mesh(new THREE.SphereGeometry(0.35, 6, 4), P.moss, 0.4, 0.75, -0.2));
+    // Boca iluminada (como las chozas de Cult of the Lamb): se ve que ahí vive alguien.
+    const door = new THREE.Mesh(new THREE.CircleGeometry(0.5, 12, 0, Math.PI), new THREE.MeshBasicMaterial({ color: P.amber }));
+    door.position.set(0.91, 0.01, 0); door.rotation.y = Math.PI / 2;
+    g.add(door);
+    g.add(mesh(new THREE.ConeGeometry(0.16, 0.5, 4), P.rust, -0.5, 1.05, 0));
   },
   comedero: (g) => {
     g.add(mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.18, 10), P.stone, 0, 0.09, 0));
@@ -38,6 +44,10 @@ const BUILD = {
   },
   altar: (g) => {
     g.add(mesh(new THREE.BoxGeometry(1.4, 0.3, 1.2), P.stone, 0, 0.15, 0));
+    g.add(mesh(new THREE.BoxGeometry(0.06, 1.6, 0.06), P.bark, -0.6, 0.8, -0.5));
+    const flag = mesh(new THREE.PlaneGeometry(0.45, 0.6), P.rust, -0.36, 1.3, -0.5);
+    flag.material = new THREE.MeshLambertMaterial({ color: P.rust, side: THREE.DoubleSide });
+    g.add(flag);
     g.add(mesh(new THREE.BoxGeometry(0.9, 0.5, 0.7), P.stone, 0, 0.55, 0));
     g.add(mesh(new THREE.SphereGeometry(0.45, 7, 5), P.moss, 0, 0.95, 0));
   },
@@ -48,9 +58,20 @@ const BUILD = {
   },
 };
 
+// Círculo de piedras bajo las piezas grandes (el anillo que rodea cada estructura en la base de CotL).
+function stoneRing(g, r) {
+  const n = Math.round(r * 9), geo = new THREE.DodecahedronGeometry(0.11, 0);
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2, st = mesh(geo, P.stone, Math.cos(a) * r, 0.04, Math.sin(a) * r);
+    st.scale.set(1, 0.5, 1); g.add(st);
+  }
+}
+
 export function propMesh(type, rot = 0) {
   const g = new THREE.Group();
   BUILD[type](g);
+  const { w, h } = BUILDINGS[type].size;
+  if (w * h >= 4) stoneRing(g, Math.max(w, h) * 0.62);
   g.rotation.y = -rot * Math.PI / 2;
   return g;
 }

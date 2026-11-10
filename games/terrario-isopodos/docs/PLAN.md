@@ -33,4 +33,4 @@ Referencia de calidad y organización del código: KureiChaosChess.
 1. Resto de aberraciones y su rol (una entrada en `data/aberrations.js` + dibujo cada una).
 2. Animación de los dibujos por partes (hoy se mueven como una sola lámina).
 3. Sonido y música; logros; bestiario/galería; exportar/importar partida (portar de KureiChaosChess).
-4. Más minijuegos de isla; tres dificultades; balance con jugadores reales.
+4. Más minijuegos de isla; balance con jugadores reales.

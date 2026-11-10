@@ -2,6 +2,7 @@
 // pasan; las reglas viven en src/game.
 import * as THREE from 'three';
 import { islandFromGrid, arena } from './island.js';
+import { sway } from './flora.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
 import { propMesh, ghostMesh } from './props.js';
@@ -36,8 +37,14 @@ class GridScene {
 
   tick(dt) {
     this.vfx.update(dt);
-    this.weather?.update(dt);
+    if (!this.still) sway.value += dt;
+    if (this.fx !== false) this.weather?.update(dt);
+    if (this.fireflies?.mesh.visible) this.fireflies.update(dt);
   }
+
+  // Noche: luciérnagas sobre el diorama. `fx` false (ajuste «efectos extra») oculta el clima.
+  setNight(on) { if (this.fireflies) this.fireflies.mesh.visible = on && this.fx !== false; }
+  setFx(on) { this.fx = on; if (this.weather) this.weather.mesh.visible = on; }
 
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
@@ -47,6 +54,9 @@ class GridScene {
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
     if (this.weather) this.group.remove(this.weather.mesh);
     this.weather = new Weather(this.island.group, this.weatherKind, this.island.span * 0.85, 2.2);
+    this.fireflies = new Weather(this.island.group, 'claro', this.island.span * 0.8, 1.4);
+    this.fireflies.mesh.material.size = 0.16;
+    this.fireflies.mesh.visible = false;
   }
 
   toWorld(x, y) { return { x: x - this.grid.w / 2, z: y - this.grid.h / 2, y: this.island.heightAt(x, y) }; }
@@ -120,7 +130,8 @@ export class HomeView extends GridScene {
     this.home = home;
   }
 
-  get camera() { const side = Math.sqrt(this.openCount); return { target: [0, 0.5], distance: (side + 2) * 1.6 + 6, fit: (side + 2) * 1.45 }; }
+  // En vertical el diorama puede sobresalir por los lados (más grande y legible en el teléfono).
+  get camera() { const side = Math.sqrt(this.openCount), tall = this.stage.camera.aspect < 1; return { target: [0, 0.5], distance: (side + 2) * 1.6 + 6, fit: (side + 2) * (tall ? 1.0 : 1.45) }; }
 
   setBuildMode(on) { this.island.gridLines.visible = on; if (!on) this.setGhost(null); }
 
@@ -165,9 +176,9 @@ export class HomeView extends GridScene {
 export class MenuView extends HomeView {
   get camera() {
     const c = super.camera, side = Math.sqrt(this.openCount) + 2, wide = this.stage.camera.aspect > 1;
-    const [dx, dz] = wide ? [Math.cos(DEFAULT_YAW), -Math.sin(DEFAULT_YAW)] : [Math.sin(DEFAULT_YAW), Math.cos(DEFAULT_YAW)];
-    const k = wide ? side * 0.55 : side * 0.45;
-    return { ...c, target: [dx * k, dz * k], distance: c.distance * (wide ? 1.12 : 0.8) };
+    // En horizontal la lista va a la izquierda: el diorama se corre a la derecha. En vertical, centrado entre logo y lista.
+    const [dx, dz] = [Math.cos(DEFAULT_YAW), -Math.sin(DEFAULT_YAW)], k = wide ? -side * 0.42 : 0;
+    return { ...c, target: [dx * k, dz * k + (wide ? 0 : -side * 0.08)], distance: c.distance * (wide ? 1.3 : 0.95) };
   }
 
   extra(time) {
@@ -267,6 +278,7 @@ export class CombatView {
   }
 
   update(time, dt) {
+    if (!this.still) sway.value += dt;
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
     const main = this.c.actors.find((a) => a.id === this.c.main);
     if (main) this.stage.follow(main.x * 0.55, main.y * 0.55 + 0.6, dt, 3);

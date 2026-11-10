@@ -13,6 +13,7 @@ import { Combat } from './screens/combat.js';
 import { Settings } from './screens/settings.js';
 import { unlockAudio, playSfx } from './sfx.js';
 import { Loot } from './screens/common.js';
+import { Pause } from './screens/pause.js';
 
 const OUTCOME = {
   won: () => t('result.won', 'La guardiana cae. El nido queda en silencio.'),
@@ -38,7 +39,7 @@ function App({ s }) {
   useEffect(() => s.on(() => force((n) => n + 1)), []);
   const Screen = SCREENS[s.mode];
   // Al cambiar de pantalla, una mancha de tinta barre la vista (se omite con movimiento reducido).
-  return html`<${Screen} s=${s} />${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}`;
+  return html`<${Screen} s=${s} />${s.paused && html`<${Pause} s=${s} />`}${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}`;
 }
 
 export function start() {

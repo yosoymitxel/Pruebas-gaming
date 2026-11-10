@@ -38,7 +38,8 @@ export class Stage {
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 50 });
     sun.shadow.bias = -0.0015;
-    this.scene.add(sun, sun.target, new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.6));
+    this.sun = sun; this.hemi = new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.6);
+    this.scene.add(sun, sun.target, this.hemi);
     this.ink = createInkPass();
     this.rt = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
     this.ink.material.uniforms.tColor.value = this.rt.texture;
@@ -59,6 +60,22 @@ export class Stage {
     u.night.value.copy(new THREE.Color(PALETTES.cozy.night).lerp(new THREE.Color(PALETTES.terror.night), m));
     u.wash.value = 1 - 0.45 * m;
     u.gloom.value = m;
+  }
+
+  // Hora del día (reloj 0–1): el sol da la vuelta y la luz pasa de cálida a azul de noche, con rampas de
+  // color desplazadas (sombras violetas, luces amarillas) como en pixel-plays. null = luz neutra (nido).
+  setTime(clock) {
+    const keys = [[0, 0xffb27a, 1.4, 0xffd9b0, 1.2], [0.15, 0xffffff, 2.2, 0xfff6e0, 1.6], [0.55, 0xfff3d6, 2.1, 0xfff6e0, 1.5],
+      [0.68, 0xff8a5a, 1.5, 0xffc4a0, 1.15], [0.78, 0x8fa8ff, 1.0, 0x7a86c8, 1.05], [0.95, 0x8fa8ff, 0.95, 0x6f7cc0, 1.0], [1, 0xffb27a, 1.4, 0xffd9b0, 1.2]];
+    const c = clock ?? 0.35;
+    let k = 0; while (k < keys.length - 2 && c > keys[k + 1][0]) k++;
+    const [a, b] = [keys[k], keys[k + 1]], f = (c - a[0]) / (b[0] - a[0] || 1);
+    this.sun.color.set(a[1]).lerp(new THREE.Color(b[1]), f);
+    this.sun.intensity = a[2] + (b[2] - a[2]) * f;
+    this.hemi.color.set(a[3]).lerp(new THREE.Color(b[3]), f);
+    this.hemi.intensity = a[4] + (b[4] - a[4]) * f;
+    const ang = (c - 0.35) * Math.PI * 2;
+    this.sun.position.set(Math.sin(ang) * -12, 16, Math.cos(ang) * -6);
   }
 
   // `fit`: ancho del mundo (celdas) que debe caber a lo ancho; en vertical aleja la cámara lo justo.

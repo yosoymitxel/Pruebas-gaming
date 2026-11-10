@@ -130,9 +130,10 @@ export function collect(home, pieceId) {
   return n;
 }
 
-export function tickHome(home, dt, rng) {
-  home.fear = Math.max(0, home.fear - dt / 600);
-  const { prodMul, hungerMul } = homeEffects(home);
+// `phase`: efectos de la hora (DAY_PHASES): de noche se produce menos y sube el miedo.
+export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
+  home.fear = Math.min(1, Math.max(0, home.fear - dt / 600 + phase.fear * dt));
+  const { hungerMul } = homeEffects(home), prodMul = homeEffects(home).prodMul * phase.prodMul;
   for (const p of Object.values(home.grid.pieces)) {
     const prod = BUILDINGS[p.type].produces;
     if (!prod) continue;

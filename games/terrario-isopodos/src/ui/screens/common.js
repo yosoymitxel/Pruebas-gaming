@@ -73,7 +73,22 @@ export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">
   return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px`, opacity: 1 - (s.time - f.at) / 0.9 }}>${f.text}</span>`;
 })}</div>`;
 
-// Reloj del día (como el de Cult of the Lamb): disco oscuro con media luna roja y el número de día.
-export const DayClock = ({ day, label }) => html`<div class="day-clock" role="img" aria-label=${label}>
-  <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" /><path d="M4 18a16 16 0 0 1 32 0z" /></svg>
+// Reloj del día (como el de Cult of the Lamb): esfera oscura con el tramo de noche en rojo, una aguja que da
+// la vuelta con el reloj (0 = amanecer, arriba) y el número de día.
+export const DayClock = ({ day, clock = 0, label }) => html`<div class="day-clock" role="img" aria-label=${label}>
+  <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" />
+    <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
+    <line x1="20" y1="20" x2=${20 + 15 * Math.sin(clock * 6.283)} y2=${20 - 15 * Math.cos(clock * 6.283)} /></svg>
   <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span></div>`;
+
+// Botón de pausa de cada pantalla de juego (arriba a la derecha).
+export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
+
+// Minimapa de salas (como el de Cult of the Lamb): una casilla por capa del nido, la actual resaltada y la
+// guardiana al final. `nodes` y `at` del nido.
+export const RoomMap = ({ dungeon, layers }) => {
+  const here = dungeon.at === null ? -1 : dungeon.nodes[dungeon.at].layer;
+  return html`<ol class="room-map" aria-label=${`${t('dungeon.layer', 'Capa')} ${here + 1}/${layers}`}>
+    ${Array.from({ length: layers }, (_, l) => html`<li class=${l < here ? 'done' : l === here ? 'here' : ''}>${l === layers - 1 ? html`<${Icon} name="jefe" size="14" />` : null}</li>`)}
+  </ol>`;
+};
