@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { PALETTES } from '../data/palettes.js';
 import { mulberry32 } from '../core/rng.js';
 import { substrateCells, substrateDisc, CHARCOAL } from './vessel.js';
+import { flora, FLORA } from './flora.js';
 
 const STEP = 0.15, BASE = CHARCOAL[1];
 const P = PALETTES.cozy;
@@ -53,7 +54,7 @@ function decor(group, rocks, ferns, tufts) {
 // Isla a partir de una rejilla. `rim`: anillo de celdas cerradas visibles alrededor (lo ampliable), alzado
 // como colinas con decoración. Devuelve { group, gridLines, heightAt(x, y) } en coordenadas de rejilla.
 export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
-  const rng = mulberry32(seed), n = noise2(seed, 3.5);
+  const rng = mulberry32(seed), n = noise2(seed, 3.5), worn = noise2(seed + 11, 2.2);
   const group = new THREE.Group();
   const ox = grid.w / 2, oz = grid.h / 2;
   const isOpen = (i, j) => i >= 0 && j >= 0 && i < grid.w && j < grid.h && grid.open[j * grid.w + i];
@@ -73,19 +74,27 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   for (const { i, j } of cells) span = Math.max(span, Math.hypot(i + 0.5 - ox, j + 0.5 - oz) + 0.71);
   const cols = new THREE.InstancedMesh(columnGeometry(), lambert(0xffffff, { vertexColors: true }), cells.length);
   const m = new THREE.Matrix4(), col = new THREE.Color();
-  const soil = new THREE.Color(P.soil), moss = new THREE.Color(P.moss), shade = new THREE.Color(P.shade);
-  const rocks = [], ferns = [], tufts = [];
+  const grass = new THREE.Color(P.grass), moss = new THREE.Color(P.moss), path = new THREE.Color(P.path);
+  const rocks = [], ferns = [], plants = [];
+  const pick = () => FLORA[Math.floor(rng() * FLORA.length)];
   cells.forEach(({ i, j, open, h }, k) => {
     m.makeScale(1, h - BASE, 1).setPosition(i + 0.5 - ox, h, j + 0.5 - oz);
     cols.setMatrixAt(k, m);
-    cols.setColorAt(k, open ? col.copy(shade).lerp(soil, 0.3 + rng() * 0.15).lerp(moss, h * 0.4) : col.copy(moss).lerp(shade, 0.3 + rng() * 0.2));
-    const x = i + 0.2 + rng() * 0.6 - ox, z = j + 0.2 + rng() * 0.6 - oz, r = rng();
-    if (!open) (r < 0.3 ? rocks : r < 0.75 ? ferns : tufts).push([x, h, z, 0.7 + rng() * 0.9, rng()]);
-    else if (r < 0.15) tufts.push([x, h, z, 0.8 + rng() * 0.5, rng()]);
+    // Suelo verde claro con manchas de tierra pisada en lo abierto (el camino pintado de la base de CotL).
+    const trodden = open && relief > 0 && worn(i, j) > 0.7;
+    cols.setColorAt(k, trodden ? col.copy(path).lerp(grass, rng() * 0.12) : open ? col.copy(grass).lerp(moss, rng() * 0.25) : col.copy(moss).lerp(grass, rng() * 0.2));
+    const spot = () => [i + 0.15 + rng() * 0.7 - ox, h, j + 0.15 + rng() * 0.7 - oz];
+    if (!open) {
+      for (let p = 0; p < 3; p++) plants.push([...spot(), 0.55 + rng() * 0.75, pick(), rng() * 3]);
+      const r = rng();
+      if (r < 0.12) rocks.push([...spot(), 0.7 + rng() * 0.9, rng()]);
+      else if (r < 0.24) ferns.push([...spot(), 0.9 + rng() * 0.8, rng()]);
+    } else if (!trodden && rng() < (relief > 0 ? 0.3 : 0.14)) plants.push([...spot(), 0.35 + rng() * 0.3, rng() < 0.5 ? 'trebol' : 'flor', rng() * 3]);
   });
   cols.castShadow = cols.receiveShadow = true;
-  group.add(cols);
-  decor(group, rocks, ferns, tufts);
+  group.add(cols, flora(plants));
+  decor(group, rocks, ferns, []);
+  if (relief === 0) group.add(pathDecal(grid, worn, rng));
   group.add(substrateCells(cells.map(({ i, j }) => [i + 0.5 - ox, j + 0.5 - oz])));
 
   const pts = [];
@@ -102,12 +111,28 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   return { group, gridLines, heightAt, span, cells };
 }
 
+// Suelo llano (el terrario): la tierra pisada se pinta encima como una mancha orgánica, no por celdas.
+function pathDecal(grid, worn, rng) {
+  const R = 24, cv = document.createElement('canvas');
+  cv.width = grid.w * R; cv.height = grid.h * R;
+  const c = cv.getContext('2d');
+  c.fillStyle = P.path;
+  for (let j = 0; j < grid.h; j++) for (let i = 0; i < grid.w; i++) {
+    if (!grid.open[j * grid.w + i] || worn(i, j) < 0.64) continue;
+    for (let k = 0; k < 4; k++) { c.beginPath(); c.arc((i + rng()) * R, (j + rng()) * R, R * (0.4 + (worn(i, j) - 0.64) * 2.5 + rng() * 0.25), 0, Math.PI * 2); c.fill(); }
+  }
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(grid.w, grid.h).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false }));
+  m.position.y = 0.012; m.receiveShadow = true;
+  return m;
+}
+
 // Arena de combate: suelo llano (las reglas son planas) rodeado de un anillo de columnas en terrazas,
 // rocas y helechos, sobre las capas de drenaje.
 export function arena(radius, seed = 1) {
   const rng = mulberry32(seed), n = noise2(seed, 2.5);
   const group = new THREE.Group();
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 2.1, radius + 2.1, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.shade).lerp(new THREE.Color(PALETTES.terror.paper), 0.5)));
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 2.1, radius + 2.1, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.grass).lerp(new THREE.Color(PALETTES.terror.path), 0.35)));
   floor.receiveShadow = true;
   group.add(floor);
   const ring = [];
@@ -128,8 +153,9 @@ export function arena(radius, seed = 1) {
   });
   cols.castShadow = cols.receiveShadow = true;
   group.add(cols);
-  const tufts = Array.from({ length: 50 }, () => { const a = rng() * Math.PI * 2, d = Math.sqrt(rng()) * radius * 0.95; return [Math.cos(a) * d, 0, Math.sin(a) * d, 0.8 + rng() * 0.5, rng()]; });
-  decor(group, rocks, ferns, tufts);
+  const plants = Array.from({ length: 90 }, (_, k) => { const a = rng() * Math.PI * 2, d = k < 60 ? radius + 0.4 + rng() * 1.6 : Math.sqrt(rng()) * radius * 0.95; return [Math.cos(a) * d, k < 60 ? 0.3 : 0, Math.sin(a) * d, k < 60 ? 0.6 + rng() * 0.8 : 0.3 + rng() * 0.2, k < 60 ? FLORA[k % 4] : 'trebol', rng() * 3]; });
+  group.add(flora(plants));
+  decor(group, rocks, ferns, []);
   group.add(substrateDisc(radius + 2.1));
   // Marco de nido: raíces oscuras altas detrás del anillo y antorchas con su charco de luz cálida.
   const root = new THREE.ConeGeometry(0.22, 1, 5).translate(0, 0.5, 0);

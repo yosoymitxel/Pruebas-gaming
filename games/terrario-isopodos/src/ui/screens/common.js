@@ -72,3 +72,8 @@ export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">
   const p = s.stage.project(f.x, (f.y ?? 1.6) + (s.time - f.at) * 1.4, f.z);
   return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px`, opacity: 1 - (s.time - f.at) / 0.9 }}>${f.text}</span>`;
 })}</div>`;
+
+// Reloj del día (como el de Cult of the Lamb): disco oscuro con media luna roja y el número de día.
+export const DayClock = ({ day, label }) => html`<div class="day-clock" role="img" aria-label=${label}>
+  <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" /><path d="M4 18a16 16 0 0 1 32 0z" /></svg>
+  <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span></div>`;

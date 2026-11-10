@@ -24,7 +24,7 @@ function rock(rng) {
 
 function cloud(rng) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshLambertMaterial({ color: P.paper, emissive: P.paper, emissiveIntensity: 0.35, flatShading: true });
+  const mat = new THREE.MeshLambertMaterial({ color: P.paper, emissive: P.paper, emissiveIntensity: 0.12, flatShading: true });
   for (let k = 0; k < 4; k++) {
     const b = new THREE.Mesh(new THREE.IcosahedronGeometry(1 + rng() * 1.2, 0), mat);
     b.position.set(k * 1.4 - 2, rng() * 0.6, (rng() - 0.5));

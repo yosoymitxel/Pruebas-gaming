@@ -4,10 +4,11 @@ import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, beds, canAfford, nextExpansion, climate, humidity } from '../../game/home.js';
-import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer } from './common.js';
+import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { CLIMATES } from '../../data/substrate.js';
+import { WEATHERS } from '../../data/world.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -40,7 +41,7 @@ export function Home({ s }) {
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">
-      <div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
+      <div class="title-block row"><${DayClock} day=${s.game.day} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`} /><h2>${t('home.title', 'Tu terrario')}</h2></div>
       <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />

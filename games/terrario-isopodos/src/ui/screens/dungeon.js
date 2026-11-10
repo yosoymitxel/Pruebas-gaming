@@ -13,6 +13,11 @@ import { Bar, Loot, ResIcon } from './common.js';
 import { Icon, IconAt } from '../icons.js';
 
 const X = (n) => 10 + n.x * 80, Y = (n) => 93 - (n.layer / (LAYERS - 1)) * 84;
+// Rombo de lado `r` (como el selector de niveles de Cult of the Lamb) y runas rojas sueltas por la página.
+const diamond = (x, y, r) => `${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`;
+const RUNES = ['ᚠ', 'ᚱ', 'ᛉ', 'ᚦ', 'ᛟ', 'ᚨ', 'ᛞ'];
+const runes = (seed) => Array.from({ length: 9 }, (_, k) => { const h = Math.sin(seed * 9.1 + k * 78.2) * 43758.5; const f = h - Math.floor(h);
+  return { x: k % 2 ? 4 + f * 14 : 82 + f * 14, y: 8 + ((k * 37 + f * 20) % 84), r: RUNES[k % RUNES.length], a: (f - 0.5) * 50 }; });
 
 function Note({ last }) {
   if (!last) return null;
@@ -54,10 +59,13 @@ export function Dungeon({ s }) {
     <section class="map-page" aria-label=${t('dungeon.map', 'Mapa del nido')}>
       <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         ${d.edges.map(([a, b]) => html`<line class=${d.nodes[a].done && (d.nodes[b].done || reach.has(b)) ? 'walked' : ''} x1=${X(d.nodes[a])} y1=${Y(d.nodes[a])} x2=${X(d.nodes[b])} y2=${Y(d.nodes[b])} />`)}
+        ${runes(run.island.seed ?? 1).map((r) => html`<text class="rune" x=${r.x} y=${r.y} transform=${`rotate(${r.a} ${r.x} ${r.y})`}>${r.r}</text>`)}
         ${d.nodes.map((n) => html`<g class=${`node node-${n.type}${reach.has(n.id) ? ' reach' : ''}${n.done ? ' done' : ''}${d.at === n.id ? ' here' : ''}${sel === n.id ? ' sel' : ''}`}
             tabindex=${reach.has(n.id) ? 0 : -1} role="button" aria-label=${NODE_TYPES[n.type].name} aria-disabled=${!reach.has(n.id)}
             onClick=${() => pick(n)} onKeyDown=${(e) => e.key === 'Enter' && pick(n)}>
-          <circle cx=${X(n)} cy=${Y(n)} r=${n.type === 'jefe' ? 5.6 : 4} />
+          <polygon class="gem" points=${diamond(X(n), Y(n), n.type === 'jefe' ? 6.4 : 4.6)} />
+          <polygon class="gem-in" points=${diamond(X(n), Y(n), n.type === 'jefe' ? 5.3 : 3.7)} />
+          ${d.at === n.id && html`<path class="banner" d=${`M${X(n) - 2.4} ${Y(n) - 10.5}h4.8v5.2l-2.4 -1.4 -2.4 1.4z`} />`}
           <${IconAt} name=${NODE_TYPES[n.type].icon} x=${X(n)} y=${Y(n)} size=${n.type === 'jefe' ? 6.5 : 4.6} />
         </g>`)}
       </svg>

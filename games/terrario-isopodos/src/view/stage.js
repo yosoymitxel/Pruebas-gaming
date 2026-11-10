@@ -38,7 +38,7 @@ export class Stage {
     sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 50 });
     sun.shadow.bias = -0.0015;
-    this.scene.add(sun, sun.target, new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.1));
+    this.scene.add(sun, sun.target, new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.6));
     this.ink = createInkPass();
     this.rt = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
     this.ink.material.uniforms.tColor.value = this.rt.texture;
@@ -56,7 +56,8 @@ export class Stage {
     const ink = new THREE.Color(PALETTES.cozy.ink).lerp(new THREE.Color(PALETTES.terror.ink), m);
     const u = this.ink.material.uniforms;
     u.paper.value.copy(paper); u.ink.value.copy(ink);
-    u.wash.value = 0.8 - 0.45 * m;
+    u.night.value.copy(new THREE.Color(PALETTES.cozy.night).lerp(new THREE.Color(PALETTES.terror.night), m));
+    u.wash.value = 1 - 0.45 * m;
     u.gloom.value = m;
   }
 
