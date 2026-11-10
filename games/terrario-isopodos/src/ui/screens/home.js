@@ -68,6 +68,7 @@ export function Home({ s }) {
 
   return html`<main class="screen home">
     <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onPointerCancel=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
+    <div class="markers"></div>
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">

@@ -74,12 +74,14 @@ export function playSfx(name, pitch = 1) {
   }
 }
 
-// Música de ambiente sintetizada: un colchón de tres voces que respira y cambia de acorde cada pocos segundos.
-// Un acorde por ambiente (terrario de día, de noche, nido); se funde al cambiar.
+// Música de ambiente sintetizada, terror acogedor: un dron grave que respira (filtro que abre y cierra), una caja
+// de música frágil que suelta notas sueltas de una escala frigia con eco, y en el nido latido y campanas
+// disonantes. Nada de acordes dulces: inquieta sin agobiar.
+const D = 146.83, ratio = (st) => 2 ** (st / 12);
 const MOODS = {
-  dia: [[196, 247, 294], [175, 220, 262], [165, 208, 247], [175, 220, 294]],
-  noche: [[147, 175, 220], [131, 165, 196], [123, 147, 185], [131, 156, 196]],
-  nido: [[73, 78, 110], [69, 82, 104], [65, 78, 98], [69, 73, 104]],
+  dia: { drone: [D / 2, D / 2 * ratio(7)], cut: [300, 900], scale: [0, 1, 4, 5, 7, 8, 10, 12, 13], base: D * 2, gap: [1.4, 3.4], vol: 0.075 },
+  noche: { drone: [D / 2 * ratio(-2), D / 2 * ratio(5)], cut: [220, 600], scale: [0, 1, 3, 6, 7, 8, 11, 12], base: D * 1.5, gap: [2.2, 5], vol: 0.07 },
+  nido: { drone: [D / 4, D / 4 * ratio(1)], cut: [120, 380], scale: [0, 1, 6, 7, 13, 18], base: D * 3, gap: [3, 7], vol: 0.085, beat: 1.5 },
 };
 export const MUSIC_MOODS = Object.keys(MOODS);
 let music = { on: true, mood: null, bus: null, voices: [], timer: null, step: 0 };
@@ -87,7 +89,7 @@ let music = { on: true, mood: null, bus: null, voices: [], timer: null, step: 0 
 export function setMusic(on) { music.on = on; if (!on) stopMusic(); else if (music.mood) playMusic(music.mood, true); }
 
 function stopMusic() {
-  clearInterval(music.timer);
+  clearTimeout(music.timer); clearInterval(music.beat);
   if (!ctx || !music.bus) return;
   const bus = music.bus, voices = music.voices;
   bus.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.6);
@@ -95,24 +97,50 @@ function stopMusic() {
   music.bus = null; music.voices = [];
 }
 
+// Nota de caja de música: fundamental + armónico agudo, ataque seco y caída larga.
+function pluck(bus, f, t, vol) {
+  for (const [mul, v, dec] of [[1, 1, 2.4], [2.76, 0.35, 0.9], [5.4, 0.12, 0.4]]) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f * mul; o.detune.value = (Math.random() - 0.5) * 14;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol * v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    o.connect(g).connect(bus); o.start(t); o.stop(t + dec + 0.05);
+  }
+}
+
 export function playMusic(mood, force = false) {
   if (mood === music.mood && !force) return;
   music.mood = mood;
-  if (!ctx || !music.on || !MOODS[mood]) return;
+  const m = MOODS[mood];
+  if (!ctx || !music.on || !m) return;
   stopMusic();
-  const bus = ctx.createGain(), lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = mood === 'nido' ? 500 : 900;
-  bus.gain.value = 0.0001; bus.gain.setTargetAtTime(0.09, ctx.currentTime, 1.5);
-  bus.connect(lp).connect(master);
-  const chords = MOODS[mood];
-  music.voices = chords[0].map((f, k) => {
-    const o = ctx.createOscillator(); o.type = k === 0 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = (k - 1) * 6;
-    o.connect(bus); o.start(); return o;
-  });
-  music.bus = bus; music.step = 0;
-  music.timer = setInterval(() => {
+  const bus = ctx.createGain(), lp = ctx.createBiquadFilter(), lfo = ctx.createOscillator(), lfoAmt = ctx.createGain();
+  lp.type = 'lowpass'; lp.frequency.value = (m.cut[0] + m.cut[1]) / 2; lp.Q.value = 4;
+  lfo.frequency.value = 0.05; lfoAmt.gain.value = (m.cut[1] - m.cut[0]) / 2; lfo.connect(lfoAmt).connect(lp.frequency); lfo.start();
+  bus.gain.value = 0.0001; bus.gain.setTargetAtTime(1, ctx.currentTime, 2);
+  bus.connect(master);
+  // dron
+  const droneGain = ctx.createGain(); droneGain.gain.value = m.vol * 0.55; droneGain.connect(lp).connect(bus);
+  music.voices = [lfo, ...m.drone.map((f, k) => { const o = ctx.createOscillator(); o.type = k ? 'triangle' : 'sawtooth'; o.frequency.value = f; o.detune.value = k ? 7 : -5; o.connect(droneGain); o.start(); return o; })];
+  // eco para la caja de música
+  const echo = ctx.createDelay(1.5), fb = ctx.createGain(), wet = ctx.createGain(), dry = ctx.createGain();
+  echo.delayTime.value = mood === 'nido' ? 0.9 : 0.55; fb.gain.value = 0.42; wet.gain.value = 0.5; dry.gain.value = 1;
+  echo.connect(fb).connect(echo); echo.connect(wet).connect(bus); dry.connect(bus);
+  const box = ctx.createGain(); box.connect(dry); box.connect(echo);
+  const next = () => {
     if (!ctx || !music.bus) return;
-    music.step = (music.step + 1) % chords.length;
-    music.voices.forEach((o, k) => o.frequency.setTargetAtTime(chords[music.step][k], ctx.currentTime, 0.8));
-  }, 6000);
+    const st = m.scale[Math.floor(Math.random() * m.scale.length)];
+    pluck(box, m.base * ratio(st), ctx.currentTime + 0.02, m.vol);
+    if (Math.random() < 0.25) pluck(box, m.base * ratio(st + (mood === 'nido' ? 1 : 7)), ctx.currentTime + 0.18, m.vol * 0.6); // a veces, una segunda nota que no resuelve
+    music.timer = setTimeout(next, (m.gap[0] + Math.random() * (m.gap[1] - m.gap[0])) * 1000);
+  };
+  music.timer = setTimeout(next, 1200);
+  // latido del nido
+  if (m.beat) music.beat = setInterval(() => {
+    if (!ctx || !music.bus) return;
+    for (const dt of [0, 0.22]) { const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + dt;
+      o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.25);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(m.vol * 1.4 * (dt ? 0.6 : 1), t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + 0.35); }
+  }, m.beat * 1000);
+  music.bus = bus;
 }

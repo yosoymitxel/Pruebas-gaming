@@ -76,8 +76,10 @@ export class Session {
 
   // weather: clima del fondo (por defecto, el del terrario hoy).
   setMode(mode, view, mood = 0, weather) {
+    if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
+    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else { this.selPiece = m.piece; this.emit(); } } else if (m.iso != null) this.selectIso(m.iso); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -103,7 +105,12 @@ export class Session {
     else if (this.mode === 'gather') this.endGather();
     else this.goHome();
   }
-  sleep() { this.achieve('sleep'); sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }
+  // Dormir: un barrido de tinta cruza la pantalla y el día cambia detrás de él (a mitad del barrido).
+  sleep() {
+    if (this.dayWipe && this.time - this.dayWipe.at < 1.4) return;
+    this.dayWipe = { at: this.time, day: this.game.day + 1 }; this.sfx('close'); this.emit();
+    setTimeout(() => { this.achieve('sleep'); sleep(this.game); this.persist(); this.sfx('heal'); this.syncMusic(); this.emit(); }, this.settings.reduceMotion ? 0 : 650);
+  }
 
   newGame() { this.game = newGame(); this.persist(); this.goHome(); }
   continueGame() { this.game = this.saved; fitGrid(this.game.home); this.goHome(); }
@@ -203,14 +210,7 @@ export class Session {
       this.emit();
       return at ? { piece: at } : null;
     }
-    const n = collect(home, piece.id);
-    const f = footprint(piece.type, piece.rot);
-    this.view.burst('pickup', piece.x + f.w / 2, piece.y + f.h / 2);
-    this.sfx('pickup');
-    const w = this.view.toWorld(piece.x + f.w / 2, piece.y + f.h / 2);
-    this.floatText(`+${n} ${RESOURCES[BUILDINGS[piece.type].produces.res].name}`, w.x, w.z, 'gain');
-    this.persist(); this.emit();
-    return { res: BUILDINGS[piece.type].produces.res, n };
+    return this.collectPiece(piece);
   }
   mist() {
     const home = this.game.home;
@@ -221,6 +221,17 @@ export class Session {
     this.floatText(t('home.misted', '+ humedad'), 0, 0, 'gain', 1.6);
     this.persist(); this.emit();
     return true;
+  }
+  collectPiece(piece) {
+    const home = this.game.home;
+    const n = collect(home, piece.id);
+    const f = footprint(piece.type, piece.rot);
+    this.view.burst('pickup', piece.x + f.w / 2, piece.y + f.h / 2);
+    this.sfx('pickup');
+    const w = this.view.toWorld(piece.x + f.w / 2, piece.y + f.h / 2);
+    this.floatText(`+${n} ${RESOURCES[BUILDINGS[piece.type].produces.res].name}`, w.x, w.z, 'gain');
+    this.persist(); this.emit();
+    return { res: BUILDINGS[piece.type].produces.res, n };
   }
   selectIso(id) {
     this.selIso = id ?? null; this.selPiece = null;
@@ -375,6 +386,7 @@ export class Session {
       const before = this.phase, day = this.game.day;
       tickClock(this.game, dt);
       if (this.phase !== before) this.syncMusic();
+      if (this.game.day !== day && this.dayWipe?.day !== this.game.day) this.dayWipe = { at: this.time, day: this.game.day }; // amanecer sin dormir
       if (this.game.day !== day && this.mode === 'islands') this.goArchipelago(); // amaneció: islas nuevas
     }
     this.stage.setTime(this.clock);

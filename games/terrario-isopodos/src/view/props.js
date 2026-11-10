@@ -2,7 +2,7 @@
 // celdas y tiene el origen en el centro de la huella, a ras de suelo.
 import * as THREE from 'three';
 import { PALETTES } from '../data/palettes.js';
-import { BUILDINGS } from '../data/buildings.js';
+import { BUILDINGS, MAX_LEVEL } from '../data/buildings.js';
 
 const P = PALETTES.cozy;
 const mats = new Map();
@@ -105,7 +105,7 @@ export function propMesh(type, rot = 0, level = 1) {
   const g = new THREE.Group();
   BUILD[type](g);
   g.scale.setScalar(1 + (level - 1) * 0.08);
-  for (let k = 1; k < level; k++) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshBasicMaterial({ color: P.amber })); gem.position.set(-0.3 + k * 0.25, 1.35, 0); g.add(gem); }
+  if (level < MAX_LEVEL) for (let k = 1; k < level; k++) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshBasicMaterial({ color: P.amber })); gem.position.set(-0.3 + k * 0.25, 1.35, 0); g.add(gem); }
   const { w, h } = BUILDINGS[type].size;
   if (w * h >= 4) stoneRing(g, Math.max(w, h) * 0.62);
   g.rotation.y = -rot * Math.PI / 2;

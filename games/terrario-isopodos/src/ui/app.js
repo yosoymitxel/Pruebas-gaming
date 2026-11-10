@@ -41,7 +41,7 @@ function App({ s }) {
   useEffect(() => s.on(() => force((n) => n + 1)), []);
   const Screen = SCREENS[s.mode];
   // Al cambiar de pantalla, una mancha de tinta barre la vista (se omite con movimiento reducido).
-  return html`<${Screen} s=${s} /><${AchievementToast} s=${s} />${s.paused && html`<${Pause} s=${s} />`}${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}`;
+  return html`<${Screen} s=${s} /><${AchievementToast} s=${s} />${s.paused && html`<${Pause} s=${s} />`}${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}${s.dayWipe && s.time - s.dayWipe.at < 1.5 && html`<div class="day-wipe" key=${s.dayWipe.at} aria-hidden="true"><span><small>${t('ui.day', 'Día')}</small><b>${s.dayWipe.day}</b></span></div>`}`;
 }
 
 export function start() {
