@@ -283,8 +283,8 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .node .gem-in { fill: none; stroke: var(--ink); stroke-width: 0.35; opacity: 0.6; pointer-events: none; }
 .node .icon-path { stroke: var(--ink); }
 .node.reach { cursor: pointer; }
-.node.reach .gem { stroke: var(--rust); stroke-width: 1.2; fill: color-mix(in srgb, var(--rust) 18%, var(--paper)); animation: pulse 1.4s ease-in-out infinite; }
-.node.sel .gem { fill: var(--rust); animation: none; transform: scale(1.18); }
+.node.reach .gem { stroke: var(--rust); stroke-width: 1.2; fill: color-mix(in srgb, var(--rust) 18%, var(--paper)); animation: svg-beat 1.4s ease-in-out infinite; }
+.node.sel .gem { fill: var(--rust); animation: none; stroke-width: 1.8; }
 .node.sel .icon-path { stroke: var(--paper); }
 .node.done .gem { fill: color-mix(in srgb, var(--terror-stone) 70%, black); stroke: var(--terror-stone); }
 .node.done .icon-path { stroke: var(--terror-shade); }
@@ -534,7 +534,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .room.done rect { fill: color-mix(in srgb, var(--terror-stone) 60%, black); }
 .room.done .icon-path { stroke: var(--terror-shade); }
 .room.go { cursor: pointer; }
-.room.go rect { stroke: var(--rust); stroke-width: 0.12; animation: pulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.room.go rect { stroke: var(--rust); stroke-width: 0.12; animation: svg-beat 1.4s ease-in-out infinite; }
 .room.here rect { fill: var(--ink); stroke: var(--sem-carga); stroke-width: 0.1; }
 .room.here .icon-path { stroke: var(--paper); }
 .room.final rect { fill: var(--ink); stroke: var(--rust); }
@@ -967,3 +967,35 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .status-chip .calm-v.low { color: #9a2a1c; } .status-chip .calm-v.low .icon-path { stroke: #9a2a1c; }
 .status-chip.alert .hum { animation: attn 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .status-chip.alert .hum { animation: none; } }
+
+/* Marcadores del diorama: ficha de papel nítida, de tamaño fijo, con piquito hacia lo que marca. */
+.markers { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.marker { position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -38px 0 0 -17px; padding: 0; display: grid; place-items: center;
+  pointer-events: auto; cursor: pointer; border: 2px solid var(--mk, var(--amber)); border-radius: 50%; background: #f6efdd;
+  box-shadow: 0 3px 6px rgb(10 8 6 / 0.45); will-change: transform; }
+.marker::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 8px; height: 8px; margin-left: -4px; background: var(--mk, var(--amber)); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.marker img { width: 22px; height: 22px; animation: mk-bob 1.6s ease-in-out infinite alternate; }
+.marker.m-hunger, .marker.m-empty { --mk: #c2412f; width: 28px; height: 28px; margin: -32px 0 0 -14px; }
+.marker.m-hunger img, .marker.m-empty img { width: 17px; height: 17px; }
+.marker.m-empty img { opacity: 0.45; } .marker.m-empty { background: #f6efdd linear-gradient(135deg, transparent 46%, #c2412f 46% 54%, transparent 54%); }
+.marker:active { scale: 0.9; }
+@keyframes mk-bob { to { translate: 0 -2px; } }
+@media (prefers-reduced-motion: reduce) { .marker img { animation: none; } }
+
+/* Latido de lo alcanzable en los mapas SVG sin transformar (escalar con transform-box fallaba en algunos móviles
+   y el rectángulo tapaba el mapa entero). */
+@keyframes svg-beat { 50% { stroke-opacity: 0.35; } }
+
+/* Luna del reloj: dibujada a medida y centrada en su ficha (el icono genérico tenía corrección óptica propia). */
+.day-clock .moon { display: grid !important; place-items: center; padding: 0; line-height: 0; }
+.day-clock .moon svg { width: 15px; height: 15px; display: block; }
+.day-clock .moon path { fill: var(--ink); stroke: none; }
+/* Cambio de día: una franja de tinta cruza de izquierda a derecha con el número del día nuevo. */
+.day-wipe { position: fixed; inset: 0; z-index: calc(var(--z-modal) + 2); pointer-events: none; display: grid; place-items: center;
+  background: linear-gradient(90deg, transparent, #0d0c0b 18%, #0d0c0b 82%, transparent); animation: day-wipe 1.45s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+.day-wipe span { display: grid; justify-items: center; color: #efe6d2; animation: day-num 1.45s ease-in-out forwards; }
+.day-wipe small { font: 600 12px/1 var(--sans); letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.7; }
+.day-wipe b { font: 700 72px/1 var(--hand); }
+@keyframes day-wipe { 0% { transform: translateX(-120%); } 42%, 58% { transform: translateX(0); } 100% { transform: translateX(120%); } }
+@keyframes day-num { 0%, 30% { opacity: 0; scale: 0.8; } 45%, 60% { opacity: 1; scale: 1; } 75%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .day-wipe { display: none; } }

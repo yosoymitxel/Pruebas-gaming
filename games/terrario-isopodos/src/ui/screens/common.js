@@ -102,7 +102,7 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
     <line x1=${20 + 11 * Math.sin(clock * 6.283)} y1=${20 - 11 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
     <circle class="hub" cx="20" cy="20" r="10" /></svg>
-  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
+  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 15.2A7 7 0 0 1 15.5 3.5z" /></svg></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
