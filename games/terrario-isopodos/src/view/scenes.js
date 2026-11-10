@@ -366,7 +366,8 @@ export class CombatView {
 
   get camera() { return { target: [0, 0.6], distance: 13, fit: 7.5 }; } // cerca, como Cult of the Lamb: la arena sobresale
 
-  hit(id) { this.flash.set(id, 1); }
+  // Destello blanco del golpe (game-feel-prompts, Hit Combos 3): silueta blanca entera 0,1 s y se apaga hasta 0,18 s.
+  hit(id) { this.flash.set(id, this.now ?? 0); }
 
   // Tajo: arco de tinta delante del isópodo que golpea (el combo 3 lo hace más grande).
   slash(a) {
@@ -425,8 +426,7 @@ export class CombatView {
     const list = [];
     for (const a of this.c.actors) {
       if (a.side === 'enemy' && a.hp <= 0) continue;
-      const f = Math.max(0, (this.flash.get(a.id) ?? 0) - dt * 5);
-      this.flash.set(a.id, f);
+      const age = (this.now = time) - (this.flash.get(a.id) ?? -9), f = age < 0.1 ? 1 : age < 0.18 ? 1 - (age - 0.1) / 0.08 : 0;
       const breathe = 1 + Math.sin(time * 3 + a.id) * 0.025; // respiración en reposo
       if (a.side === 'ally') {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
