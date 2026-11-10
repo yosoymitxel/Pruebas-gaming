@@ -16,7 +16,7 @@ const signed = (v) => `${v >= 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)} %
 
 export function Composition({ s, say }) {
   const home = s.game.home, clim = climate(home), eff = homeEffects(home), h = humidity(home), fix = CLIMATES[clim].fix;
-  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : BUILDINGS[src].name);
+  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : src === 'rocio' ? t('comp.mist', 'Rociado') : BUILDINGS[src].name);
   const upgrade = (id) => { if (s.upgradeLayer(id)) say(`${LAYERS[id].name} ↑`); };
   const tone = (v, good) => (Math.abs(v - 1) < 0.01 ? '' : (v > 1) === good ? 'up' : 'down');
   return html`<section class=${`drawer composition clim-${clim}`} aria-label=${t('comp.title', 'Composición del terrario')}>

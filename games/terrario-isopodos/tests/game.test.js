@@ -226,3 +226,19 @@ test('recolección con relieve: cada forma deja recursos alcanzables, el salto s
   assert.ok(ga.falls >= 1 && ga.time < t0 - 2, 'caer cuesta tiempo');
   assert.ok(ga.player.x > 0, 'y devuelve a tierra');
 });
+
+test('cuidados del terrario: rociar sube la humedad un rato y las hojas que caen se recogen', async () => {
+  const { mist, takeLeaf, humidity: hum } = await import('../src/game/home.js');
+  const { home } = newGame(8);
+  const h0 = hum(home);
+  assert.ok(mist(home));
+  assert.ok(hum(home) > h0, 'rociar sube la humedad');
+  assert.ok(!mist(home), 'con espera entre rociadas');
+  const rng = mulberry32(2);
+  for (let k = 0; k < 60 * 200; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(Math.abs(hum(home) - h0) < 1e-9, 'el rocío se seca');
+  assert.ok(home.leaves.length > 0, 'cayeron hojas');
+  const n = home.resources.hojarasca;
+  assert.ok(takeLeaf(home, home.leaves[0].id));
+  assert.equal(home.resources.hojarasca, n + 1);
+});

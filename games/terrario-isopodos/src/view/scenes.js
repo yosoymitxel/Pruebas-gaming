@@ -3,6 +3,9 @@
 import * as THREE from 'three';
 import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
+import { climate, upgradeCost, lvl, canAfford } from '../game/home.js';
+import { MAX_LEVEL } from '../data/buildings.js';
+import { spriteTexture } from './sprites.js';
 import { speciesOf } from '../data/species.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
@@ -143,6 +146,41 @@ export class HomeView extends GridScene {
   constructor(stage, home) {
     super(stage, home.grid, 17, { rim: 1, relief: 0, weather: home.weather });
     this.home = home;
+    this.care = new THREE.Group();
+    this.group.add(this.care);
+  }
+
+  // El clima interior se ve en el diorama: grietas si está seco, gotas en el vidrio si está húmedo y manchas
+  // de moho que crecen; en ideal, apenas rocío. Se rehace solo cuando cambia.
+  showClimate() {
+    const kind = climate(this.home);
+    if (kind === this.climateKind && this.openCount === this.careOpen) return;
+    this.climateKind = kind; this.careOpen = this.openCount;
+    this.care.clear();
+    const rng = mulberry32(31), g = this.grid, open = [];
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.open[j * g.w + i]) open.push([i, j]);
+    const decal = (sprite, n, size) => {
+      const mat = new THREE.MeshBasicMaterial({ map: spriteTexture(sprite), transparent: true, depthWrite: false });
+      for (let k = 0; k < n && open.length; k++) {
+        const [i, j] = open[Math.floor(rng() * open.length)], w = this.toWorld(i + rng(), j + rng());
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), mat);
+        m.position.set(w.x, w.y + 0.03 + k * 0.001, w.z); m.rotation.y = rng() * 6;
+        this.care.add(m);
+      }
+    };
+    if (kind === 'seco') decal('proc:crack', 9, 1.6);
+    if (kind === 'moho') decal('proc:mold', 10, 1.5);
+    if (kind === 'humedo') decal('proc:mold', 2, 0.9);
+    // condensación: gotas pegadas al vidrio delantero y a un lado
+    const drops = { seco: 0, ideal: 14, humedo: 70, moho: 110 }[kind], half = Math.sqrt(this.openCount) / 2 + 1, pts = [];
+    for (let k = 0; k < drops; k++) {
+      const side = rng() < 0.6, a = (rng() * 2 - 1) * half, y = 0.1 + rng() * 1.6;
+      pts.push(side ? a : half + 0.02, y, side ? half + 0.02 : a);
+    }
+    if (pts.length) {
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+      this.care.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.09, transparent: true, opacity: 0.75, depthWrite: false })));
+    }
   }
 
   // En vertical el diorama puede sobresalir por los lados (más grande y legible en el teléfono).
@@ -167,6 +205,7 @@ export class HomeView extends GridScene {
     if (this.grid.open.reduce((s, v) => s + v, 0) !== this.openCount) { this.rebuild(); this.stage.frame(this.camera.target, this.camera.distance, this.camera.fit); }
     this.syncProps();
     this.animateProps(dt);
+    if ((this.careT = (this.careT ?? 1) + dt) > 1) { this.careT = 0; this.showClimate(); }
     const list = this.home.isopods.map((iso) => {
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
       const size = iso.baby > 0 ? 0.42 : 0.8;
@@ -174,6 +213,11 @@ export class HomeView extends GridScene {
       return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
+      l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
+      const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
+      list.push({ id: l.id, sprite: 'res:hojarasca', ...w, height: 0.42, lift: (1 - l.t) * 3.2, spin: Math.sin(l.t * 7) * 0.6 * (1 - l.t) });
+    }
     for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
     // Seleccionado: la cámara lo sigue y una flecha lo marca. Distintivo (banderín) y «zzz» del que duerme.
     for (const iso of this.home.isopods) {
@@ -194,6 +238,12 @@ export class HomeView extends GridScene {
       if (!s?.ready) continue;
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.08 });
+    }
+    // Globos sobre las piezas: comedero vacío (sin hojarasca) y mejora que ya se puede pagar.
+    if (!this.extra) for (const p of Object.values(this.grid.pieces)) {
+      const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2), bob = Math.sin(time * 3 + p.id) * 0.08;
+      if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 1, lift: 1 + bob });
+      else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.85, lift: 1.3 + bob });
     }
     this.actors.sync([...list, ...(this.extra?.(time) ?? [])], this.stage.yaw);
   }

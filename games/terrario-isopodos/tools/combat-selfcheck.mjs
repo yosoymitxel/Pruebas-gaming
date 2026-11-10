@@ -9,7 +9,7 @@ import { CLASSES } from '../src/data/isopods.js';
 import { ARENAS, BOSS_ARENAS } from '../src/data/arenas.js';
 
 const PARTY = ['rodador', 'guardian', 'musgoso'].map((cls, i) => ({ id: i + 1, cls, name: cls, hp: CLASSES[cls].hp, maxHp: CLASSES[cls].hp }));
-const ENCOUNTERS = { larva: ['larva', 'larva', 'larva'], bufon: ['bufon'], segador: ['segador'], gemela: ['gemela'], comensal: ['comensal'] };
+const ENCOUNTERS = { larva: ['larva', 'larva', 'larva'], acaro: ['acaro', 'acaro', 'acaro'], cienpies: ['cienpies', 'larva'], arana: ['arana', 'acaro'], mosca: ['mosca', 'mosca'], moho: ['moho', 'larva'], bufon: ['bufon'], segador: ['segador'], gemela: ['gemela'], comensal: ['comensal'] };
 
 export function fight(kinds, seed, skill = 0.85, arena = 'claro') {
   const c = createCombat({ party: PARTY.map((p) => ({ ...p })), enemies: kinds, items: { gota: 2, hongo: 1 }, seed, arena });

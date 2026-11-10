@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 import { PALETTES, BADGES } from '../data/palettes.js';
 import { drawIsopod, drawBall, drawMolt } from './isopod-art.js';
+import { FOE_SPRITES } from './foes-art.js';
+import { CARE_SPRITES } from './care-art.js';
 
 const INK = PALETTES.cozy.ink;
 
@@ -83,7 +85,7 @@ function badge(ctx, w, h, k) {
 }
 
 export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert }, muda: { w: 128, h: 80, draw: drawMolt },
-  sel: { w: 64, h: 64, draw: sel }, zzz: { w: 96, h: 96, draw: zzz } };
+  sel: { w: 64, h: 64, draw: sel }, zzz: { w: 96, h: 96, draw: zzz }, ...FOE_SPRITES, ...CARE_SPRITES };
 const SIZES = { iso: [256, 160], molt: [256, 160], ball: [160, 160], res: [128, 128], badge: [64, 96] };
 // Isópodos por especie: de pie, en bolita o mudando.
 const ISO = { iso: (c, w, h, a) => drawIsopod(c, w, h, a), molt: (c, w, h, a) => drawIsopod(c, w, h, a, { molt: true }), ball: drawBall };

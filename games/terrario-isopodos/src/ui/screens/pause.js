@@ -35,6 +35,7 @@ export function Pause({ s }) {
       <${Segmented} label=${t('settings.filter', 'Filtro')} value=${st.filter ?? 'tinta'} onChange=${set('filter')} options=${FILTERS.map((f) => [f, filterName(f)])} />
       <div class="pause-grid">
         <button class="btn" onClick=${() => setHowto(true)}><${Icon} name="carta" size="18" />${t('menu.howto', 'Cómo se juega')}</button>
+        <button class="btn" onClick=${() => { s.paused = false; s.goGallery(); }}><${Icon} name="jefe" size="18" />${t('menu.gallery', 'Galería')}</button>
         <button class="btn" onClick=${() => { s.paused = false; s.openSettings(); }}><${Icon} name="gear" size="18" />${t('menu.settings', 'Ajustes')}</button>
         ${away && html`<button class="btn" onClick=${() => s.leaveToHome()}><${Icon} name="hogar" size="18" />${s.run ? t('pause.retreat', 'Retirarse al terrario') : t('pause.home', 'Al terrario')}</button>`}
         <button class="btn" onClick=${() => { s.paused = false; s.run = null; s.combat = null; s.goMenu(); }}><${Icon} name="back" size="18" />${t('pause.menu', 'Menú principal')}</button>

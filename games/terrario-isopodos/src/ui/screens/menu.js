@@ -38,6 +38,7 @@ export function Menu({ s }) {
       ${item('colony', confirm ? t('menu.confirmNew', '¿Seguro? Se pierde la partida actual') : t('menu.new', 'Nueva partida'), start, `${s.saved ? '' : 'primary'}${confirm ? ' danger' : ''}`)}
       ${item('carta', t('menu.howto', 'Cómo se juega'), () => setHowto(true))}
       ${item('gear', t('menu.settings', 'Ajustes'), () => s.openSettings())}
+      ${item('jefe', t('menu.gallery', 'Galería'), () => s.goGallery(), '', `${s.meta.got.length} ${t('menu.achievements', 'logros')}`)}
       ${canFullscreen && item('expand', t('menu.fullscreen', 'Pantalla completa'), toggleFullscreen)}
     </ul></nav>
     <p class="menu-foot muted">${t('menu.foot', 'Esc o P: pausa · Q/E: girar la cámara')}</p>

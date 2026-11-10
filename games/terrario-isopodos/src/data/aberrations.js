@@ -19,6 +19,45 @@ export const ABERRATIONS = localize('aberrations', {
     pattern: 'Se arrastra hasta ti y muerde.',
     attacks: [{ kind: 'slash', windup: 0.55, recover: 0.5, damage: 9, range: 1.1, arc: 1.2, cooldown: 1.4 }],
   },
+  acaro: {
+    name: 'Ácaro rojo', role: 'normal', sprite: 'proc:acaro', height: 0.9, radius: 0.28,
+    hp: 32, stagger: 30, speed: 2.6,
+    pattern: 'Rápido y en grupo: muerde poco pero seguido.',
+    attacks: [{ kind: 'slash', windup: 0.4, recover: 0.35, damage: 5, range: 0.9, arc: 1.2, cooldown: 0.9 }],
+  },
+  cienpies: {
+    name: 'Ciempiés', role: 'normal', sprite: 'proc:cienpies', height: 1.3, radius: 0.45,
+    hp: 95, stagger: 70, speed: 1.9,
+    pattern: 'Se encoge y embiste en línea; esquívalo de lado y castígalo clavado.',
+    attacks: [
+      { kind: 'charge', windup: 0.65, recover: 1, damage: 15, range: 5, cooldown: 2.6, pressure: true },
+      { kind: 'slash', windup: 0.45, recover: 0.4, damage: 8, range: 1.2, arc: 1, cooldown: 1.3 },
+    ],
+  },
+  arana: {
+    name: 'Araña de saco', role: 'normal', sprite: 'proc:arana', height: 1.6, radius: 0.5,
+    hp: 85, stagger: 65, speed: 1.7,
+    pattern: 'Lanza su tela y atrapa: cambia de isópodo para pegarle mientras retiene.',
+    attacks: [
+      { kind: 'grab', windup: 0.8, recover: 0.8, damage: 6, range: 4, hold: 2, cooldown: 4.5, pressure: true },
+      { kind: 'slash', windup: 0.5, recover: 0.5, damage: 9, range: 1.3, arc: 1.4, cooldown: 1.5 },
+    ],
+  },
+  mosca: {
+    name: 'Mosquito del hongo', role: 'normal', sprite: 'proc:mosca', height: 1.2, radius: 0.32,
+    hp: 45, stagger: 40, speed: 2.3,
+    pattern: 'Zumba en cono y vacía la carga ATB; ataca antes de que zumbe.',
+    attacks: [
+      { kind: 'scream', windup: 0.7, recover: 0.7, damage: 4, range: 3, arc: 1.4, drain: 0.6, cooldown: 3.2, pressure: true },
+      { kind: 'slash', windup: 0.4, recover: 0.4, damage: 6, range: 1, arc: 1, cooldown: 1.2 },
+    ],
+  },
+  moho: {
+    name: 'Moho andante', role: 'normal', sprite: 'proc:moho', height: 1.3, radius: 0.6,
+    hp: 120, stagger: 90, speed: 1.1,
+    pattern: 'Lento; se hincha y golpea alrededor: sal del círculo.',
+    attacks: [{ kind: 'stomp', windup: 0.9, recover: 1.1, damage: 13, range: 1.8, cooldown: 2.4, pressure: true }],
+  },
   bufon: {
     name: 'El Bufón', role: 'elite', sprite: 'el-bufon.webp', height: 3.2, radius: 0.7,
     hp: 600, stagger: 220, speed: 2.1,
