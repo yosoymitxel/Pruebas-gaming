@@ -9,7 +9,7 @@ const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
 const WALK = 1.1;
 const START_RES = { hojarasca: 8, musgo: 5, esporas: 2, cal: 1, ambar: 1 };
 
-export function newIsopod(rng, id, cls, taken = []) {
+function newIsopod(rng, id, cls, taken = []) {
   const classes = Object.keys(CLASSES);
   const names = NAMES.filter((n) => !taken.includes(n));
   const name = names.length ? names[Math.floor(rng() * names.length)] : `${NAMES[id % NAMES.length]} ${id}`;
@@ -32,7 +32,7 @@ export function newHome(rng) {
 
 export const recruit = (home, rng, cls) => addIsopod(home, newIsopod(rng, home.nextIsopod++, cls, home.isopods.map((i) => i.name)), rng);
 
-export function addIsopod(home, iso, rng) {
+function addIsopod(home, iso, rng) {
   const c = GRID_SIDE / 2;
   for (let k = 0; k < 40; k++) {
     const x = c - 2 + rng() * 4, y = c - 2 + rng() * 4;

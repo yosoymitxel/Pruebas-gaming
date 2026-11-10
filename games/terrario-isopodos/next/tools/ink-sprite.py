@@ -15,15 +15,17 @@ CROPS = {
 }
 # Zonas a borrar (polígonos en píxeles de la foto): bolígrafo, borde del cuaderno.
 ERASE = {
-    'el-bufon': [(900, 630), (1206, 630), (1206, 1100)],
-    'el-comensal': [(700, 290), (1206, 290), (1206, 900)],
+    'el-bufon': [[(900, 630), (1206, 630), (1206, 1100)]],
+    'el-comensal': [[(700, 290), (1206, 290), (1206, 900)], [(0, 290), (700, 290), (700, 380), (0, 380)]],
 }
+# Giro del cuaderno en la foto (grados, positivo = antihorario), medido por la espiral y los bordes.
+TILT = {'el-bufon': 22, 'el-segador': 20, 'el-comensal': 14}
 MAX_SIDE = 768
 
-def sprite(src, crop, erase=None):
+def sprite(src, crop, erase=None, tilt=0):
     gray = ImageOps.grayscale(Image.open(src))
-    if erase:
-        ImageDraw.Draw(gray).polygon(erase, fill=255)
+    for poly in erase or []:
+        ImageDraw.Draw(gray).polygon(poly, fill=255)
     gray = gray.crop(crop)
     small = gray.resize((gray.width // 4, gray.height // 4))
     # Brillo del papel en cada zona: el máximo cercano ignora la tinta aunque sea densa.
@@ -38,9 +40,11 @@ def sprite(src, crop, erase=None):
             if not m[x, y]:
                 continue
             ink = 1 - g[x, y] / max(p[x, y], 1)             # cuánto más oscuro que su papel
-            a[x, y] = max(0, min(255, int((ink - 0.18) * 520)))
+            a[x, y] = max(0, min(255, int((ink - 0.26) * 560)))
     out = Image.new('RGBA', (w, h), (20, 18, 16, 0))
-    out.putalpha(alpha)
+    out.putalpha(alpha.point(lambda v: 0 if v < 60 else v))  # sin veladuras sueltas del papel
+    if tilt:
+        out = out.rotate(-tilt, resample=Image.BICUBIC, expand=True)
     out = out.crop(out.getbbox())
     out.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
     return out
@@ -48,6 +52,6 @@ def sprite(src, crop, erase=None):
 if __name__ == '__main__':
     os.makedirs('next/assets/sprites', exist_ok=True)
     for name, crop in CROPS.items():
-        img = sprite(f'art/aberraciones/{name}.webp', crop, ERASE.get(name))
+        img = sprite(f'art/aberraciones/{name}.webp', crop, ERASE.get(name), TILT.get(name, 0))
         img.save(f'next/assets/sprites/{name}.png', optimize=True)
         print(name, img.size)

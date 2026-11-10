@@ -8,4 +8,3 @@ export function mulberry32(seed) {
   };
 }
 export const pickFrom = (rng, arr) => arr[Math.floor(rng() * arr.length)];
-export const randomSeed = () => Math.floor(Math.random() * 1e6);
