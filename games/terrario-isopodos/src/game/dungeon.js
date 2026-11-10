@@ -34,11 +34,14 @@ export const nextNodes = (d) => (d.at === null
   ? d.nodes.filter((n) => n.layer === 0)
   : d.edges.filter((e) => e[0] === d.at).map((e) => d.nodes[e[1]]));
 
-export function enemiesFor(node, biomeId) {
+// Enemigos de una pelea: élite y guardiana, las del bioma; las peleas comunes mezclan la fauna del bioma
+// (`foes` en BIOMES) para que cada sala sea distinta.
+export function enemiesFor(node, biomeId, rng = Math.random) {
   const biome = BIOMES[biomeId];
   if (node.type === 'jefe') return [biome.boss];
   if (node.type === 'elite') return [biome.elite];
-  return Array(2 + (node.layer > 2 ? 1 : 0)).fill('larva');
+  const pool = biome.foes ?? ['larva'], n = 2 + (node.layer > 2 ? 1 : 0);
+  return Array.from({ length: n }, () => pool[Math.floor(rng() * pool.length)]);
 }
 
 export const enemyHpMul = (node) => 1 + node.layer * 0.06;

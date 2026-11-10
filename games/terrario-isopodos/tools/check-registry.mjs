@@ -6,10 +6,12 @@ import { RESOURCES } from '../src/data/resources.js';
 import { BUILDINGS, EXPANSIONS } from '../src/data/buildings.js';
 import { ABERRATIONS, ROLES } from '../src/data/aberrations.js';
 import { ABILITIES, ITEMS } from '../src/data/abilities.js';
-import { CLASSES, SHELLS } from '../src/data/isopods.js';
+import { CLASSES } from '../src/data/isopods.js';
 import { CARDS } from '../src/data/cards.js';
 import { BIOMES, WEATHERS, NODE_TYPES, ISLAND_KINDS, VESSELS, VESSEL_BY_KIND } from '../src/data/world.js';
-import { PALETTES, SHELL_COLORS } from '../src/data/palettes.js';
+import { PALETTES } from '../src/data/palettes.js';
+import { SPECIES } from '../src/data/species.js';
+
 import { PROC_SPRITES } from '../src/view/sprites.js';
 import { ICONS } from '../src/ui/icons.js';
 import { SFX_NAMES } from '../src/ui/sfx.js';
@@ -49,7 +51,11 @@ export function checkRegistry() {
   }
   for (const [id, ab] of Object.entries({ ...ABILITIES, ...ITEMS })) if (!ABILITY_KINDS.includes(ab.kind)) fail(`habilidad/objeto ${id}: tipo "${ab.kind}" desconocido`);
   for (const [id, c] of Object.entries(CLASSES)) for (const ab of c.abilities) if (!ABILITIES[ab]) fail(`clase ${id}: habilidad "${ab}" no existe`);
-  for (const s of SHELLS) if (!SHELL_COLORS[s]) fail(`caparazón ${s}: sin color`);
+  for (const [id, s] of Object.entries(SPECIES)) {
+    if (!CLIMATES[s.humidity]) fail(`especie ${id}: clima ${s.humidity} desconocido`);
+    if (!['domo', 'plano', 'fino', 'pato'].includes(s.body)) fail(`especie ${id}: cuerpo ${s.body} sin dibujo`);
+    if (s.colors?.length !== 3) fail(`especie ${id}: faltan colores`);
+  }
   for (const [id, b] of Object.entries(BIOMES)) {
     for (const r of b.loot) if (!RESOURCES[r]) fail(`bioma ${id}: botín "${r}" no es un recurso`);
     for (const k of ['boss', 'elite']) if (!ABERRATIONS[b[k]]) fail(`bioma ${id}: ${k} "${b[k]}" no existe`);

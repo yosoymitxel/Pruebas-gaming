@@ -11,7 +11,6 @@ import { ATB_MAX, allies, enemies } from '../../game/combat.js';
 import { press } from '../input.js';
 import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
 import { portraitURL } from '../../view/sprites.js';
-import { LAYERS } from '../../game/dungeon.js';
 import { Icon } from '../icons.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
@@ -31,7 +30,7 @@ export function Combat({ s }) {
     <${Stick} />
     <${CamControls} s=${s} />
     <${PauseButton} s=${s} />
-    ${s.run && html`<${RoomMap} dungeon=${s.run.dungeon} layers=${LAYERS} />`}
+    ${s.run && html`<${RoomMap} floor=${s.run.floor} />`}
     ${boss ? html`<header class="boss-bar">
       <b>${ABERRATIONS[boss.kind].name}</b>${boss.staggered > 0 ? html`<em class="tag stag">${t('combat.staggered', 'Aturdida')}</em>` : boss.pressured > 0 ? html`<em class="tag press">${t('combat.pressured', 'Presionada')}</em>` : null}
       <${Bar} value=${boss.hp} max=${boss.maxHp} kind="foe" label=${t('ui.hp', 'Vida')} />
@@ -50,11 +49,11 @@ export function Combat({ s }) {
     <${FxLayer} s=${s} />
     ${boss && c.t < 2.4 && html`<div class="boss-card" aria-live="polite"><img src=${portraitURL(ABERRATIONS[boss.kind].sprite)} alt="" /><div><small>${t(`role.${ABERRATIONS[boss.kind].role}`, ABERRATIONS[boss.kind].role === 'jefe' ? 'Guardiana' : 'Élite')}</small><b>${ABERRATIONS[boss.kind].name}</b></div></div>`}
 
-    <section class="team">${team.map((a, k) => html`<button class=${`member${a.id === c.main ? ' main' : ''}${a.hp <= 0 ? ' down' : ''}`}
+    <section class="team" aria-label=${t('combat.team', 'Equipo')}>${team.map((a, k) => html`<button class=${`member${a.id === c.main ? ' main' : ''}${a.hp <= 0 ? ' down' : ''}${a.hp > 0 && a.hp / a.maxHp < 0.3 ? ' low' : ''}${a.atb >= ATB_MAX ? ' ready' : ''}`}
         onClick=${() => s.switchTo(a.id)} aria-pressed=${a.id === c.main} aria-label=${`${a.name}, ${CLASSES[a.cls].name}`}>
       <img src=${portraitURL(`iso:${a.shell}`)} alt="" />
-      <span class="who"><kbd>${k + 1}</kbd>${a.id === c.main ? ` ${a.name}` : ''}${a.held > 0 ? ' ⛓' : ''}</span>
-      <${Bar} value=${a.hp} max=${a.maxHp} label=${t('ui.hp', 'Vida')} />
+      <span class="who"><kbd>${k + 1}</kbd>${a.name}${a.held > 0 ? ' ⛓' : ''}</span>
+      <span class="hp"><${Bar} value=${a.hp} max=${a.maxHp} label=${t('ui.hp', 'Vida')} /><b>${Math.ceil(a.hp)}</b><small>/${a.maxHp}</small></span>
       <${Atb} value=${a.atb} />
     </button>`)}</section>
 

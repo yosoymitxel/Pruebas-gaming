@@ -2,7 +2,7 @@
 // semilla) sobre las capas de drenaje, con decoración en lo cerrado. Va dentro de un recipiente (vessel.js).
 // Solo visual: reglas y colisiones siguen en el plano (src/game). Mundo: x = columna − w/2, z = fila − h/2.
 import * as THREE from 'three';
-import { PALETTES } from '../data/palettes.js';
+import { PALETTES, SEMANTIC } from '../data/palettes.js';
 import { mulberry32 } from '../core/rng.js';
 import { substrateCells, substrateDisc, CHARCOAL } from './vessel.js';
 import { flora, FLORA } from './flora.js';
@@ -53,7 +53,7 @@ function decor(group, rocks, ferns, tufts) {
 
 // Isla a partir de una rejilla. `rim`: anillo de celdas cerradas visibles alrededor (lo ampliable), alzado
 // como colinas con decoración. Devuelve { group, gridLines, heightAt(x, y) } en coordenadas de rejilla.
-export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
+export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3, levels = null, levelH = 0.5 } = {}) {
   const rng = mulberry32(seed), n = noise2(seed, 3.5), worn = noise2(seed + 11, 2.2);
   const group = new THREE.Group();
   const ox = grid.w / 2, oz = grid.h / 2;
@@ -64,7 +64,8 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   for (let j = 0; j < grid.h; j++) for (let i = 0; i < grid.w; i++) {
     const open = isOpen(i, j);
     if (!open && !(rim && nearOpen(i, j))) continue;
-    const h = terrace(open ? n(i, j) * relief : 0.45 + n(i, j) * 0.9);
+    // `levels`: alturas fijas por celda (recolección con escalones); si no, ruido suave.
+    const h = levels && open ? 0.05 + levels[j * grid.w + i] * levelH : terrace(open ? n(i, j) * relief : 0.45 + n(i, j) * 0.9);
     heights[j * grid.w + i] = h;
     cells.push({ i, j, open, h });
   }
@@ -194,7 +195,7 @@ export function arenaFeatures({ pillars, pools, pit }, seed = 1) {
     g.add(trunk, cap);
     for (let k = 0; k < 4; k++) { const a = rng() * Math.PI * 2; plants.push([p.x + Math.cos(a) * (p.r + 0.15), 0, p.y + Math.sin(a) * (p.r + 0.15), 0.4 + rng() * 0.3, FLORA[k % FLORA.length], rng() * 3]); }
   }
-  const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(P.grass).lerp(new THREE.Color(P.amber), 0.25), transparent: true, opacity: 0.55, depthWrite: false });
+  const glow = new THREE.MeshBasicMaterial({ color: SEMANTIC.peligro, transparent: true, opacity: 0.55, depthWrite: false }); // peligro = violeta
   for (const p of pools) {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(p.r, 24).rotateX(-Math.PI / 2), glow);
     disc.position.set(p.x, 0.03, p.y);

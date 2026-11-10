@@ -84,12 +84,12 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .calm, .timer { display: grid; gap: 2px; min-width: 120px; font-weight: 600; color: var(--paper); text-shadow: 0 1px 0 var(--ink); }
 
 .bar { display: block; height: 8px; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; background: var(--paper); min-width: 60px; }
-.bar i { display: block; height: 100%; background: var(--moss); transition: width 120ms linear; }
-.bar-foe i { background: var(--rust); }
+.bar i { display: block; height: 100%; background: var(--sem-vida); transition: width 120ms linear; }
+.bar-foe i { background: var(--sem-dano); }
 .bar-stagger { height: 5px; }
 .bar-stagger i { background: var(--amber); }
-.bar-calm i { background: var(--amber); }
-.bar-food i { background: var(--amber); }
+.bar-calm i { background: var(--sem-calma); }
+.bar-food i { background: var(--sem-hambre); }
 .bar-time i { background: var(--ink); }
 
 .toast { position: absolute; z-index: var(--z-fx); left: 50%; top: 22%; transform: translateX(-50%); margin: 0;
@@ -201,7 +201,7 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 
 /* Archipiélago */
 .isle-labels { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); }
-.isle-label { position: absolute; transform: translate(-50%, 0); }
+.isle-label { position: absolute; transform: translate(-50%, -22px); }
 .isle-label button { display: grid; justify-items: center; gap: 6px; background: none; border: 0; padding: 0; cursor: pointer; color: var(--paper); }
 .isle-label .gem { display: grid; place-items: center; width: 30px; height: 30px; transform: rotate(45deg); background: var(--paper); color: var(--ink);
   border: 2px solid var(--ink); outline: 2px solid var(--paper); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 45%, transparent); transition: transform 160ms var(--ease-out); }
@@ -213,7 +213,10 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .isle-label.done button { opacity: 0.45; cursor: default; }
 /* Mapa exterior: título en cinta, como el cartel de región de Cult of the Lamb. */
 .title-block.row { display: flex; align-items: center; gap: 10px; }
-.title-block .sleep { pointer-events: auto; text-shadow: none; min-height: 40px; }
+.day-clock.can-sleep { pointer-events: auto; cursor: pointer; padding: 0; border: 0; background: none; font: inherit; }
+.day-clock .moon { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink); animation: pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .day-clock .moon { animation: none; } }
 .day-clock { position: relative; width: 54px; height: 54px; flex: none; color: var(--paper); text-shadow: none; }
 .day-clock svg { position: absolute; inset: 0; }
 .day-clock circle { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
@@ -334,8 +337,8 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3px; padding: 0 3px; }
 .atb { display: flex; gap: 3px; }
 .atb i { flex: 1; height: 7px; border: 1.5px solid var(--ink); border-radius: 3px; overflow: hidden; }
-.atb b { display: block; height: 100%; background: var(--shade); }
-.atb i.full b { background: var(--amber); }
+.atb b { display: block; height: 100%; background: color-mix(in srgb, var(--sem-carga) 55%, var(--paper)); }
+.atb i.full b { background: var(--sem-carga); }
 .actions-pad { position: absolute; z-index: var(--z-hud); right: var(--gap); bottom: max(var(--gap), env(safe-area-inset-bottom)); display: grid; grid-template-columns: auto auto; grid-template-areas: 'tactic roll' 'tactic attack'; gap: 10px; align-items: end; }
 .pad { font: 700 20px var(--hand); border: var(--line); border-radius: 50%; background: var(--paper); color: var(--ink); cursor: pointer; box-shadow: 3px 3px 0 var(--ink); touch-action: manipulation; }
 .pad:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
@@ -413,15 +416,6 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .pause-grid .btn { justify-content: flex-start; min-height: 48px; }
 @media (max-width: 420px) { .pause-grid { grid-template-columns: 1fr; } }
 @media (max-width: 400px) { .hud-bottom .btn { font-size: 12px; padding-inline: 4px; gap: 3px; } }
-.room-map { position: absolute; z-index: var(--z-hud); top: calc(max(var(--gap), env(safe-area-inset-top)) + 56px); right: max(var(--gap), env(safe-area-inset-right));
-  display: flex; flex-direction: column-reverse; align-items: center; list-style: none; margin: 0; padding: 6px 8px; background: color-mix(in srgb, var(--night) 80%, transparent); border-radius: 6px; pointer-events: none; }
-.room-map li { width: 16px; height: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--paper) 25%, transparent); border: 1.5px solid var(--paper); color: var(--rust); }
-.room-map li { width: 14px; height: 10px; }
-.room-map li + li { margin-bottom: 6px; position: relative; }
-.room-map li + li::before { content: ''; position: absolute; top: 100%; width: 2px; height: 6px; background: var(--paper); opacity: 0.6; }
-.room-map li.done { background: var(--paper); }
-.room-map li.here { background: var(--rust); border-color: var(--paper); transform: scale(1.25); }
-.room-map li:last-child { width: 20px; height: 16px; background: var(--ink); }
 
 /* Combate: HUD apartado de la acción */
 .boss-bar { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: 50%; translate: -50% 0; width: min(60vw, 460px);
@@ -455,11 +449,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .combat .team { top: max(var(--gap), env(safe-area-inset-top)); bottom: auto; }
 .combat:has(.boss-bar) .team { top: calc(max(var(--gap), env(safe-area-inset-top)) + 70px); }
 @media (max-width: 720px) { .combat .cam-controls { display: none; } }
-.combat .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 84px); left: max(var(--gap), env(safe-area-inset-left)); right: auto; flex-direction: row; }
-.combat .room-map li + li { margin: 0 0 0 6px; }
-.combat .room-map li + li::before { top: auto; right: 100%; width: 6px; height: 2px; }
-.combat:has(.boss-bar) .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 154px); }
-
+.combat .combat 
 /* Cartas (sistema de KureiChaosChess): el marco dice el tipo, la gema y el borde la rareza. */
 .pick { z-index: var(--z-modal); }
 .pick-body { display: grid; justify-items: center; gap: 22px; width: 100%; max-width: 860px; }
@@ -509,3 +499,74 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .arena-name b { font: 700 clamp(34px, 7vw, 52px)/1 var(--hand); }
 .arena-name small { font: 600 15px/1.3 var(--sans); max-width: 32ch; }
 @media (prefers-reduced-motion: reduce) { .arena-name { animation: none; } }
+.iso-row { display: grid; grid-template-columns: 54px 1fr; gap: 4px 8px; align-items: center; }
+.iso-row img { width: 54px; height: auto; grid-row: span 2; }
+.iso-row span { display: grid; gap: 2px; }
+.iso-row .bar { grid-column: 2; }
+.iso-card .sp { opacity: 0.8; }
+
+/* Equipo en combate (estructura de FF7 Remake): filas con nombre, vida con número y carga ATB en azul;
+   la del isópodo que controlas resalta; cuando la carga se llena, la fila brilla. */
+.combat .team { top: auto; bottom: max(var(--gap), env(safe-area-inset-bottom)); left: max(var(--gap), env(safe-area-inset-left)); grid-auto-flow: row; gap: 4px; width: min(46vw, 230px); }
+.combat:has(.boss-bar) .team { top: auto; }
+.combat .member { grid-template-columns: 30px 1fr; grid-template-areas: 'img who' 'img hp' 'img atb'; width: auto; gap: 1px 6px; padding: 4px 8px 5px;
+  justify-items: stretch; align-items: center; background: color-mix(in srgb, var(--night) 82%, transparent); color: var(--paper); border-color: color-mix(in srgb, var(--paper) 30%, transparent); }
+.combat .member img { grid-area: img; width: 30px; }
+.combat .member .who { grid-area: who; font-size: 12px; }
+.combat .member .hp { grid-area: hp; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.combat .member .hp .bar { flex: 1; min-width: 0; height: 7px; border-color: var(--ink); }
+.combat .member .hp b { font-size: 13px; } .combat .member .hp small { font-size: 10px; opacity: 0.7; }
+.combat .member .atb { grid-area: atb; }
+.combat .member.main { width: auto; background: color-mix(in srgb, var(--night) 92%, transparent); border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.combat .member.main .who { font-size: 13px; color: var(--amber); }
+.combat .member.low .hp b { color: var(--sem-dano); }
+.combat .member.ready { box-shadow: 0 0 10px color-mix(in srgb, var(--sem-carga) 70%, transparent); }
+.cam-controls:not(.open) { gap: 0; }
+@media (max-width: 720px) { .combat .cam-controls { display: grid; } }
+.combat .member .atb { width: 100%; } .combat .member .atb i { height: 6px; border-color: var(--ink); }
+
+/* Piso de salas */
+.floor { position: relative; min-height: 0; display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; padding: 12px; color: var(--paper);
+  background: var(--terror-night); border: 2px solid color-mix(in srgb, var(--terror-stone) 40%, black); border-radius: 6px; box-shadow: inset 0 0 40px black; }
+.floor h3 { margin: 0; text-align: center; font: 700 26px/1 var(--hand); }
+.floor-map { width: 100%; height: 100%; min-height: 160px; max-height: 46vh; }
+.floor-map line { stroke: color-mix(in srgb, var(--paper) 55%, transparent); stroke-width: 0.12; stroke-dasharray: 0.18 0.12; }
+.floor-map line.done { stroke: var(--paper); stroke-dasharray: none; }
+.room rect { fill: color-mix(in srgb, var(--shade) 70%, var(--moss)); stroke: var(--paper); stroke-width: 0.06; }
+.room .icon-path { stroke: var(--ink); }
+.room.done rect { fill: color-mix(in srgb, var(--terror-stone) 60%, black); }
+.room.done .icon-path { stroke: var(--terror-shade); }
+.room.go { cursor: pointer; }
+.room.go rect { stroke: var(--rust); stroke-width: 0.12; animation: pulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.room.here rect { fill: var(--ink); stroke: var(--sem-carga); stroke-width: 0.1; }
+.room.here .icon-path { stroke: var(--paper); }
+.room.final rect { fill: var(--ink); stroke: var(--rust); }
+.room.final .icon-path { stroke: var(--rust); }
+.room-botin rect, .room-carta rect, .room-reliquia rect { fill: color-mix(in srgb, var(--amber) 55%, var(--paper)); }
+.room .banner { fill: var(--rust); stroke: var(--ink); stroke-width: 0.04; }
+.doors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.door { min-height: 48px; }
+.door .dir { font-size: 20px; font-weight: 800; }
+.floor .note { margin: 0; color: var(--paper); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .room.go rect { animation: none; } }
+.room-map { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: max(var(--gap), env(safe-area-inset-left)); height: auto; max-width: 40vw;
+  padding: 4px; background: color-mix(in srgb, var(--night) 80%, transparent); border-radius: 6px; pointer-events: none; }
+.room-map line { stroke: var(--paper); stroke-width: 0.14; opacity: 0.6; }
+.room-map rect { fill: color-mix(in srgb, var(--paper) 25%, transparent); stroke: var(--paper); stroke-width: 0.1; }
+.room-map rect.done { fill: var(--paper); }
+.room-map rect.final { fill: var(--ink); stroke: var(--rust); }
+.room-map rect.here { fill: var(--rust); }
+
+/* Construir: las fichas entran escalonadas; la ficha de pieza enseña qué hace y su nivel. */
+.build-list .card-btn { animation: lift 260ms var(--ease-out) both; animation-delay: calc(var(--i) * 30ms); }
+.card-btn .desc { font-size: 12px; opacity: 0.8; }
+.piece-card { animation: fade-in 220ms var(--ease-out); }
+@keyframes lift { from { opacity: 0; transform: translateY(8px); } }
+@keyframes fade-in { from { opacity: 0; } }
+.pc-head { display: flex; align-items: center; gap: 10px; }
+.pc-head h3 { margin: 0; flex: 1; }
+.pc-head .lvl { font: 700 16px/1 var(--hand); padding: 3px 8px; border-radius: 999px; background: var(--amber); color: var(--ink); }
+.piece-card .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .build-list .card-btn, .piece-card { animation: none; } }
+.gather-pad { grid-template-areas: 'attack'; grid-template-columns: auto; }
+.gather .hint.floating { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 100px); max-width: min(80vw, 420px); }

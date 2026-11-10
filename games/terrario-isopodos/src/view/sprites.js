@@ -2,7 +2,8 @@
 // trazo (isópodos, larvas, iconos de recursos). Cada función dibuja en un lienzo de w × h mirando a la
 // derecha; el resto del juego los pide por clave y los recibe como textura cacheada.
 import * as THREE from 'three';
-import { PALETTES, SHELL_COLORS } from '../data/palettes.js';
+import { PALETTES } from '../data/palettes.js';
+import { drawIsopod, drawBall, drawMolt } from './isopod-art.js';
 
 const INK = PALETTES.cozy.ink;
 
@@ -15,33 +16,6 @@ function stipple(ctx, x, y, w, h, density, clip) {
     ctx.fillRect(px, py, 1.6, 1.6);
   }
   ctx.restore();
-}
-
-function isopod(ctx, w, h, shell = 'pizarra') {
-  const cx = w * 0.5, base = h * 0.82, rx = w * 0.38, ry = h * 0.52;
-  ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.lineCap = 'round';
-  for (let k = 0; k < 6; k++) { // patitas
-    const x = cx - rx * 0.7 + k * rx * 0.28;
-    ctx.beginPath(); ctx.moveTo(x, base - 4); ctx.lineTo(x + 6, base + 10); ctx.stroke();
-  }
-  const dome = () => { ctx.beginPath(); ctx.ellipse(cx, base, rx, ry, 0, Math.PI, 0); ctx.closePath(); };
-  dome(); ctx.fillStyle = SHELL_COLORS[shell]; ctx.fill();
-  stipple(ctx, cx - rx, base - ry, rx * 2, ry * 0.9, 0.01, dome);
-  stipple(ctx, cx - rx, base - ry * 0.35, rx * 2, ry * 0.35, 0.05, dome);
-  ctx.lineWidth = 3;
-  for (let k = 1; k < 7; k++) { // segmentos
-    const a = Math.PI + (k / 7) * Math.PI;
-    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * rx * 0.25, base); ctx.lineTo(cx + Math.cos(a) * rx, base + Math.sin(a) * ry); ctx.stroke();
-  }
-  ctx.lineWidth = 5; dome(); ctx.stroke();
-  const hx = cx + rx * 0.92, hy = base - ry * 0.18; // cabeza y antenas
-  ctx.beginPath(); ctx.ellipse(hx, hy, rx * 0.2, ry * 0.26, 0, 0, Math.PI * 2);
-  ctx.fillStyle = SHELL_COLORS[shell]; ctx.fill(); ctx.lineWidth = 4; ctx.stroke();
-  ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(hx + 4, hy - 10); ctx.quadraticCurveTo(hx + 26, hy - 40, hx + 40, hy - 30); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(hx + 8, hy - 4); ctx.quadraticCurveTo(hx + 34, hy - 18, hx + 44, hy - 4); ctx.stroke();
-  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(hx + 6, hy - 2, 7, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = PALETTES.cozy.paper; ctx.beginPath(); ctx.arc(hx + 8, hy - 5, 2.6, 0, Math.PI * 2); ctx.fill();
 }
 
 function larva(ctx, w, h) {
@@ -92,25 +66,27 @@ function alert(ctx, w, h) {
   ctx.fillText('!', w / 2, h * 0.44);
 }
 
-export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert } };
-const SIZES = { iso: [256, 160], res: [128, 128] };
+export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert }, muda: { w: 128, h: 80, draw: drawMolt } };
+const SIZES = { iso: [256, 160], molt: [256, 160], ball: [160, 160], res: [128, 128] };
+// Isópodos por especie: de pie, en bolita o mudando.
+const ISO = { iso: (c, w, h, a) => drawIsopod(c, w, h, a), molt: (c, w, h, a) => drawIsopod(c, w, h, a, { molt: true }), ball: drawBall };
 
 const cache = new Map();
 export const spriteURL = (file) => new URL(`../../assets/sprites/${file}`, import.meta.url).href;
 const loader = new THREE.TextureLoader();
 
-// Claves: 'iso:<caparazón>', 'res:<recurso>', 'proc:<id>' o un archivo de assets/sprites/.
+// Claves: 'iso|ball|molt:<especie>', 'res:<recurso>', 'proc:<id>' o un archivo de assets/sprites/.
 export function spriteTexture(key) {
   if (cache.has(key)) return cache.get(key);
   let tex;
   const [kind, arg] = key.split(':');
-  if (kind === 'iso' || kind === 'res' || kind === 'proc') {
+  if (ISO[kind] || kind === 'res' || kind === 'proc') {
     const [w, h] = kind === 'proc' ? [PROC_SPRITES[arg].w, PROC_SPRITES[arg].h] : SIZES[kind];
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineJoin = 'round';
-    if (kind === 'iso') isopod(ctx, w, h, arg);
+    if (ISO[kind]) ISO[kind](ctx, w, h, arg);
     else if (kind === 'res') RES[arg](ctx, w, h);
     else PROC_SPRITES[arg].draw(ctx, w, h);
     tex = new THREE.CanvasTexture(canvas);
@@ -142,15 +118,15 @@ export function resourceIconURL(res) {
 // Imagen (URL) del mismo dibujo para la interfaz: retratos de isópodos, aberraciones y larvas.
 export function portraitURL(key) {
   const [kind, arg] = key.split(':');
-  if (kind !== 'iso' && kind !== 'proc') return spriteURL(key);
+  if (!ISO[kind] && kind !== 'proc') return spriteURL(key);
   const ck = `portrait:${key}`;
   if (!cache.has(ck)) {
-    const [w, h] = kind === 'proc' ? [PROC_SPRITES[arg].w, PROC_SPRITES[arg].h] : SIZES.iso;
+    const [w, h] = kind === 'proc' ? [PROC_SPRITES[arg].w, PROC_SPRITES[arg].h] : SIZES[kind];
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineJoin = 'round';
-    if (kind === 'iso') isopod(ctx, w, h, arg); else PROC_SPRITES[arg].draw(ctx, w, h);
+    if (ISO[kind]) ISO[kind](ctx, w, h, arg); else PROC_SPRITES[arg].draw(ctx, w, h);
     cache.set(ck, canvas.toDataURL());
   }
   return cache.get(ck);

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
+import { speciesOf } from '../data/species.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
 import { propMesh, ghostMesh } from './props.js';
@@ -19,7 +20,8 @@ import { footprint, canPlace } from '../game/grid.js';
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
-  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tanque', weather = 'claro' } = {}) {
+  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tanque', weather = 'claro', levels = null } = {}) {
+    this.levels = levels;
     this.stage = stage;
     this.weatherKind = weather;
     this.vessel = vessel;
@@ -48,7 +50,7 @@ class GridScene {
 
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
-    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief });
+    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief, levels: this.levels });
     this.shine = dress(this.island.group, this.vessel, this.island, this.grid, this.seed);
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
@@ -80,12 +82,25 @@ class GridScene {
     for (const [id, m] of this.props) if (!pieces[id] || m.userData.key !== key(pieces[id])) { this.group.remove(m); this.props.delete(id); }
     for (const p of Object.values(pieces)) {
       if (this.props.has(String(p.id))) continue;
-      const m = propMesh(p.type, p.rot);
+      const m = propMesh(p.type, p.rot, p.level ?? 1);
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       m.position.set(w.x, this.floorOf(p.x, p.y, f), w.z);
       m.userData.key = key(p);
+      // Lo recién puesto (o mejorado) entra con un rebote; lo que ya estaba al abrir la escena, no.
+      m.userData.base = m.scale.x;
+      if (this.propsReady) { m.userData.pop = 0; m.scale.setScalar(0.01); }
       this.group.add(m);
       this.props.set(String(p.id), m);
+    }
+    this.propsReady = true;
+  }
+
+  // Rebote de entrada (easeOutBack) de las piezas nuevas.
+  animateProps(dt) {
+    for (const m of this.props?.values() ?? []) {
+      if (m.userData.pop === undefined || m.userData.pop >= 1) continue;
+      const t = (m.userData.pop = Math.min(1, m.userData.pop + dt / 0.45)), c = 2.2;
+      m.scale.setScalar(m.userData.base * (1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2));
     }
   }
 }
@@ -122,7 +137,7 @@ function stainTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
+const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}:${p.level ?? 1}`;
 
 export class HomeView extends GridScene {
   constructor(stage, home) {
@@ -151,10 +166,15 @@ export class HomeView extends GridScene {
     this.tick(dt);
     if (this.grid.open.reduce((s, v) => s + v, 0) !== this.openCount) { this.rebuild(); this.stage.frame(this.camera.target, this.camera.distance, this.camera.fit); }
     this.syncProps();
+    this.animateProps(dt);
     const list = this.home.isopods.map((iso) => {
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
-      return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: 0.8, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0, squash: 1 + Math.sin(time * 3 + iso.id) * 0.03 };
+      const size = iso.baby > 0 ? 0.42 : 0.8;
+      if (iso.ball > 0) return { id: `i${iso.id}`, sprite: `ball:${iso.shell}`, ...w, height: size * 0.62, squash: 1 + Math.sin(time * 9) * 0.04 };
+      return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
+        squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
     // Bocadillos de necesidad sobre la cabeza (como los seguidores de Cult of the Lamb): hambre.
     for (const iso of this.home.isopods) {
       if (iso.hunger >= 0.35) continue;
@@ -189,7 +209,7 @@ export class MenuView extends HomeView {
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather });
+    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather, levels: gather.levels });
     this.g = gather;
     this.syncProps();
     this.pickups = gather.nodes.map((n) => {
@@ -213,7 +233,10 @@ export class GatherView extends GridScene {
       if (n.taken && m.visible) { m.visible = false; this.burst('pickup', n.x, n.y); this.onPick?.(n); }
       if (m.visible) animatePickup(m, time, k);
     });
-    const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...pw, height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
+    // En el aire, bolita si la especie puede (como un isópodo que se deja caer); al caer al vacío se encoge.
+    const air = p.air || p.falling > 0, rolls = speciesOf(this.g.shell).rolls;
+    const list = [{ id: 'player', sprite: `${air && rolls ? 'ball' : 'iso'}:${this.g.shell ?? 'vulgare'}`, x: pw.x, z: pw.z, y: p.z + 0.05, height: air && rolls ? 0.6 : 0.9,
+      flip: p.vx < 0, lift: !air && moving ? bob(time, 1) : 0, spin: air && rolls ? -time * 14 : 0, squash: p.falling > 0 ? 0.5 : 1 }];
     const l = this.g.lost;
     if (l?.taken && !l.shown) { l.shown = true; this.burst('heal', l.x, l.y); this.onPick?.({ lost: true, x: l.x, y: l.y }); }
     if (l && !l.taken) {
@@ -323,7 +346,9 @@ export class CombatView {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
         const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
         const squash = a.state === 'attack' && a.phase === 'windup' ? 0.86 : a.state === 'roll' ? 0.7 : breathe * (1 - f * 0.18);
-        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: 1.05, squash, flip: Math.cos(a.facing) < 0,
+        const balled = a.state === 'roll' && speciesOf(a.shell).rolls;
+        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash, flip: Math.cos(a.facing) < 0,
+          spin: balled ? -time * 18 * (Math.cos(a.facing) < 0 ? -1 : 1) : 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
         if (a.state === 'roll' && (this.ghostT = (this.ghostT ?? 0) - dt) <= 0) { // estela del rodar
           this.ghostT = 0.04;

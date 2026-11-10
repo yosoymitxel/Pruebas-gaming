@@ -3,12 +3,15 @@ import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, beds, canAfford, nextExpansion, climate, humidity } from '../../game/home.js';
+import { calm, beds, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost } from '../../game/home.js';
+import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { CLIMATES } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
+import { speciesOf } from '../../data/species.js';
+import { portraitURL } from '../../view/sprites.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -32,18 +35,19 @@ export function Home({ s }) {
     if (!c) return;
     if (s.build) { s.hoverBuild(c.i, c.j); if (!s.confirmBuild()) say(t('home.cantPlace', 'No cabe ahí o faltan recursos.')); return; }
     const got = s.tapHome(c);
-    if (got) say(`+${got.n} ${RESOURCES[got.res].name}`);
+    if (got?.res) say(`+${got.n} ${RESOURCES[got.res].name}`);
   };
   const exp = nextExpansion(home);
+  const sel = s.selPiece ? home.grid.pieces[s.selPiece] : null;
 
   return html`<main class="screen home">
     <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
     <${CamControls} s=${s} />
     <${FxLayer} s=${s} />
     <header class="hud-top">
-      <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`} />
-        <div><span class="kicker">${DAY_PHASES[s.phase].name}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
-        ${(s.phase === 'atardecer' || s.phase === 'noche') && html`<button class="btn sleep" title=${t('home.sleepHint', 'Dormir hasta el alba: empieza otro día con islas nuevas')} onClick=${() => s.sleep()}><${Icon} name="refugio" size="18" />${t('home.sleep', 'Dormir')}</button>`}</div>
+      <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
+          onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
+        <div><span class="kicker">${DAY_PHASES[s.phase].name}${s.phase === 'atardecer' || s.phase === 'noche' ? ` · ${t('home.sleepHint2', 'toca el reloj: dormir')}` : ''}</span><h2>${t('home.title', 'Tu terrario')}</h2></div></div>
       <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />
@@ -57,9 +61,20 @@ export function Home({ s }) {
       <button class="btn ghost" onClick=${() => s.cancelBuild()}>${t('ui.done', 'Listo')}</button>
     </div>`}
 
-    ${panel === 'build' && !s.build && html`<section class="drawer" aria-label=${t('home.build', 'Construir')}>
-      ${Object.entries(BUILDINGS).map(([id, b]) => html`<button class="card-btn" disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
-        <b>${b.name}</b><small>${b.size.w}×${b.size.h}${b.produces ? ` · ${t('home.makes', 'da')} ${RESOURCES[b.produces.res].name}` : ''}${b.calm ? ` · +${t('home.calm', 'calma')}` : ''}${b.beds ? ` · +${b.beds} ${t('home.beds', 'camas')}` : ''}</small>
+    ${sel && !s.build && html`<section class="drawer piece-card" aria-label=${BUILDINGS[sel.type].name}>
+      <div class="pc-head"><h3>${BUILDINGS[sel.type].name}</h3><span class="lvl">${t('home.level', 'nivel')} ${lvl(sel)}/${MAX_LEVEL}</span>
+        <button class="btn ghost icon" onClick=${() => { s.selPiece = null; s.emit(); }} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="back" /></button></div>
+      <p>${BUILDINGS[sel.type].desc}</p>
+      <div class="actions">
+        ${upgradeCost(sel) && lvl(sel) < MAX_LEVEL ? html`<button class="btn primary" disabled=${!canAfford(home, upgradeCost(sel))} onClick=${() => s.upgradePiece(sel.id)}>
+          <${Icon} name="expand" size="18" />${t('home.upgrade', 'Mejorar')} <${Cost} cost=${upgradeCost(sel)} have=${home.resources} /></button>` : html`<small class="muted">${t('home.maxed', 'No se puede mejorar más.')}</small>`}
+        <button class="btn ghost" onClick=${() => s.storePiece(sel.id) || say(t('home.cantStore', 'Hace falta al menos un comedero.'))}>${t('home.store', 'Guardar')} · ${t('home.refund', 'devuelve la mitad')}</button>
+      </div>
+    </section>`}
+
+    ${panel === 'build' && !s.build && html`<section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
+      ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
+        <b>${b.name}</b><span class="desc">${b.desc}</span><small>${b.size.w}×${b.size.h}${b.produces ? ` · ${t('home.makes', 'da')} ${RESOURCES[b.produces.res].name}` : ''}${b.calm ? ` · +${t('home.calm', 'calma')}` : ''}${b.beds ? ` · +${b.beds} ${t('home.beds', 'camas')}` : ''}</small>
         <${Cost} cost=${b.cost} have=${home.resources} />
       </button>`)}
       ${exp && html`<button class="card-btn" disabled=${!canAfford(home, exp.cost)} onClick=${() => s.expandHome() && say(t('home.expanded', 'El terrario crece.'))}>
@@ -71,10 +86,14 @@ export function Home({ s }) {
 
     ${panel === 'colony' && html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
       <p class="muted">${home.isopods.length} / ${beds(home)} ${t('home.beds', 'camas')}</p>
-      ${home.isopods.map((iso) => html`<div class="iso-row">
-        <b>${iso.name}</b><small>${CLASSES[iso.cls].name}</small>
+      ${home.isopods.map((iso) => { const sp = speciesOf(iso.shell); return html`<div class="iso-row" title=${sp.desc}>
+        <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
+        <span><b>${iso.name}</b><small>${sp.name} · <i>${sp.latin}</i></small>
+        <small>${CLASSES[iso.cls].name}${sp.rolls ? ` · ${t('species.rolls', 'se hace bolita')}` : ` · ${t('species.runs', 'corre')}`} · ${t('species.likes', 'le gusta')} ${CLIMATES[sp.humidity].name.toLowerCase()}
+          ${iso.baby > 0 ? html` · <b class="tag">${t('home.baby', 'cría')}</b>` : iso.molting > 0 ? html` · <b class="tag">${t('home.moltingTag', 'mudando')}</b>` : ''}</small></span>
         <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
-      </div>`)}
+      </div>`; })}
+      <p class="muted">${t('home.colonyHint', 'Toca un isópodo: los que pueden se hacen bolita. Las mudas del suelo son calcio.')}</p>
       ${home.resources.hojarasca <= 0 && html`<p class="warn"><${ResIcon} res="hojarasca" /> ${t('home.noFood', 'Sin hojarasca el comedero queda vacío.')}</p>`}
     </section>`}
 

@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mulberry32 } from '../src/core/rng.js';
 import { newGame, visit, tickClock, dayPhase, sleep } from '../src/game/game.js';
+import { genFloor, doors } from '../src/game/floor.js';
 import { build, tickHome, collect, expand, calm, beds, climate, humidity, upgradeLayer, homeEffects } from '../src/game/home.js';
 import { blocked } from '../src/game/grid.js';
 import { newGather, tickGather, gatherLoot } from '../src/game/gather.js';
 import { genDungeon, nextNodes, LAYERS } from '../src/game/dungeon.js';
-import { newRun, enterNode, combatSetup, finishCombat, pickCard, settleRun } from '../src/game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, settleRun } from '../src/game/run.js';
 import { createCombat, step } from '../src/game/combat.js';
 import { autopilot } from '../src/game/autopilot.js';
 import { save, load, serialize, deserialize } from '../src/game/save.js';
@@ -18,23 +19,23 @@ test('el terrario arranca con colonia, piezas y zona abierta', () => {
   const g = newGame(42);
   assert.equal(g.home.isopods.length, 4);
   assert.ok(Object.keys(g.home.grid.pieces).length >= 2);
-  assert.equal(g.home.grid.open.reduce((s, v) => s + v, 0), 64);
+  assert.equal(g.home.grid.open.reduce((s, v) => s + v, 0), 100, 'empieza en 10 × 10');
 });
 
 test('construir cobra y ampliar abre celdas', () => {
   const { home } = newGame(1);
   const before = home.resources.musgo;
-  assert.ok(build(home, 'charca', 4, 9));
+  assert.ok(build(home, 'charca', 7, 12));
   assert.equal(home.resources.musgo, before - 3);
   assert.equal(build(home, 'charca', 0, 0), null, 'zona cerrada');
-  home.resources.ambar = 5; home.resources.musgo = 9;
+  home.resources.ambar = 5; home.resources.musgo = 9; home.resources.cal = 9;
   assert.ok(expand(home));
-  assert.equal(home.grid.open.reduce((s, v) => s + v, 0), 100);
+  assert.equal(home.grid.open.reduce((s, v) => s + v, 0), 144);
 });
 
 test('las piezas producen y se recogen; la colonia come y nunca atraviesa piezas', () => {
   const { home } = newGame(7);
-  const id = build(home, 'charca', 8, 9);
+  const id = build(home, 'charca', 11, 12);
   const rng = mulberry32(3);
   for (let k = 0; k < 60 * 300; k++) {
     tickHome(home, 1 / 60, rng);
@@ -52,14 +53,14 @@ test('recolección: recoger suma recursos con el bonus del clima', () => {
   const g = newGame(5);
   const isl = g.islands.find((i) => i.kind === 'recoleccion');
   const ga = newGather(isl);
-  const n = ga.nodes[0];
-  for (let k = 0; k < 600 && !n.taken; k++) {
+  const n = [...ga.nodes].sort((a, b) => a.h - b.h)[0];
+  for (let k = 0; k < 1200 && !n.taken; k++) { // directo hacia él, saltando cada medio segundo
     const d = Math.hypot(n.x - ga.player.x, n.y - ga.player.y) || 1;
-    tickGather(ga, 1 / 60, { x: (n.x - ga.player.x) / d, y: (n.y - ga.player.y) / d });
+    tickGather(ga, 1 / 60, { x: (n.x - ga.player.x) / d, y: (n.y - ga.player.y) / d }, k % 30 === 0);
   }
   assert.ok(n.taken || ga.nodes.some((x) => x.taken), 'llegó a algún recurso');
   assert.ok(Object.values(gatherLoot(ga)).reduce((s, v) => s + v, 0) >= 1);
-  for (let k = 0; k < 60 * 41; k++) tickGather(ga, 1 / 60);
+  for (let k = 0; k < 60 * 50; k++) tickGather(ga, 1 / 60);
   assert.ok(ga.done);
 });
 
@@ -87,6 +88,12 @@ test('expedición completa con el piloto: se gana o se pierde y el botín vuelve
       const c = createCombat(combatSetup(run));
       while (!c.result) step(c, 1 / 60, autopilot(c, 0.9));
       finishCombat(run, c);
+      continue;
+    }
+    if (run.state === 'floor') { // primero las laterales sin hacer, después adelante por el camino
+      const ds = doors(run.floor), cur = run.floor.rooms[run.floor.at];
+      const next = ds.find((r) => !r.done && !r.main) ?? ds.find((r) => !r.done) ?? ds.find((r) => r.main && r.x > cur.x) ?? ds.find((r) => r.main) ?? ds[0];
+      assert.ok(enterRoom(run, next.id), 'hay puerta hacia delante');
       continue;
     }
     assert.ok(enterNode(run, nextNodes(run.dungeon)[0].id));
@@ -118,11 +125,11 @@ test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus
   home.weather = 'claro';
   assert.equal(climate(home), 'seco', 'sin agua el terrario arranca seco');
   const dry = homeEffects(home);
-  assert.ok(build(home, 'charca', 4, 9));
+  assert.ok(build(home, 'charca', 7, 12));
   assert.equal(climate(home), 'ideal');
   assert.ok(homeEffects(home).prodMul > dry.prodMul && homeEffects(home).hungerMul < dry.hungerMul);
   home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
-  build(home, 'charca', 6, 9); home.weather = 'lluvia';
+  build(home, 'charca', 9, 12); home.weather = 'lluvia';
   assert.equal(climate(home), 'moho', 'demasiada agua sin carbón');
   const calmMoho = calm(home);
   assert.ok(upgradeLayer(home, 'carbon') && upgradeLayer(home, 'carbon'));
@@ -172,4 +179,50 @@ test('arenas: cada tipo deja libres las salidas, las raíces cortan el paso y la
   Object.assign(me, { x: p.x, y: p.y + 0.01 });
   step(r, 1 / 60);
   assert.ok(Math.hypot(me.x - p.x, me.y - p.y) >= p.r + me.r - 1e-6, 'la raíz empuja fuera');
+});
+
+test('pisos: camino principal hasta la sala final, laterales colgadas y todo alcanzable', () => {
+  for (let seed = 1; seed < 60; seed++) for (const type of ['combate', 'elite', 'jefe']) {
+    const f = genFloor(type, seed), finals = f.rooms.filter((r) => r.final);
+    assert.equal(finals.length, 1);
+    assert.ok(f.rooms.some((r) => !r.main), `semilla ${seed}: al menos una lateral`) ;
+    const seen = new Set([0]), todo = [0];
+    while (todo.length) for (const id of f.rooms[todo.pop()].links) if (!seen.has(id)) { seen.add(id); todo.push(id); }
+    assert.equal(seen.size, f.rooms.length, 'todo el piso conectado');
+  }
+});
+
+test('mejorar piezas y agrandar partidas viejas', async () => {
+  const { upgradePiece, fitGrid, lvl } = await import('../src/game/home.js');
+  const { createGrid, openRect, place } = await import('../src/game/grid.js');
+  const { home } = newGame(4);
+  const id = Object.values(home.grid.pieces).find((p) => p.type === 'refugio').id;
+  Object.assign(home.resources, { hojarasca: 20, musgo: 20, ambar: 5 });
+  const b = beds(home);
+  assert.ok(upgradePiece(home, id));
+  assert.equal(lvl(home.grid.pieces[id]), 2);
+  assert.ok(beds(home) > b, 'el refugio mejorado da más camas');
+  const old = createGrid(14, 14); openRect(old, 3, 3, 8, 8); place(old, 'charca', 4, 4);
+  const h2 = { ...home, grid: old, stock: {}, isopods: [] };
+  fitGrid(h2);
+  assert.equal(h2.grid.w, 20);
+  assert.equal(Object.values(h2.grid.pieces)[0].x, 7, 'la pieza vieja queda centrada en la rejilla nueva');
+});
+
+test('recolección con relieve: cada forma deja recursos alcanzables, el salto sube un escalón y caer devuelve', async () => {
+  const { GATHER_SHAPES } = await import('../src/data/world.js');
+  const seen = new Set();
+  for (let seed = 1; seed < 40; seed++) {
+    const ga = newGather({ seed, biome: 'hojarasca', weather: 'claro', kind: 'recoleccion' });
+    seen.add(ga.shape);
+    assert.ok(ga.nodes.length >= 6, `${ga.shape} ${seed}: recursos suficientes (${ga.nodes.length})`);
+    assert.ok(new Set(ga.levels.filter((h) => h !== null)).size >= 2 || ga.shape === 'islotes', `${ga.shape}: tiene relieve`);
+  }
+  assert.equal(seen.size, Object.keys(GATHER_SHAPES).length, 'salen todas las formas');
+  const ga = newGather({ seed: 3, biome: 'hojarasca', weather: 'claro', kind: 'recoleccion' });
+  ga.player.x = -5; ga.player.y = -5; ga.player.air = true; ga.player.z = -1;
+  const t0 = ga.time;
+  for (let k = 0; k < 60; k++) tickGather(ga, 1 / 60);
+  assert.ok(ga.falls >= 1 && ga.time < t0 - 2, 'caer cuesta tiempo');
+  assert.ok(ga.player.x > 0, 'y devuelve a tierra');
 });

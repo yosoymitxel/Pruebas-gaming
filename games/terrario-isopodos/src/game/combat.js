@@ -5,6 +5,7 @@ import { ABERRATIONS } from '../data/aberrations.js';
 import { ABILITIES, ITEMS } from '../data/abilities.js';
 import { CLASSES } from '../data/isopods.js';
 import { layoutArena } from './arena.js';
+import { speciesOf } from '../data/species.js';
 import { POOL } from '../data/arenas.js';
 import { mulberry32 } from '../core/rng.js';
 import { bump } from '../core/physics.js';
@@ -12,7 +13,11 @@ import { bump } from '../core/physics.js';
 export const ARENA_R = 6;
 export const ATB_MAX = 2;
 const STAGGER_TIME = 4, STAGGER_DAMAGE = 1.6, PRESSURE_STAGGER = 2.5;
+// Esquiva según la especie: bolita (Armadillidium, Cubaris) aguanta más invulnerable y rueda más corto;
+// carrera (Porcellio) llega más lejos con menos invulnerabilidad.
 const ROLL = { time: 0.32, invuln: 0.3, speed: 9, cooldown: 0.5 };
+const DASH = { time: 0.26, invuln: 0.2, speed: 12.5, cooldown: 0.4 };
+const BALL = { time: 0.42, invuln: 0.42, speed: 7.5, cooldown: 0.55 };
 const COMBO = [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }];
 const REACH = 1.25;
 
@@ -30,7 +35,8 @@ function addAlly(c, p, i, n) {
     id: c.nextId++, side: 'ally', ref: p.id, cls: p.cls, name: p.name, shell: p.shell,
     x: (i - (n - 1) / 2) * 1.6, y: 4, vx: 0, vy: 0, r: 0.35, hp: p.hp, maxHp: p.maxHp, facing: -Math.PI / 2,
     atb: 0, state: 'idle', timer: 0, combo: 0, comboWindow: 0, invuln: 0, shield: 0, shieldT: 0, taunt: 0,
-    held: 0, rollCd: 0, damage: cls.damage * (c.mods.damageMul ?? 1), speed: cls.speed, dodged: null,
+    held: 0, rollCd: 0, damage: cls.damage * (c.mods.damageMul ?? 1), speed: cls.speed * speciesOf(p.shell).speed, dodged: null,
+    dodge: speciesOf(p.shell).rolls ? BALL : DASH,
   });
 }
 
@@ -96,7 +102,8 @@ function tickAlly(c, a, dt, input) {
 const atbMul = (c) => c.mods.atbMul ?? 1;
 
 function startRoll(a, dx, dy) {
-  Object.assign(a, { state: 'roll', timer: ROLL.time, invuln: ROLL.invuln, rollCd: ROLL.time + ROLL.cooldown, vx: dx * ROLL.speed, vy: dy * ROLL.speed });
+  const r = a.dodge ?? ROLL;
+  Object.assign(a, { state: 'roll', timer: r.time, invuln: r.invuln, rollCd: r.time + r.cooldown, vx: dx * r.speed, vy: dy * r.speed });
 }
 
 function startSwing(c, a) {

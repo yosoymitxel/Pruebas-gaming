@@ -20,6 +20,10 @@ export class ArchipelagoView {
     this.stage = stage;
     this.group = new THREE.Group();
     this.models = [];
+    // En vertical el mapa se reparte a lo alto (girado) para que las islas no queden diminutas.
+    this.tall = stage.camera.aspect < 1;
+    const [sx, sz] = this.tall ? [SPREAD[1] * 0.85, SPREAD[0] * 1.9] : SPREAD;
+    this.fitW = sx + 8;
     for (const isl of game.islands) {
       const home = isl.kind === 'hogar';
       const grid = home ? game.home.grid : miniGrid(isl.seed % 7);
@@ -28,7 +32,8 @@ export class ArchipelagoView {
       const root = new THREE.Group();
       root.add(island.group);
       root.scale.setScalar(home ? SCALE * 0.75 : SCALE);
-      root.position.set((isl.x - 0.5) * SPREAD[0], 0, (isl.y - 0.45) * SPREAD[1]);
+      const [u, v] = this.tall ? [isl.y - 0.45, 0.5 - isl.x] : [isl.x - 0.5, isl.y - 0.45];
+      root.position.set(u * sx, 0, v * sz);
       root.userData.island = isl.id;
       this.group.add(root);
       this.models.push({ root, isl, phase: (isl.seed % 100) / 15 });
@@ -36,7 +41,7 @@ export class ArchipelagoView {
     this.ray = new THREE.Raycaster();
   }
 
-  get camera() { return { target: [0, 0], distance: 36, fit: SPREAD[0] + 8 }; }
+  get camera() { return { target: [0, 0], distance: 36, fit: this.fitW }; }
 
   update(time) {
     for (const m of this.models) {
@@ -55,9 +60,9 @@ export class ArchipelagoView {
     return o?.userData.island ?? null;
   }
 
-  // Dónde poner el rótulo de cada isla (px de pantalla).
+  // Dónde poner el rótulo de cada isla (px de pantalla): el rombo encima de su propia isla.
   labelAt(id) {
     const m = this.models.find((x) => x.isl.id === id);
-    return this.stage.project(m.root.position.x, m.root.position.y - 3.6, m.root.position.z);
+    return this.stage.project(m.root.position.x, m.root.position.y + 1.6, m.root.position.z);
   }
 }

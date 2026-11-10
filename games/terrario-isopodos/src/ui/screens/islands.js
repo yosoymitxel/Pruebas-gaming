@@ -14,7 +14,7 @@ function spread(list) {
   const placed = [], out = {};
   for (const l of [...list].sort((a, b) => a.y - b.y)) {
     let y = l.y;
-    for (const p of placed) if (Math.abs(p.x - l.x) < LABEL_W && Math.abs(p.y - y) < LABEL_H) y = p.y + LABEL_H;
+    for (const p of placed) if (Math.abs(p.x - l.x) < LABEL_W && Math.abs(p.y - y) < LABEL_H) y = p.y + LABEL_H * 0.6; // solo lo justo
     placed.push({ x: l.x, y });
     out[l.id] = { x: l.x, y };
   }
