@@ -19,14 +19,14 @@ test('no se coloca en zona cerrada ni fuera', () => {
 
 test('las huellas no se solapan y girar cambia la huella', () => {
   const g = grid10();
-  assert.deepEqual(footprint('huerto', 1), { w: 2, h: 3 });
-  const a = place(g, 'huerto', 0, 0);
+  assert.deepEqual(footprint('charca', 1), { w: 1, h: 2 });
+  const a = place(g, 'charca', 0, 0);
   assert.ok(a);
-  assert.equal(place(g, 'comedero', 2, 1), null);
-  assert.ok(place(g, 'comedero', 3, 1));
+  assert.equal(place(g, 'comedero', 1, 0), null);
+  assert.ok(place(g, 'comedero', 2, 0));
   assert.ok(move(g, a, 0, 0, 1));
-  assert.equal(g.cells[2 * 10 + 1], a);
-  assert.equal(g.cells[0 * 10 + 2], null);
+  assert.equal(g.cells[1 * 10 + 0], a);
+  assert.equal(g.cells[0 * 10 + 1], null);
   assert.ok(remove(g, a));
   assert.ok(g.cells.every((c) => c === null || g.pieces[c]));
 });
