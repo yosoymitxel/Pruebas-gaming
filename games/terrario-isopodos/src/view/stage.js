@@ -6,7 +6,7 @@ import { PALETTES } from '../data/palettes.js';
 import { createBackdrop } from './backdrop.js';
 import { PixelFx } from './pixfx.js';
 
-const TILT = 0.95; // radianes desde la vertical
+export const TILT = 0.95; // radianes desde la vertical
 export const DEFAULT_YAW = 0.35;
 const ZOOM = [0.55, 1.35];
 

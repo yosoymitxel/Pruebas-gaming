@@ -1,7 +1,8 @@
 // El terrario: rejilla con piezas, capas de sustrato y clima interior; colonia que pasea, come y descansa,
 // y recursos que producen las piezas y se recogen a mano. Lógica pura; el tiempo avanza con tickHome.
 import { BUILDINGS, EXPANSIONS, GRID_SIDE, MAX_LEVEL } from '../data/buildings.js';
-import { CLASSES, NAMES } from '../data/isopods.js';
+import { CLASSES, NAMES, MAX_NAME } from '../data/isopods.js';
+import { BADGES } from '../data/palettes.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
@@ -238,13 +239,23 @@ export function takeMolt(home, id) {
 // Paseo: de día buscan contacto y sombra (tigmotaxis y luz: se arriman a piezas y bordes); de noche, que es
 // cuando están activos, exploran todo el terrario más rápido.
 function walk(home, iso, dt, rng, hungerMul, phase) {
+  // Durmiendo en un refugio: quieto, gasta menos y calma a la colonia.
+  if (iso.rest > 0) { iso.rest -= dt; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
   iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt);
-  const feeder = iso.hunger < 0.5 && home.resources.hojarasca > 0 && Object.values(home.grid.pieces).find((p) => BUILDINGS[p.type].feeds);
+  const hungry = iso.hunger < 0.5 || iso.order === 'comer';
+  const feeder = hungry && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds);
   if (feeder) {
     const fx = feeder.x + 0.5, fy = feeder.y + 0.5;
-    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.1) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; }
+    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.1) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; }
     else { iso.tx = fx; iso.ty = fy; }
-  }
+  } else if (iso.order === 'comer') iso.order = null; // sin comida o sin comedero: la orden no se puede cumplir
+  const bed = !feeder && iso.order === 'dormir' && nearest(home, iso, (b) => b.beds);
+  if (bed) {
+    const f = BUILDINGS[bed.type].size, bx = bed.x + f.w / 2, by = bed.y + f.h + 0.3;
+    if (Math.hypot(iso.x - bx, iso.y - by) < 0.9 || (iso.stuck ?? 0) > 5) { iso.rest = BEHAVIOR.restTime; iso.order = null; iso.tx = null; return; }
+    iso.tx = bx; iso.ty = by;
+  } else if (iso.order === 'dormir' && !feeder) iso.order = null;
+  if (iso.ate > 0) iso.ate -= dt;
   if (iso.wait > 0) { iso.wait -= dt; iso.vx = iso.vy = 0; return; }
   if (iso.tx === null) {
     let tx = Math.floor(rng() * home.grid.w) + 0.5, ty = Math.floor(rng() * home.grid.h) + 0.5;
@@ -261,3 +272,42 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   iso.vx = (dx / d) * v; iso.vy = (dy / d) * v;
   iso.x += iso.vx * dt; iso.y += iso.vy * dt;
 }
+
+// Pieza más cercana que cumple `test(building)`.
+function nearest(home, iso, test) {
+  let best = null, bd = Infinity;
+  for (const p of Object.values(home.grid.pieces)) { if (!test(BUILDINGS[p.type])) continue; const d = Math.hypot(p.x - iso.x, p.y - iso.y); if (d < bd) { bd = d; best = p; } }
+  return best;
+}
+
+// Qué hace ahora (clave de STATUS en data/isopods.js).
+export function isoStatus(home, iso) {
+  if (iso.ball > 0) return 'bolita';
+  if (iso.molting > 0) return 'muda';
+  if (iso.rest > 0) return 'duerme';
+  if (iso.ate > 0) return 'come';
+  if (iso.order === 'dormir') return 'dormir';
+  if (iso.order === 'comer' || (iso.hunger < 0.5 && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return 'comer';
+  if (iso.hunger < 0.35) return 'hambre';
+  if (iso.baby > 0) return 'cria';
+  return 'explora';
+}
+
+// Órdenes del jugador: 'comer' (al comedero aunque no tenga hambre) o 'dormir' (al refugio más cercano).
+// Devuelve false si no se puede (no hay comedero, comida o refugio).
+export function orderIso(home, iso, what) {
+  if (iso.molting > 0) return false;
+  if (what === 'comer' && !(home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return false;
+  if (what === 'dormir' && !nearest(home, iso, (b) => b.beds)) return false;
+  iso.order = what; iso.rest = 0; iso.ball = 0; iso.wait = 0; iso.tx = null; iso.stuck = 0;
+  return true;
+}
+
+export function renameIso(home, iso, name) {
+  const n = String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_NAME);
+  if (!n) return false;
+  iso.name = n;
+  return true;
+}
+
+export function badgeIso(home, iso, k) { iso.badge = k === null || k === iso.badge ? null : Math.max(0, Math.min(BADGES.length - 1, k)); }

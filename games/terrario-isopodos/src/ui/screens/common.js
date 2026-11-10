@@ -8,9 +8,17 @@ import { Icon } from '../icons.js';
 
 export const ResIcon = ({ res }) => html`<img class="res-icon" src=${resourceIconURL(res)} alt="" aria-hidden="true" />`;
 
+// Al cambiar una cifra salta (verde si sube, roja si baja) y suelta un +n / −n, como en Cult of the Lamb.
 export function Resources({ have, compact }) {
+  const prev = useRef(null), last = useRef({});
+  const before = prev.current ?? have;
+  for (const r of Object.keys(RESOURCES)) { const d = (have[r] ?? 0) - (before[r] ?? 0); if (d) last.current[r] = { d, k: (last.current[r]?.k ?? 0) + 1 }; }
+  prev.current = { ...have };
   return html`<ul class=${`resources${compact ? ' compact' : ''}`} aria-label=${t('ui.resources', 'Recursos')}>
-    ${Object.keys(RESOURCES).map((r) => html`<li title=${RESOURCES[r].name}><${ResIcon} res=${r} /><b>${have[r] ?? 0}</b><span class="sr">${RESOURCES[r].name}</span></li>`)}
+    ${Object.keys(RESOURCES).map((r) => { const ch = last.current[r];
+      return html`<li title=${RESOURCES[r].name} class=${ch ? (ch.d > 0 ? 'up' : 'down') : ''} key=${`${r}${ch?.k ?? 0}`}>
+        <${ResIcon} res=${r} /><b>${have[r] ?? 0}</b><span class="sr">${RESOURCES[r].name}</span>
+        ${ch && html`<i class="delta" aria-hidden="true">${ch.d > 0 ? '+' : '−'}${Math.abs(ch.d)}</i>`}</li>`; })}
   </ul>`;
 }
 
@@ -71,7 +79,10 @@ export function CamControls({ s }) {
     <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}><${Icon} name="turnLeft" /></button>
     <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}><${Icon} name="turnRight" /></button>
     <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
-    <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>`}
+    <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
+    ${s.mode === 'home' && html`
+    <button class=${`btn icon${s.freeCam ? ' active' : ''}`} aria-pressed=${!!s.freeCam} onClick=${() => { s.freeCam = !s.freeCam; s.emit(); }} aria-label=${t('ui.freeCam', 'Cámara libre: arrastra para desplazar')}><${Icon} name="pan" /></button>
+    <button class=${`btn icon${s.moveMode ? ' active' : ''}`} aria-pressed=${!!s.moveMode} onClick=${() => { s.moveMode = !s.moveMode; s.selPiece = null; s.emit(); }} aria-label=${t('ui.moveMode', 'Mover piezas: toca una')}><${Icon} name="move" /></button>`}`}
   </div>`;
 }
 

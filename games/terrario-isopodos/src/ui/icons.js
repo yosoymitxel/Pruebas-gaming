@@ -32,6 +32,8 @@ export const ICONS = {
   jump: 'M12 18V5 M6 10l6-6 6 6 M5 21h14',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
   layers: 'M4 5h16v15H4z M4 9c3-1 5 1 8 0s5-1 8 0 M4 13h16 M4 16.5h16',
+  move: 'M12 3v18 M3 12h18 M9 6l3-3 3 3 M9 18l3 3 3-3 M6 9l-3 3 3 3 M18 9l3 3-3 3',
+  pan: 'M8 13V5.5a1.5 1.5 0 0 1 3 0V12 M11 11V4.5a1.5 1.5 0 0 1 3 0V12 M14 11.5V6a1.5 1.5 0 0 1 3 0v8c0 4-2.5 7-6 7-2.5 0-4-1.5-5.5-3.5L3 14a1.5 1.5 0 0 1 2.3-2L8 14.5',
 };
 
 // Corrección de centro óptico medida con icon-metrics (web-game-toolkit): centro dentro de ±0,03.
