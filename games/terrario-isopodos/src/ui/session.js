@@ -1,7 +1,7 @@
 // Sesión de juego: dueña del estado, del bucle y de las transiciones entre pantallas. La interfaz llama
 // a sus métodos y se suscribe con on(); las escenas 3D solo leen.
 import { newGame, visit } from '../game/game.js';
-import { tickHome, collect, build, expand, recruit } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -89,6 +89,7 @@ export class Session {
     this.persist(); this.emit();
     return { res: BUILDINGS[piece.type].produces.res, n };
   }
+  upgradeLayer(id) { const ok = upgradeLayer(this.game.home, id); if (ok) this.persist(); this.emit(); return ok; }
   expandHome() { const ok = expand(this.game.home); if (ok) this.persist(); this.emit(); return ok; }
 
   // ——— Recolección ———

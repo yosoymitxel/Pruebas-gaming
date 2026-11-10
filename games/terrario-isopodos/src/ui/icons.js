@@ -25,6 +25,7 @@ export const ICONS = {
   recoleccion: 'M5 19C5 9 11 5 20 4c-1 9-5 15-15 15z M5 19l9-9',
   nido: 'M12 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16z M5 14c3 1 11 1 14 0 M9 21h6 M10 9h0 M14 9h0',
   items: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z',
+  layers: 'M4 5h16v15H4z M4 9c3-1 5 1 8 0s5-1 8 0 M4 13h16 M4 16.5h16 M7 18h0 M11 18.5h0 M15 18h0',
 };
 
 export const Icon = ({ name, size = 22, label }) => html`<svg class="icon" width=${size} height=${size} viewBox="0 0 24 24"
