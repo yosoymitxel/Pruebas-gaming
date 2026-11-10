@@ -23,14 +23,14 @@ function blotTexture() {
 
 // count, speed, up (impulso vertical), color, size, life (s), gravity, spread (radio inicial)
 export const PRESETS = {
-  hit: { count: 10, speed: 3.2, up: 2.5, color: P.ink, size: 0.16, life: 0.45, gravity: 9 },
-  heavy: { count: 22, speed: 4.5, up: 3.5, color: P.ink, size: 0.24, life: 0.6, gravity: 9 },
-  hurt: { count: 10, speed: 2.6, up: 2, color: P.rust, size: 0.16, life: 0.5, gravity: 9 },
-  death: { count: 48, speed: 3, up: 4, color: P.ink, size: 0.34, life: 1.1, gravity: 6 },
-  dust: { count: 6, speed: 1, up: 0.6, color: P.shade, size: 0.22, life: 0.5, gravity: 1 },
-  spark: { count: 14, speed: 2.2, up: 2.8, color: P.amber, size: 0.13, life: 0.7, gravity: 4 },
-  heal: { count: 16, speed: 0.5, up: 1.6, color: P.moss, size: 0.16, life: 1, gravity: -0.6, spread: 0.5 },
-  pickup: { count: 10, speed: 1.6, up: 2.4, color: P.amber, size: 0.12, life: 0.6, gravity: 5 },
+  hit: { count: 10, speed: 3.2, up: 2.5, color: P.ink, size: 0.10, life: 0.45, gravity: 9 },
+  heavy: { count: 22, speed: 4.5, up: 3.5, color: P.ink, size: 0.16, life: 0.6, gravity: 9 },
+  hurt: { count: 10, speed: 2.6, up: 2, color: P.rust, size: 0.10, life: 0.5, gravity: 9 },
+  death: { count: 48, speed: 3, up: 4, color: P.ink, size: 0.22, life: 1.1, gravity: 6 },
+  dust: { count: 6, speed: 1, up: 0.6, color: P.shade, size: 0.14, life: 0.5, gravity: 1 },
+  spark: { count: 14, speed: 2.2, up: 2.8, color: P.amber, size: 0.08, life: 0.7, gravity: 4 },
+  heal: { count: 16, speed: 0.5, up: 1.6, color: P.moss, size: 0.10, life: 1, gravity: -0.6, spread: 0.5 },
+  pickup: { count: 10, speed: 1.6, up: 2.4, color: P.amber, size: 0.08, life: 0.6, gravity: 5 },
 };
 
 export class Vfx {
@@ -87,7 +87,7 @@ export class Weather {
     geo.setAttribute('position', new THREE.BufferAttribute(this.buf, 3));
     this.mesh = kind === 'lluvia'
       ? new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: P.ink, transparent: true, opacity: 0.45 }))
-      : new THREE.Points(geo, new THREE.PointsMaterial({ color: kind === 'niebla' ? P.paper : P.amber, map: kind === 'niebla' ? blotTexture() : null, size: kind === 'niebla' ? 1.1 : 0.09, transparent: true, opacity: kind === 'niebla' ? 0.3 : 0.8, depthWrite: false }));
+      : new THREE.Points(geo, new THREE.PointsMaterial({ color: kind === 'niebla' ? P.paper : P.amber, map: kind === 'niebla' ? blotTexture() : null, size: kind === 'niebla' ? 0.6 : 0.05, transparent: true, opacity: kind === 'niebla' ? 0.18 : 0.7, depthWrite: false }));
     this.mesh.frustumCulled = false;
     parent.add(this.mesh);
   }

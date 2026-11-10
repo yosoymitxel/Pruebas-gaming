@@ -24,14 +24,13 @@ export function recommended(isopods, need) {
 
 function Card({ s, iso, slot, onPick }) {
   const cls = CLASSES[iso.cls], hp = Math.round(cls.hp * speciesOf(iso.shell).hp * partyBonus(s.game.home, iso).hpMul);
-  return html`<button class=${`iso-card${slot >= 0 ? ' on' : ''}`} aria-pressed=${slot >= 0} onClick=${onPick}>
+  return html`<button class=${`iso-card${slot >= 0 ? ' on' : ''}`} aria-pressed=${slot >= 0} onClick=${onPick}
+    title=${`${speciesOf(iso.shell).name} · ${cls.abilities.map((a) => ABILITIES[a].name).join(' · ')}`}>
     ${slot >= 0 && html`<i class="slot-tag">${slot === 0 ? '★' : slot + 1}</i>`}
     <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
     <b>${iso.name}</b>
-    <small class="sp">${speciesOf(iso.shell).name} · ${speciesOf(iso.shell).rolls ? t('species.ballDodge', 'esquiva en bolita') : t('species.dashDodge', 'esquiva corriendo')}</small>
-    <span class="cls"><${Icon} name=${CLASS_ICON[iso.cls]} size="16" />${cls.name}</span>
-    <dl><dt>${t('party.hp', 'Vida')}</dt><dd>${hp}</dd><dt>${t('party.dmg', 'Daño')}</dt><dd>${cls.damage}</dd></dl>
-    <small>${cls.abilities.map((a) => ABILITIES[a].name).join(' · ')}</small>
+    <span class="cls"><${Icon} name=${CLASS_ICON[iso.cls]} size="15" />${cls.name}</span>
+    <span class="stats"><span aria-label=${t('party.hp', 'Vida')}><${Icon} name="shield" size="13" />${hp}</span><span aria-label=${t('party.dmg', 'Daño')}><${Icon} name="attack" size="13" />${cls.damage}</span></span>
     <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
   </button>`;
 }
@@ -49,7 +48,7 @@ export function PartyPicker({ s, need, party, setParty }) {
       </button>`;
     })}</div>
     <div class="roster-head"><span>${t('party.colony', 'Colonia')} (${isopods.length})</span>
-      <button class="btn ghost small" onClick=${() => setParty(recommended(isopods, need))}>${t('party.auto', 'Equipo recomendado')}</button></div>
+      <button class="btn ghost small" onClick=${() => setParty(recommended(isopods, need))}>${t('party.auto', 'Auto')}</button></div>
     <div class="roster">${isopods.map((iso) => html`<${Card} s=${s} iso=${iso} slot=${party.indexOf(iso.id)} onPick=${() => pick(iso.id)} />`)}</div>
   </div>`;
 }

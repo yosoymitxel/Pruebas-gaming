@@ -25,10 +25,12 @@ export const Bar = ({ value, max, kind = 'hp', label }) => html`
     <i style=${{ width: `${Math.max(0, Math.min(1, value / max)) * 100}%` }}></i>
   </span>`;
 
-export function Loot({ loot }) {
+export function Loot({ loot, big }) {
   const entries = Object.entries(loot).filter(([, n]) => n > 0);
   if (!entries.length) return html`<p class="muted">${t('ui.noLoot', 'Nada que traer esta vez.')}</p>`;
-  return html`<ul class="loot">${entries.map(([r, n]) => html`<li><${ResIcon} res=${r} /> ${RESOURCES[r].name} <b>×${n}</b></li>`)}</ul>`;
+  if (big) return html`<ul class="loot big">${entries.map(([r, n], i) => html`<li style=${`--i:${i}`} title=${RESOURCES[r].name}>
+    <${ResIcon} res=${r} /><b>×${n}</b><small>${RESOURCES[r].name}</small></li>`)}</ul>`;
+  return html`<ul class="loot">${entries.map(([r, n], i) => html`<li style=${`--i:${i}`}><${ResIcon} res=${r} /> ${RESOURCES[r].name} <b>×${n}</b></li>`)}</ul>`;
 }
 
 // Palanca táctil: aparece donde se apoya el dedo en la mitad izquierda.
@@ -86,8 +88,9 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
   role=${onSleep ? null : 'img'} aria-label=${onSleep ? `${label} · ${t('home.sleep', 'Dormir hasta el alba')}` : label} onClick=${onSleep}>
   <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" />
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
-    <line x1="20" y1="20" x2=${20 + 15 * Math.sin(clock * 6.283)} y2=${20 - 15 * Math.cos(clock * 6.283)} /></svg>
-  <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
+    <line x1=${20 + 9 * Math.sin(clock * 6.283)} y1=${20 - 9 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
+    <circle class="hub" cx="20" cy="20" r="8.5" /></svg>
+  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;

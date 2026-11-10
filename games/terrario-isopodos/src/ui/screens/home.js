@@ -47,9 +47,9 @@ export function Home({ s }) {
     <header class="hud-top">
       <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
           onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
-        <div><span class="kicker">${DAY_PHASES[s.phase].name}${s.phase === 'atardecer' || s.phase === 'noche' ? ` · ${t('home.sleepHint2', 'toca el reloj: dormir')}` : ''}</span><h2>${t('home.title', 'Tu terrario')}</h2></div></div>
-      <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
-      <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
+        <div class="calm"><h2>${t('home.title', 'Tu terrario')}</h2><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div></div>
+      <button class=${`climate-chip clim-${climate(home)}`} onClick=${() => toggle('comp')} aria-label=${`${CLIMATES[climate(home)].name} · ${t('home.humidity', 'Humedad')}`}>
+        <${Icon} name="items" size="16" />${Math.round(humidity(home) * 100)} %</button>
       <${Resources} have=${home.resources} />
     </header>
 

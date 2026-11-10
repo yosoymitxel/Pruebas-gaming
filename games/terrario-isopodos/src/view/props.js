@@ -40,7 +40,12 @@ const BUILD = {
     for (let k = 0; k < 7; k++) {
       const a = (k / 7) * Math.PI * 2;
       g.add(mesh(new THREE.DodecahedronGeometry(0.16, 0), P.stone, Math.cos(a) * 0.9, 0.08, Math.sin(a) * 0.45));
+      // Musgo entre las piedras y por fuera: la charca es de donde sale el musgo.
+      const b = a + Math.PI / 7, tuft = mesh(new THREE.SphereGeometry(0.17 + (k % 3) * 0.05, 7, 4), k % 2 ? P.moss : P.grass, Math.cos(b) * 1.02, 0.05, Math.sin(b) * 0.56);
+      tuft.scale.y = 0.45; g.add(tuft);
     }
+    const pad = mesh(new THREE.CircleGeometry(0.16, 9, 0.4, Math.PI * 1.75), P.moss, 0.3, 0.085, 0.05);
+    pad.rotation.x = -Math.PI / 2; g.add(pad);
   },
   altar: (g) => {
     g.add(mesh(new THREE.BoxGeometry(1.4, 0.3, 1.2), P.stone, 0, 0.15, 0));

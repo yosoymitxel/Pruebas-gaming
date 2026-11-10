@@ -68,7 +68,7 @@ export class Stage {
   // color desplazadas (sombras violetas, luces amarillas) como en pixel-plays. null = luz neutra (nido).
   setTime(clock) {
     const keys = [[0, 0xffb27a, 1.4, 0xffd9b0, 1.2], [0.15, 0xffffff, 2.2, 0xfff6e0, 1.6], [0.55, 0xfff3d6, 2.1, 0xfff6e0, 1.5],
-      [0.68, 0xff8a5a, 1.5, 0xffc4a0, 1.15], [0.78, 0x8fa8ff, 1.0, 0x7a86c8, 1.05], [0.95, 0x8fa8ff, 0.95, 0x6f7cc0, 1.0], [1, 0xffb27a, 1.4, 0xffd9b0, 1.2]];
+      [0.68, 0xff8a5a, 1.5, 0xffc4a0, 1.15], [0.78, 0xcdd6ff, 1.6, 0xbcc4e6, 1.5], [0.95, 0xc6d0ff, 1.55, 0xb4bde2, 1.45], [1, 0xffb27a, 1.4, 0xffd9b0, 1.2]];
     const c = clock ?? 0.35;
     let k = 0; while (k < keys.length - 2 && c > keys[k + 1][0]) k++;
     const [a, b] = [keys[k], keys[k + 1]], f = (c - a[0]) / (b[0] - a[0] || 1);
