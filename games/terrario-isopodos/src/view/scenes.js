@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
+import { speciesOf } from '../data/species.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
 import { propMesh, ghostMesh } from './props.js';
@@ -153,8 +154,12 @@ export class HomeView extends GridScene {
     this.syncProps();
     const list = this.home.isopods.map((iso) => {
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
-      return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: 0.8, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0, squash: 1 + Math.sin(time * 3 + iso.id) * 0.03 };
+      const size = iso.baby > 0 ? 0.42 : 0.8;
+      if (iso.ball > 0) return { id: `i${iso.id}`, sprite: `ball:${iso.shell}`, ...w, height: size * 0.62, squash: 1 + Math.sin(time * 9) * 0.04 };
+      return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
+        squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
     // Bocadillos de necesidad sobre la cabeza (como los seguidores de Cult of the Lamb): hambre.
     for (const iso of this.home.isopods) {
       if (iso.hunger >= 0.35) continue;
@@ -323,7 +328,9 @@ export class CombatView {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
         const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
         const squash = a.state === 'attack' && a.phase === 'windup' ? 0.86 : a.state === 'roll' ? 0.7 : breathe * (1 - f * 0.18);
-        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: 1.05, squash, flip: Math.cos(a.facing) < 0,
+        const balled = a.state === 'roll' && speciesOf(a.shell).rolls;
+        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash, flip: Math.cos(a.facing) < 0,
+          spin: balled ? -time * 18 * (Math.cos(a.facing) < 0 ? -1 : 1) : 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
         if (a.state === 'roll' && (this.ghostT = (this.ghostT ?? 0) - dt) <= 0) { // estela del rodar
           this.ghostT = 0.04;

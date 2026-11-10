@@ -1,5 +1,5 @@
 // Piezas de interfaz compartidas.
-import { html, useRef } from '../lib.js';
+import { html, useRef, useState } from '../lib.js';
 import { RESOURCES } from '../../data/resources.js';
 import { resourceIconURL } from '../../view/sprites.js';
 import { setStick } from '../input.js';
@@ -60,12 +60,18 @@ export function Stick() {
 }
 
 // Girar y acercar la cámara (también Q/E y la rueda).
-export const CamControls = ({ s }) => html`<div class="cam-controls" role="group" aria-label=${t('ui.camera', 'Cámara')}>
-  <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}><${Icon} name="turnLeft" /></button>
-  <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}><${Icon} name="turnRight" /></button>
-  <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
-  <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
-</div>`;
+// Cámara: plegada tras un botón para no tapar el juego; se abre cuando hace falta girar o acercar.
+export function CamControls({ s }) {
+  const [open, setOpen] = useState(false);
+  return html`<div class=${`cam-controls${open ? ' open' : ''}`} role="group" aria-label=${t('ui.camera', 'Cámara')}>
+    <button class="btn icon cam-toggle" aria-expanded=${open} onClick=${() => setOpen(!open)} aria-label=${t('ui.camera', 'Cámara')}><${Icon} name=${open ? 'back' : 'eye'} /></button>
+    ${open && html`
+    <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}><${Icon} name="turnLeft" /></button>
+    <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}><${Icon} name="turnRight" /></button>
+    <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
+    <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>`}
+  </div>`;
+}
 
 // Textos flotantes del mundo (daño, «+1 musgo», avisos): suben y se desvanecen sobre su punto 3D.
 export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">${s.fx.map((f) => {

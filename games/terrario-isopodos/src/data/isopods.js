@@ -1,4 +1,5 @@
-// Isópodos: clases de combate y nombres. Cada isópodo de la colonia tiene una clase y un color.
+// Isópodos: clases de combate (el papel en el equipo) y nombres. La especie (aspecto, bolita, clima) va en
+// species.js.
 // `abilities` son ids de ABILITIES; los usa el jugador desde la pausa táctica.
 import { localize } from '../i18n/index.js';
 
@@ -8,8 +9,6 @@ export const CLASSES = localize('classes', {
   musgoso: { name: 'Musgoso', hp: 60, damage: 5, speed: 3.1, abilities: ['rocio', 'esporas'] },
 });
 
-// Colores de caparazón: claves de PALETTES.shells.
-export const SHELLS = ['pizarra', 'naranja', 'leche', 'musgo', 'ciruela'];
 
 export const NAMES = ['Bolita', 'Cal', 'Turrón', 'Pimienta', 'Ovillo', 'Guijarro', 'Miga', 'Tiza', 'Corcho',
   'Lenteja', 'Botón', 'Nuez', 'Hollín', 'Avena', 'Grafito', 'Canica'];

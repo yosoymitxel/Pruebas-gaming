@@ -38,7 +38,7 @@ export const DAY_PHASES = localize('dayPhases', {
   amanecer: { name: 'Amanecer', until: 0.08, prodMul: 1, fear: 0 },
   dia: { name: 'Día', until: 0.6, prodMul: 1, fear: 0 },
   atardecer: { name: 'Atardecer', until: 0.72, prodMul: 1, fear: 0 },
-  noche: { name: 'Noche', until: 1, prodMul: 0.5, fear: 0.002 },
+  noche: { name: 'Noche', until: 1, prodMul: 0.5, fear: 0.002, night: true },
 });
 export const DAY_SECONDS = 300;
 export const TRIP_COST = { recoleccion: 0.12, nido: 0.25 };

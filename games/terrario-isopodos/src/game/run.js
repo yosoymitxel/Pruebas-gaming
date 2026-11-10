@@ -8,12 +8,13 @@ import { BIOMES } from '../data/world.js';
 import { genDungeon, nextNodes, enemiesFor, enemyHpMul } from './dungeon.js';
 import { partyBonus, recruit } from './home.js';
 import { mulberry32, pickFrom } from '../core/rng.js';
+import { speciesOf } from '../data/species.js';
 
 export function newRun(home, island, partyIds) {
   const rng = mulberry32(island.seed + 7);
   const party = partyIds.map((id) => {
     const iso = home.isopods.find((x) => x.id === id);
-    const maxHp = Math.round(CLASSES[iso.cls].hp * partyBonus(home, iso).hpMul);
+    const maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul);
     return { id, name: iso.name, cls: iso.cls, shell: iso.shell, hp: maxHp, maxHp };
   });
   return {

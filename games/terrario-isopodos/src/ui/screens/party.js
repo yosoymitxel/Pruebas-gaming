@@ -4,6 +4,8 @@
 import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { CLASSES } from '../../data/isopods.js';
+import { speciesOf } from '../../data/species.js';
+import { adults } from '../../game/home.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { partyBonus } from '../../game/home.js';
 import { portraitURL } from '../../view/sprites.js';
@@ -21,11 +23,12 @@ export function recommended(isopods, need) {
 }
 
 function Card({ s, iso, slot, onPick }) {
-  const cls = CLASSES[iso.cls], hp = Math.round(cls.hp * partyBonus(s.game.home, iso).hpMul);
+  const cls = CLASSES[iso.cls], hp = Math.round(cls.hp * speciesOf(iso.shell).hp * partyBonus(s.game.home, iso).hpMul);
   return html`<button class=${`iso-card${slot >= 0 ? ' on' : ''}`} aria-pressed=${slot >= 0} onClick=${onPick}>
     ${slot >= 0 && html`<i class="slot-tag">${slot === 0 ? '★' : slot + 1}</i>`}
     <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
     <b>${iso.name}</b>
+    <small class="sp">${speciesOf(iso.shell).name} · ${speciesOf(iso.shell).rolls ? t('species.ballDodge', 'esquiva en bolita') : t('species.dashDodge', 'esquiva corriendo')}</small>
     <span class="cls"><${Icon} name=${CLASS_ICON[iso.cls]} size="16" />${cls.name}</span>
     <dl><dt>${t('party.hp', 'Vida')}</dt><dd>${hp}</dd><dt>${t('party.dmg', 'Daño')}</dt><dd>${cls.damage}</dd></dl>
     <small>${cls.abilities.map((a) => ABILITIES[a].name).join(' · ')}</small>
@@ -34,7 +37,7 @@ function Card({ s, iso, slot, onPick }) {
 }
 
 export function PartyPicker({ s, need, party, setParty }) {
-  const isopods = s.game.home.isopods;
+  const isopods = adults(s.game.home);
   const pick = (id) => setParty(party.includes(id) ? party.filter((x) => x !== id) : party.length < need ? [...party, id] : party);
   const labels = need === 3 ? [t('party.lead', 'Principal'), t('party.support', 'Apoyo'), t('party.support', 'Apoyo')] : [t('party.explorer', 'Explorador')];
   return html`<div class="party">

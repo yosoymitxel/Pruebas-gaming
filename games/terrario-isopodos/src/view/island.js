@@ -2,7 +2,7 @@
 // semilla) sobre las capas de drenaje, con decoración en lo cerrado. Va dentro de un recipiente (vessel.js).
 // Solo visual: reglas y colisiones siguen en el plano (src/game). Mundo: x = columna − w/2, z = fila − h/2.
 import * as THREE from 'three';
-import { PALETTES } from '../data/palettes.js';
+import { PALETTES, SEMANTIC } from '../data/palettes.js';
 import { mulberry32 } from '../core/rng.js';
 import { substrateCells, substrateDisc, CHARCOAL } from './vessel.js';
 import { flora, FLORA } from './flora.js';
@@ -194,7 +194,7 @@ export function arenaFeatures({ pillars, pools, pit }, seed = 1) {
     g.add(trunk, cap);
     for (let k = 0; k < 4; k++) { const a = rng() * Math.PI * 2; plants.push([p.x + Math.cos(a) * (p.r + 0.15), 0, p.y + Math.sin(a) * (p.r + 0.15), 0.4 + rng() * 0.3, FLORA[k % FLORA.length], rng() * 3]); }
   }
-  const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(P.grass).lerp(new THREE.Color(P.amber), 0.25), transparent: true, opacity: 0.55, depthWrite: false });
+  const glow = new THREE.MeshBasicMaterial({ color: SEMANTIC.peligro, transparent: true, opacity: 0.55, depthWrite: false }); // peligro = violeta
   for (const p of pools) {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(p.r, 24).rotateX(-Math.PI / 2), glow);
     disc.position.set(p.x, 0.03, p.y);

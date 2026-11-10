@@ -9,6 +9,8 @@ import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { CLIMATES } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
+import { speciesOf } from '../../data/species.js';
+import { portraitURL } from '../../view/sprites.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -32,7 +34,7 @@ export function Home({ s }) {
     if (!c) return;
     if (s.build) { s.hoverBuild(c.i, c.j); if (!s.confirmBuild()) say(t('home.cantPlace', 'No cabe ahí o faltan recursos.')); return; }
     const got = s.tapHome(c);
-    if (got) say(`+${got.n} ${RESOURCES[got.res].name}`);
+    if (got?.res) say(`+${got.n} ${RESOURCES[got.res].name}`);
   };
   const exp = nextExpansion(home);
 
@@ -71,10 +73,14 @@ export function Home({ s }) {
 
     ${panel === 'colony' && html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
       <p class="muted">${home.isopods.length} / ${beds(home)} ${t('home.beds', 'camas')}</p>
-      ${home.isopods.map((iso) => html`<div class="iso-row">
-        <b>${iso.name}</b><small>${CLASSES[iso.cls].name}</small>
+      ${home.isopods.map((iso) => { const sp = speciesOf(iso.shell); return html`<div class="iso-row" title=${sp.desc}>
+        <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
+        <span><b>${iso.name}</b><small>${sp.name} · <i>${sp.latin}</i></small>
+        <small>${CLASSES[iso.cls].name}${sp.rolls ? ` · ${t('species.rolls', 'se hace bolita')}` : ` · ${t('species.runs', 'corre')}`} · ${t('species.likes', 'le gusta')} ${CLIMATES[sp.humidity].name.toLowerCase()}
+          ${iso.baby > 0 ? html` · <b class="tag">${t('home.baby', 'cría')}</b>` : iso.molting > 0 ? html` · <b class="tag">${t('home.moltingTag', 'mudando')}</b>` : ''}</small></span>
         <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
-      </div>`)}
+      </div>`; })}
+      <p class="muted">${t('home.colonyHint', 'Toca un isópodo: los que pueden se hacen bolita. Las mudas del suelo son calcio.')}</p>
       ${home.resources.hojarasca <= 0 && html`<p class="warn"><${ResIcon} res="hojarasca" /> ${t('home.noFood', 'Sin hojarasca el comedero queda vacío.')}</p>`}
     </section>`}
 

@@ -33,6 +33,7 @@ export class ActorLayer {
       const sq = a.squash ?? 1; // aplastar conserva el volumen: más bajo, más ancho
       it.card.scale.set(w * (a.flip ? -1 : 1) / Math.sqrt(sq), h * sq, 1);
       it.card.position.y = a.lift ?? 0;
+      it.card.rotation.z = a.spin ?? 0; // bolita que rueda
       it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8, 1, Math.min(w, h) * 0.35);
       it.root.position.set(a.x, a.y ?? 0, a.z);
       it.root.rotation.y = yaw;

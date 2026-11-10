@@ -1,6 +1,6 @@
 import { html, render, useState, useEffect } from './lib.js';
 import { t } from '../i18n/index.js';
-import { PALETTES } from '../data/palettes.js';
+import { PALETTES, SEMANTIC } from '../data/palettes.js';
 import { Stage } from '../view/stage.js';
 import { Session } from './session.js';
 import { bindKeyboard } from './input.js';
@@ -46,6 +46,7 @@ export function start() {
   const root = document.documentElement.style;
   for (const [k, v] of Object.entries(PALETTES.cozy)) root.setProperty(`--${k}`, v);
   for (const [k, v] of Object.entries(PALETTES.terror)) root.setProperty(`--terror-${k}`, v);
+  for (const [k, v] of Object.entries(SEMANTIC)) root.setProperty(`--sem-${k}`, v);
   bindKeyboard();
   // Audio al primer gesto; y un clic suave en cada botón de la interfaz.
   addEventListener('pointerdown', unlockAudio, { once: true });

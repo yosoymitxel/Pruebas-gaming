@@ -3,7 +3,7 @@
 import { newGame, visit, tickClock, dayPhase, sleep } from '../game/game.js';
 import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -124,6 +124,23 @@ export class Session {
   }
   tapHome(cell) {
     const home = this.game.home;
+    // Primero lo vivo: una muda para recoger o un isópodo al que tocar (bolita o huida).
+    const molt = (home.molts ?? []).find((m) => Math.hypot(m.x - cell.x, m.y - cell.y) < 0.7);
+    if (molt && takeMolt(home, molt.id)) {
+      const w = this.view.toWorld(molt.x, molt.y);
+      this.sfx('pickup'); this.view.burst('pickup', molt.x, molt.y);
+      this.floatText(`+1 ${RESOURCES.cal.name}`, w.x, w.z, 'gain');
+      this.persist(); this.emit();
+      return { res: 'cal', n: 1 };
+    }
+    const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
+    if (iso) {
+      const what = poke(home, iso, cell), w = this.view.toWorld(iso.x, iso.y);
+      this.sfx(what === 'ball' ? 'roll' : 'click');
+      this.floatText(what === 'ball' ? t('home.ball', '¡Bolita!') : what === 'molting' ? t('home.molting', 'Mudando…') : t('home.run', '¡Corre!'), w.x, w.z, 'note', 1.2);
+      this.emit();
+      return { poked: iso.id };
+    }
     const piece = Object.values(home.grid.pieces).find((p) => {
       const f = footprint(p.type, p.rot);
       return home.stock[p.id]?.ready && cell.x >= p.x - 0.5 && cell.x <= p.x + f.w + 0.5 && cell.y >= p.y - 0.8 && cell.y <= p.y + f.h + 0.5;
