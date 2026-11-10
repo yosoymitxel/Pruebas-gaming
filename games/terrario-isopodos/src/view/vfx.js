@@ -47,7 +47,9 @@ export class Vfx {
   }
 
   burst(kind, x, y, z) {
-    const p = PRESETS[kind], color = new THREE.Color(p.color);
+    const p = PRESETS[kind];
+    if (!p) return;
+    const color = new THREE.Color(p.color);
     for (let k = 0; k < p.count && this.parts.length < MAX; k++) {
       const a = Math.random() * Math.PI * 2, sp = p.speed * (0.4 + Math.random() * 0.6), sr = (p.spread ?? 0.1) * Math.random();
       this.parts.push({ x: x + Math.cos(a) * sr, y, z: z + Math.sin(a) * sr, vx: Math.cos(a) * sp, vy: p.up * (0.5 + Math.random() * 0.5), vz: Math.sin(a) * sp,

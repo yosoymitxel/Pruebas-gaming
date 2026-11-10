@@ -37,7 +37,7 @@ export class ActorLayer {
       it.root.position.set(a.x, a.y ?? 0, a.z);
       it.root.rotation.y = yaw;
       it.mat.opacity = a.alpha ?? 1;
-      it.mat.color.setScalar(1 - (a.flash ?? 0) * 0.6);
+      it.flash.value = a.flash ?? 0; // destello blanco al recibir un golpe (como en Cult of the Lamb)
       it.shadow.visible = (a.lift ?? 0) < 1.5;
     }
     for (const [id, it] of this.items) if (!seen.has(id)) { this.group.remove(it.root); this.items.delete(id); }
@@ -46,6 +46,11 @@ export class ActorLayer {
   make(a) {
     const root = new THREE.Group();
     const mat = new THREE.MeshBasicMaterial({ map: spriteTexture(a.sprite), transparent: true, alphaTest: 0.08, side: THREE.DoubleSide });
+    const flash = { value: 0 };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uFlash = flash;
+      sh.fragmentShader = 'uniform float uFlash;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uFlash);');
+    };
     const card = new THREE.Mesh(plane, mat);
     card.rotation.x = LEAN;
     card.castShadow = true;
@@ -53,6 +58,6 @@ export class ActorLayer {
     shadow.position.y = 0.02;
     root.add(shadow, card);
     this.group.add(root);
-    return { root, card, shadow, mat, sprite: a.sprite };
+    return { root, card, shadow, mat, flash, sprite: a.sprite };
   }
 }

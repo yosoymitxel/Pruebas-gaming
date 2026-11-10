@@ -355,9 +355,10 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .tm-member b { font: 700 22px/1 var(--hand); min-width: 90px; }
 .tactical::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); pointer-events: none; }
 .fx-layer { position: absolute; inset: 0; z-index: var(--z-fx); pointer-events: none; }
-.fx { position: absolute; transform: translate(-50%, -50%); font: 700 26px var(--hand); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); white-space: nowrap; }
-.fx-ally { color: var(--rust); }
-.fx.big { font-size: 36px; }
+.fx { position: absolute; transform: translate(-50%, -50%); font: 700 26px var(--hand); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); white-space: nowrap; animation: pop 180ms var(--ease-out); }
+.fx-enemy { font-size: 32px; color: var(--paper); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); }
+.fx-ally { font-size: 30px; color: var(--rust); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--paper); }
+.fx.big { font-size: 46px; color: var(--amber); }
 .fx-note { font-size: 22px; color: var(--amber); }
 
 /* Cámara */
@@ -396,7 +397,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   .home .drawer, .home .build-bar { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 84px); }
   .hud-bottom .btn { flex-direction: column; gap: 2px; font-size: 10px; padding: 4px 0; min-height: 56px; }
   .hud-bottom .btn { padding: 0 6px; font-size: 14px; }
-  .team { width: 44vw; }
+
   .pad.attack { width: 76px; height: 76px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -426,3 +427,40 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .room-map li.done { background: var(--paper); }
 .room-map li.here { background: var(--rust); border-color: var(--paper); transform: scale(1.25); }
 .room-map li:last-child { width: 20px; height: 16px; background: var(--ink); }
+
+/* Combate: HUD apartado de la acción */
+.boss-bar { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: 50%; translate: -50% 0; width: min(60vw, 460px);
+  display: grid; gap: 3px; color: var(--paper); text-align: center; text-shadow: 0 1px 0 var(--ink), 0 0 6px var(--ink); pointer-events: none; }
+.boss-bar b { font: 700 26px/1 var(--hand); }
+.boss-bar .tag { justify-self: center; }
+.foe-tags { position: absolute; inset: 0; z-index: var(--z-hud); pointer-events: none; }
+.foe-tag { position: absolute; translate: -50% -100%; width: 56px; display: grid; gap: 2px; padding: 2px; background: var(--ink); border-radius: 3px; }
+.foe-tag i { display: block; height: 5px; background: var(--rust); border-radius: 2px; transition: width 120ms linear; }
+.foe-tag i.st { height: 3px; background: var(--amber); }
+.foe-tag.stag { outline: 2px solid var(--amber); animation: wob 0.3s ease-in-out infinite alternate; }
+@keyframes wob { to { rotate: 4deg; } }
+.combo { position: absolute; z-index: var(--z-fx); right: 76px; top: 26%; display: grid; justify-items: end; color: var(--paper); pointer-events: none;
+  text-shadow: 0 2px 0 var(--ink), 0 0 8px var(--ink); animation: pop 220ms var(--ease-out); }
+.combo b { font: 700 52px/0.9 var(--hand); color: var(--amber); }
+.combo small { font: 700 16px/1 var(--hand); }
+@keyframes pop { from { scale: 1.6; } to { scale: 1; } }
+.cleared { position: absolute; z-index: var(--z-fx); inset: 34% 0 auto; display: grid; place-items: center; pointer-events: none; animation: sweep 1.4s var(--ease-out) both; }
+.cleared b { padding: 8px 40px; font: 700 clamp(34px, 8vw, 58px)/1 var(--hand); color: var(--paper); background: var(--rust);
+  clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%); text-shadow: 0 2px 0 var(--ink); }
+@keyframes sweep { 0% { opacity: 0; scale: 1.4; } 15% { opacity: 1; scale: 1; } 85% { opacity: 1; } 100% { opacity: 0.85; } }
+.hurt-flash { position: absolute; inset: 0; z-index: var(--z-fx); pointer-events: none; box-shadow: inset 0 0 80px 20px color-mix(in srgb, var(--rust) 70%, transparent); animation: fade 300ms ease-out forwards; }
+@keyframes fade { to { opacity: 0; } }
+.team { width: auto; grid-auto-flow: column; align-items: end; gap: 6px; }
+.member { grid-template-columns: 34px; justify-items: center; padding: 4px; width: 58px; }
+.member img { width: 40px; height: auto; }
+.member .who { font-size: 11px; white-space: nowrap; }
+.member.main { width: 104px; grid-template-columns: 1fr; }
+.member.main .who { font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .combo, .cleared, .foe-tag.stag { animation: none; } }
+.combat .team { top: max(var(--gap), env(safe-area-inset-top)); bottom: auto; }
+.combat:has(.boss-bar) .team { top: calc(max(var(--gap), env(safe-area-inset-top)) + 70px); }
+@media (max-width: 720px) { .combat .cam-controls { display: none; } }
+.combat .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 84px); left: max(var(--gap), env(safe-area-inset-left)); right: auto; flex-direction: row; }
+.combat .room-map li + li { margin: 0 0 0 6px; }
+.combat .room-map li + li::before { top: auto; right: 100%; width: 6px; height: 2px; }
+.combat:has(.boss-bar) .room-map { top: calc(max(var(--gap), env(safe-area-inset-top)) + 154px); }
