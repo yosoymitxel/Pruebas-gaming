@@ -57,3 +57,11 @@ export function Stick() {
     <div class="stick" ref=${ref}><i ref=${knob}></i></div>
   </div>`;
 }
+
+// Girar y acercar la cámara (también Q/E y la rueda).
+export const CamControls = ({ s }) => html`<div class="cam-controls" role="group" aria-label=${t('ui.camera', 'Cámara')}>
+  <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}>⟲</button>
+  <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}>⟳</button>
+  <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}>+</button>
+  <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}>−</button>
+</div>`;

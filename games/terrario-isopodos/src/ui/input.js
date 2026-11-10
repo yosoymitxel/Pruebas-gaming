@@ -1,4 +1,4 @@
-// Entrada unificada: teclado (WASD/flechas, J atacar, K/espacio rodar, L/Tab táctico, 1–3 cambiar) y
+// Entrada unificada: teclado (WASD/flechas, J atacar, K/espacio rodar, L/Tab táctico, 1–3 cambiar, Q/E girar) y
 // palanca táctil. read() devuelve el estado del fotograma; los pulsados se consumen al leerlos.
 const keys = new Set();
 const pressed = new Set();
@@ -24,7 +24,7 @@ export function read() {
   if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
   if (keys.has('KeyW') || keys.has('ArrowUp')) y -= 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) y += 1;
-  const out = { move: { x, y } };
+  const out = { move: { x, y }, turn: (keys.has('KeyE') ? 1 : 0) - (keys.has('KeyQ') ? 1 : 0) };
   for (const p of pressed) out[p] = true;
   pressed.clear();
   return out;

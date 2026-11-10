@@ -12,8 +12,8 @@ npm install
 npx vite            # http://localhost:5173/
 ```
 
-Teclado: WASD mover · J atacar · K/espacio rodar · L/Tab pausa táctica · 1–3 cambiar de isópodo.
-Táctil: palanca en la mitad izquierda, botones a la derecha.
+Teclado: WASD mover · J atacar · K/espacio rodar · L/Tab pausa táctica · 1–3 cambiar de isópodo · Q/E girar cámara.
+Táctil: palanca en la mitad izquierda, botones a la derecha; en el terrario, arrastrar gira y la rueda acerca.
 
 ## Estructura
 

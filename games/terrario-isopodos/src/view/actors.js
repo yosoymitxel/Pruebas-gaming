@@ -16,8 +16,9 @@ export class ActorLayer {
     this.items = new Map();
   }
 
-  // a: { id, sprite, x, z, height, flip, flash (0–1), alpha, lift, width? }
-  sync(list, time = 0) {
+  // a: { id, sprite, x, z, y (suelo), height, flip, flash (0–1), alpha, lift, width? }. `yaw`: giro de cámara,
+  // para que los recortes la miren siempre de frente.
+  sync(list, yaw = 0) {
     const seen = new Set();
     for (const a of list) {
       seen.add(a.id);
@@ -32,7 +33,8 @@ export class ActorLayer {
       it.card.scale.set(w * (a.flip ? -1 : 1), h, 1);
       it.card.position.y = a.lift ?? 0;
       it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8, 1, Math.min(w, h) * 0.35);
-      it.root.position.set(a.x, 0, a.z);
+      it.root.position.set(a.x, a.y ?? 0, a.z);
+      it.root.rotation.y = yaw;
       it.mat.opacity = a.alpha ?? 1;
       it.mat.color.setScalar(1 - (a.flash ?? 0) * 0.6);
       it.shadow.visible = (a.lift ?? 0) < 1.5;

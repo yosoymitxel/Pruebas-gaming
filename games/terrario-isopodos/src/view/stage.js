@@ -5,6 +5,7 @@ import { createInkPass } from './ink.js';
 import { PALETTES } from '../data/palettes.js';
 
 const TILT = 0.95; // radianes desde la vertical
+const ZOOM = [0.55, 1.35];
 
 export class Stage {
   constructor(container) {
@@ -18,6 +19,8 @@ export class Stage {
     this.camera = new THREE.PerspectiveCamera(30, 1, 0.5, 120);
     this.target = new THREE.Vector3();
     this.distance = 22;
+    this.yaw = 0;
+    this.zoomK = 1;
     this.root = new THREE.Group();
     this.scene.add(this.root);
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -44,7 +47,7 @@ export class Stage {
     const ink = new THREE.Color(PALETTES.cozy.ink).lerp(new THREE.Color(PALETTES.terror.ink), m);
     const u = this.ink.material.uniforms;
     u.paper.value.copy(paper); u.ink.value.copy(ink);
-    u.wash.value = 0.62 - 0.42 * m;
+    u.wash.value = 0.8 - 0.45 * m;
     u.gloom.value = m;
     this.scene.background = paper;
   }
@@ -53,16 +56,23 @@ export class Stage {
   setScene(group, { target = [0, 0], distance = 22, fit = 0 } = {}) {
     this.root.clear();
     this.root.add(group);
+    this.yaw = 0.35;
+    this.zoomK = 1;
     this.frame(target, distance, fit);
   }
+
+  // Girar alrededor del centro y acercar/alejar (la cámara siempre mira al diorama desde arriba).
+  rotate(da) { this.yaw += da; this.frame([this.target.x, this.target.z], this.distance, this.fit); }
+  zoom(f) { this.zoomK = Math.min(ZOOM[1], Math.max(ZOOM[0], this.zoomK * f)); this.frame([this.target.x, this.target.z], this.distance, this.fit); }
 
   frame([x, z], distance, fit = this.fit ?? 0) {
     this.target.set(x, 0, z);
     this.distance = distance;
     this.fit = fit;
     const halfH = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)), halfW = halfH * this.camera.aspect;
-    const d = Math.max(distance, fit / 2 / halfW);
-    this.camera.position.set(x, Math.cos(TILT) * d, z + Math.sin(TILT) * d);
+    const d = Math.max(distance, fit / 2 / halfW) * this.zoomK;
+    this.camDist = d;
+    this.camera.position.set(x + Math.sin(this.yaw) * Math.sin(TILT) * d, Math.cos(TILT) * d, z + Math.cos(this.yaw) * Math.sin(TILT) * d);
     this.camera.lookAt(this.target);
   }
 
@@ -81,18 +91,20 @@ export class Stage {
   render(time) {
     const u = this.ink.material.uniforms;
     u.time.value = time; u.near.value = this.camera.near; u.far.value = this.camera.far;
+    u.fogNear.value = this.camDist * 0.95; u.fogFar.value = this.camDist * 1.5;
     this.renderer.setRenderTarget(this.rt);
     this.renderer.render(this.scene, this.camera);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.ink.scene, this.ink.camera);
   }
 
-  // Punto del suelo (x, z del mundo) bajo un evento de puntero, o null.
-  pick(ev) {
+  // Punto del suelo (x, z del mundo) a la altura `y` bajo un evento de puntero, o null.
+  pick(ev, y = 0) {
     const r = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     this.ray.setFromCamera(ndc, this.camera);
     const p = new THREE.Vector3();
+    this.ground.constant = -y;
     return this.ray.ray.intersectPlane(this.ground, p) ? { x: p.x, z: p.z } : null;
   }
 

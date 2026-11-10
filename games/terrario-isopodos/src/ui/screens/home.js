@@ -4,7 +4,9 @@ import { BUILDINGS } from '../../data/buildings.js';
 import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, beds, canAfford, nextExpansion } from '../../game/home.js';
-import { Resources, Cost, Bar, ResIcon } from './common.js';
+import { Resources, Cost, Bar, ResIcon, CamControls } from './common.js';
+
+const drag = { x: 0, moved: false, down: false };
 
 export function Home({ s }) {
   const home = s.game.home;
@@ -13,7 +15,14 @@ export function Home({ s }) {
   const say = (msg) => { setToast(msg); clearTimeout(say.t); say.t = setTimeout(() => setToast(null), 1600); };
   const toggle = (p) => { if (s.build) s.cancelBuild(); setPanel(panel === p ? null : p); };
 
-  const onMove = (e) => { if (s.build) { const c = s.view.cellAt(e); if (c) s.hoverBuild(c.i, c.j); } };
+  // Arrastrar gira la cámara; tocar sin arrastrar coloca o recoge.
+  const onDown = (e) => { Object.assign(drag, { x: e.clientX, moved: false, down: true }); e.currentTarget.setPointerCapture(e.pointerId); };
+  const onMove = (e) => {
+    if (drag.down && Math.abs(e.clientX - drag.x) > 8) drag.moved = true;
+    if (drag.down && drag.moved) { s.stage.rotate((e.clientX - drag.x) * -0.008); drag.x = e.clientX; return; }
+    if (s.build) { const c = s.view.cellAt(e); if (c) s.hoverBuild(c.i, c.j); }
+  };
+  const onUp = (e) => { const tap = drag.down && !drag.moved; drag.down = false; if (tap) onTap(e); };
   const onTap = (e) => {
     const c = s.view.cellAt(e);
     if (!c) return;
@@ -24,7 +33,8 @@ export function Home({ s }) {
   const exp = nextExpansion(home);
 
   return html`<main class="screen home">
-    <div class="world-input" onPointerMove=${onMove} onPointerDown=${onTap}></div>
+    <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
+    <${CamControls} s=${s} />
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('home.title', 'Tu terrario')}</h2></div>
       <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>

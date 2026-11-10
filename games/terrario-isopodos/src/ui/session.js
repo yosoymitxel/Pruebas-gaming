@@ -142,6 +142,8 @@ export class Session {
     this.last = now;
     this.time += dt;
     const input = read();
+    if (input.turn) this.stage.rotate(input.turn * dt * 1.6);
+    input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'home') { tickHome(this.game.home, dt, this.rng); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) { tickGather(this.gather, dt, input.move); if (this.gather.done) this.emit(); }
     else if (this.mode === 'combat') this.tickCombat(dt, input);
@@ -174,6 +176,8 @@ export class Session {
   }
 }
 
+// La palanca es relativa a la cámara: «arriba» siempre se aleja de ella, gire como gire.
+const toWorld = ({ x, y }, yaw) => ({ x: x * Math.cos(yaw) + y * Math.sin(yaw), y: -x * Math.sin(yaw) + y * Math.cos(yaw) });
 const pos = (c, id) => { const a = c.actors.find((x) => x.id === id); return { x: a.x, z: a.y }; };
 const WEATHER_MOOD = { claro: 0, niebla: 0.45, lluvia: 0.3 };
 const SETTINGS_KEY = 'terrario.settings.v1';

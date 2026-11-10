@@ -1,6 +1,7 @@
 // Postproceso «cuaderno»: la escena 3D se pasa a papel y tinta. Contorno por saltos de profundidad y
 // color, sombreado por punteado (más puntos cuanto más oscuro) y color en aguada sobre el papel.
 // `wash` = cuánto color se ve (0 = solo tinta); `gloom` = deriva a la paleta de terror y viñeta.
+// La niebla (fogNear–fogFar, distancia a cámara) aclara lo lejano hacia el papel: da profundidad.
 import * as THREE from 'three';
 
 export function createInkPass() {
@@ -9,10 +10,11 @@ export function createInkPass() {
       tColor: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2(1, 1) },
       dpr: { value: 1 }, paper: { value: new THREE.Color() }, ink: { value: new THREE.Color() },
       wash: { value: 0.6 }, gloom: { value: 0 }, near: { value: 0.1 }, far: { value: 100 }, time: { value: 0 },
+      fogNear: { value: 20 }, fogFar: { value: 40 },
     },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
     fragmentShader: /* glsl */`
-      uniform sampler2D tColor, tDepth; uniform vec2 res; uniform float dpr, wash, gloom, near, far, time;
+      uniform sampler2D tColor, tDepth; uniform vec2 res; uniform float dpr, wash, gloom, near, far, time, fogNear, fogFar;
       uniform vec3 paper, ink; varying vec2 vUv;
       float depthAt(vec2 uv){ float z = texture2D(tDepth, uv).x * 2. - 1.; return 2. * near * far / (far + near - z * (far - near)); }
       float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
@@ -35,10 +37,12 @@ export function createInkPass() {
         vec2 cell = floor(cellPx);
         float h = hash(cell + floor(time * 8.) * step(.5, gloom) * 7.);
         vec2 f = fract(cellPx) - .5;
-        float dotMask = step(length(f), .36) * step(h, pow(max(dark - .4, 0.), 1.3) * 2.4);
+        float dotMask = step(length(f), .36) * step(h, pow(max(dark - .48, 0.), 1.2) * 2.6);
         float grain = hash(floor(gl_FragCoord.xy / dpr)) * .03;
         vec3 washed = mix(paper, col * mix(vec3(1.), paper * 1.08, .35), wash) - grain;
         vec3 outc = mix(washed, ink, max(edge, dotMask * .85));
+        float fog = smoothstep(fogNear, fogFar, d) * step(d, far * .98);
+        outc = mix(outc, paper, fog * .6);
         vec2 v = vUv - .5;
         outc = mix(outc, ink, gloom * smoothstep(.35, .75, length(v * vec2(1., .9))) * .7);
         gl_FragColor = vec4(outc, 1.);

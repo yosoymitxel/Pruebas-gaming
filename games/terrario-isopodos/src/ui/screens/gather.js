@@ -2,12 +2,13 @@ import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BIOMES, WEATHERS } from '../../data/world.js';
 import { gatherLoot, GATHER_TIME } from '../../game/gather.js';
-import { Resources, Bar, Stick } from './common.js';
+import { Resources, Bar, Stick, CamControls } from './common.js';
 
 export function Gather({ s }) {
   const g = s.gather;
   return html`<main class="screen gather">
     <${Stick} />
+    <${CamControls} s=${s} />
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${WEATHERS[g.island.weather].name}</span><h2>${BIOMES[g.island.biome].name}</h2></div>
       <div class="timer"><span>${Math.ceil(g.time)} s</span><${Bar} value=${g.time} max=${GATHER_TIME} kind="time" label=${t('gather.time', 'Tiempo')} /></div>

@@ -46,7 +46,7 @@ const spot = await s(async () => {
   const { canPlace } = await import('/src/game/grid.js');
   const t = window.__terrario, g = t.game.home.grid;
   for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
-    if (canPlace(g, 'piedra', i, j) && canPlace(g, 'piedra', i, j + 1)) return t.stage.project(i + 0.5 - g.w / 2, 0, j + 0.5 - g.h / 2);
+    if ([[0,0],[1,0],[0,1],[-1,0],[0,-1]].every(([a, b]) => canPlace(g, 'piedra', i + a, j + b))) return t.stage.project(i + 0.5 - g.w / 2, t.view.island.heightAt(i, j), j + 0.5 - g.h / 2);
   }
 });
 await page.mouse.move(spot.x, spot.y);

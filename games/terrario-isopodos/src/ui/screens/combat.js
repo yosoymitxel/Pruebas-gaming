@@ -7,7 +7,7 @@ import { ABILITIES, ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
 import { press } from '../input.js';
-import { Bar, Stick } from './common.js';
+import { Bar, Stick, CamControls } from './common.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
   ${Array.from({ length: ATB_MAX }, (_, k) => html`<i class=${value >= k + 1 ? 'full' : ''}><b style=${{ width: `${Math.max(0, Math.min(1, value - k)) * 100}%` }}></b></i>`)}
@@ -22,6 +22,7 @@ export function Combat({ s }) {
 
   return html`<main class=${`screen combat${s.tactical ? ' tactical' : ''}`}>
     <${Stick} />
+    <${CamControls} s=${s} />
     <header class="foes">${shown.map((e) => html`<div class="foe">
       <b>${ABERRATIONS[e.kind].name}</b>
       ${e.staggered > 0 ? html`<em class="tag stag">${t('combat.staggered', 'Aturdida')}</em>` : e.pressured > 0 ? html`<em class="tag press">${t('combat.pressured', 'Presionada')}</em>` : null}
@@ -47,7 +48,7 @@ export function Combat({ s }) {
       <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}>${t('combat.tacticalShort', 'Táctica')}</button>
     </section>
 
-    ${s.tactical && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>
+    ${s.tactical && !c.result && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>
       ${team.filter((a) => a.hp > 0).map((a) => html`<div class="tm-member">
         <b>${a.name}</b>
         ${CLASSES[a.cls].abilities.map((id) => html`<button class="btn" disabled=${a.atb < ABILITIES[id].atb || a.held > 0} onClick=${() => s.ability(a.id, id)}>

@@ -13,10 +13,11 @@ import { footprint, canPlace } from '../game/grid.js';
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
-  constructor(stage, grid, seed, rim = 0) {
+  constructor(stage, grid, seed, rim = 0, relief = 0.3) {
     this.stage = stage;
     this.grid = grid;
     this.rim = rim;
+    this.relief = relief;
     this.group = new THREE.Group();
     this.seed = seed;
     this.rebuild();
@@ -25,16 +26,24 @@ class GridScene {
 
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
-    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim });
+    this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief });
     if (this.rim) this.island.group.add(glass(this.grid));
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
   }
 
-  toWorld(x, y) { return { x: x - this.grid.w / 2, z: y - this.grid.h / 2 }; }
+  toWorld(x, y) { return { x: x - this.grid.w / 2, z: y - this.grid.h / 2, y: this.island.heightAt(x, y) }; }
+
+  // Altura donde apoya una pieza: la cima más alta de su huella.
+  floorOf(x, y, f) {
+    let h = 0;
+    for (let j = y; j < y + f.h; j++) for (let i = x; i < x + f.w; i++) h = Math.max(h, this.island.heightAt(i, j));
+    return h;
+  }
 
   cellAt(ev) {
-    const p = this.stage.pick(ev);
+    const first = this.stage.pick(ev);
+    const p = first && this.stage.pick(ev, this.island.heightAt(first.x + this.grid.w / 2, first.z + this.grid.h / 2));
     return p && { i: Math.floor(p.x + this.grid.w / 2), j: Math.floor(p.z + this.grid.h / 2), x: p.x + this.grid.w / 2, y: p.z + this.grid.h / 2 };
   }
 
@@ -46,7 +55,7 @@ class GridScene {
       if (this.props.has(String(p.id))) continue;
       const m = propMesh(p.type, p.rot);
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
-      m.position.set(w.x, 0, w.z);
+      m.position.set(w.x, this.floorOf(p.x, p.y, f), w.z);
       m.userData.key = key(p);
       this.group.add(m);
       this.props.set(String(p.id), m);
@@ -61,7 +70,7 @@ export class HomeView extends GridScene {
     this.home = home;
   }
 
-  get camera() { const side = Math.sqrt(this.openCount); return { target: [0, 0.5], distance: side * 1.45 + 5, fit: side + 1.5 }; }
+  get camera() { const side = Math.sqrt(this.openCount); return { target: [0, 0.5], distance: side * 1.45 + 5, fit: (side + 2) * 1.35 }; }
 
   setBuildMode(on) { this.island.gridLines.visible = on; if (!on) this.setGhost(null); }
 
@@ -72,7 +81,7 @@ export class HomeView extends GridScene {
     const ok = canPlace(this.grid, g.type, g.i, g.j, g.rot);
     const f = footprint(g.type, g.rot), w = this.toWorld(g.i + f.w / 2, g.j + f.h / 2);
     this.ghost = ghostMesh(g.type, g.rot, ok);
-    this.ghost.position.set(w.x, 0.02, w.z);
+    this.ghost.position.set(w.x, this.floorOf(g.i, g.j, f) + 0.02, w.z);
     this.group.add(this.ghost);
     return ok;
   }
@@ -88,20 +97,20 @@ export class HomeView extends GridScene {
       const s = this.home.stock[p.id];
       if (!s?.ready) continue;
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
-      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08 });
+      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08 });
     }
-    this.actors.sync(list, time);
+    this.actors.sync(list, this.stage.yaw);
   }
 }
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed);
+    super(stage, gather.grid, gather.island.seed, 0, 0.6);
     this.g = gather;
     this.syncProps();
   }
 
-  get camera() { return { target: [0, 0.4], distance: 20, fit: 12.5 }; }
+  get camera() { return { target: [0, 0.4], distance: 20, fit: 15 }; }
 
   update(time) {
     const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05;
@@ -109,7 +118,7 @@ export class GatherView extends GridScene {
     for (const n of this.g.nodes) if (!n.taken) list.push({ id: `n${n.id}`, sprite: `res:${n.res}`, ...this.toWorld(n.x, n.y), height: 0.55, lift: 0.15 + Math.sin(time * 2.5 + n.id) * 0.06 });
     const l = this.g.lost;
     if (l && !l.taken) list.push({ id: 'lost', sprite: 'iso:leche', ...this.toWorld(l.x, l.y), height: 0.6, flash: 0.5 + Math.sin(time * 4) * 0.3 });
-    this.actors.sync(list, time);
+    this.actors.sync(list, this.stage.yaw);
   }
 }
 
@@ -145,7 +154,7 @@ export class CombatView {
           flash: Math.max(f, a.staggered > 0 ? 0.35 : 0) });
       }
     }
-    this.actors.sync(list, time);
+    this.actors.sync(list, this.stage.yaw);
     this.telegraphs();
   }
 

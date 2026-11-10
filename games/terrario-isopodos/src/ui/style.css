@@ -43,7 +43,9 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .hud-top { position: relative; z-index: var(--z-hud); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; pointer-events: none; }
 .title-block { display: grid; gap: 2px; margin-right: auto; }
 .hud-bottom { position: absolute; z-index: var(--z-hud); left: var(--gap); right: var(--gap); bottom: max(var(--gap), env(safe-area-inset-bottom));
-  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: max-content; max-width: calc(100vw - 2 * var(--gap)); margin: 0 auto;
+  background: var(--paper); border: var(--line); border-radius: calc(var(--radius) + 4px); padding: 6px; box-shadow: 4px 4px 0 var(--ink); }
+.hud-bottom .btn { box-shadow: none; }
 .resources { display: flex; flex-wrap: wrap; gap: 4px 10px; list-style: none; margin: 0; padding: 6px 10px; background: color-mix(in srgb, var(--paper) 85%, transparent); border: var(--line); border-radius: var(--radius); }
 .resources li { display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
 .resources.compact { padding: 4px 8px; }
@@ -188,6 +190,11 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .fx.big { font-size: 36px; }
 .fx-note { font-size: 22px; color: var(--amber); }
 
+/* Cámara */
+.cam-controls { position: absolute; z-index: var(--z-hud); right: var(--gap); top: 50%; transform: translateY(-50%); display: grid; gap: 6px; }
+.cam-controls .btn { box-shadow: 2px 2px 0 var(--ink); }
+.combat .cam-controls { top: 38%; }
+
 /* Palanca */
 .stick-zone { position: absolute; z-index: var(--z-world); left: 0; top: 0; bottom: 0; width: 55%; touch-action: none; }
 .stick { position: absolute; width: 104px; height: 104px; margin: -52px 0 0 -52px; border: var(--line); border-radius: 50%; opacity: 0; transition: opacity 120ms; pointer-events: none; }
@@ -199,7 +206,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   h2 { font-size: 24px; }
   .resources { gap: 2px 8px; padding: 4px 8px; font-size: 13px; }
   .res-icon { width: 18px; height: 18px; }
-  .hud-bottom { display: grid; grid-template-columns: 1fr 1fr 1.35fr 48px; gap: 6px; }
+  .hud-bottom { display: grid; grid-template-columns: 1fr 1fr 1.35fr 48px; gap: 6px; width: auto; }
   .hud-bottom .btn { padding: 0 6px; font-size: 14px; }
   .route { inset: 120px 0 130px 0; height: calc(100% - 250px); }
   .team { width: 44vw; }
