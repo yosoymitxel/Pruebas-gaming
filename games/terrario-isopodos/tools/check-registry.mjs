@@ -1,5 +1,5 @@
-// Verificador de registros: node next/tools/check-registry.mjs
-// Todo lo que crece se declara en next/src/data/; esto avisa cuando algo quedó a medias (un dibujo que
+// Verificador de registros: node tools/check-registry.mjs
+// Todo lo que crece se declara en src/data/; esto avisa cuando algo quedó a medias (un dibujo que
 // no existe, un coste con un recurso inventado, una habilidad sin definir…). Sale con 1 si encuentra algo.
 import { existsSync } from 'node:fs';
 import { RESOURCES } from '../src/data/resources.js';

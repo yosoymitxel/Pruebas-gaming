@@ -3,21 +3,19 @@
 Terror acogedor: cuidas una colonia de isópodos en su terrario (una isla flotante bajo cristal), sales al
 archipiélago a recoger recursos y bajas a nidos a combatir aberraciones dibujadas a tinta.
 
-- **Juego nuevo:** `next/` (MVP). Plan y decisiones en [docs/PLAN.md](docs/PLAN.md); dirección visual en
-  [DESIGN.md](DESIGN.md).
-- **Juego viejo:** `src/` + `index.html`. Sigue publicado hasta que el nuevo lo sustituya; no se toca ni se copia.
+Plan y decisiones en [docs/PLAN.md](docs/PLAN.md); dirección visual en [DESIGN.md](DESIGN.md).
 
 ## Jugar
 
 ```sh
 npm install
-npx vite            # http://localhost:5173/next/
+npx vite            # http://localhost:5173/
 ```
 
 Teclado: WASD mover · J atacar · K/espacio rodar · L/Tab pausa táctica · 1–3 cambiar de isópodo.
 Táctil: palanca en la mitad izquierda, botones a la derecha.
 
-## Estructura de `next/`
+## Estructura
 
 | Carpeta | Qué va |
 |---|---|
@@ -31,8 +29,7 @@ Táctil: palanca en la mitad izquierda, botones a la derecha.
 ## Comprobar
 
 ```sh
-npm test                                   # incluye next/tests
-node next/tools/check-registry.mjs         # registros completos
-node next/tools/combat-selfcheck.mjs       # cada aberración vencible y no trivial
-npx vite --port 5199 & node next/tools/smoke.mjs [--mobile]   # recorrido entero con capturas
+npm test          # lógica, registros y combate vencible
+npm run check     # registros completos + tasa de victoria por aberración
+npx vite --port 5199 & npm run smoke   # recorrido entero en PC y 360×800, capturas en artifacts/visual
 ```

@@ -1,101 +1,17 @@
 <!doctype html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8e4d7"><meta name="description" content="Terrario de isópodos con diorama, microclima y simulación viva."><title>Terrario isópodos</title><link rel="stylesheet" href="./src/style.css"></head>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content="Terrario de isópodos: cuida tu colonia, sal al archipiélago y combate aberraciones dibujadas a tinta." />
+  <title>Terrario de isópodos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600&display=swap" />
+  <link rel="stylesheet" href="./src/ui/style.css" />
+</head>
 <body>
-<section id="screen-loading" class="loading-screen" hidden role="status" aria-live="polite" aria-busy="true">
-  <div class="loading-card">
-    <div class="loading-kicker">MICROCOSMOS · LABORATORIO VIVO</div>
-    <div class="loading-art" aria-hidden="true"><div class="load-ground"></div><div class="load-creature"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="load-detail detail-one"></span><span class="load-detail detail-two"></span><span class="load-detail detail-three"></span></div>
-    <p class="loading-theme" id="loading-theme">BAJO LA CORTEZA</p>
-    <h1 id="loading-title">Preparando el microcosmos</h1>
-    <p class="loading-stage" id="loading-stage">Cargando el motor de escena…</p>
-    <div class="loading-progress" aria-hidden="true"><span></span></div>
-    <small class="loading-foot">Cada hoja, refugio y gota forma parte del hábitat.</small>
-  </div>
-</section>
-<section id="screen-menu" class="game-screen menu-screen" aria-labelledby="menu-title">
-  <div class="menu-top"><span class="menu-mark">MICROCOSMOS <i aria-hidden="true">/</i> LABORATORIO VIVO</span><span>EXPERIMENTO 001 · ARMADILLIDIUM VULGARE</span></div>
-  <div class="menu-content"><div class="menu-art" aria-hidden="true"><div class="menu-orbit orbit-one"></div><div class="menu-orbit orbit-two"></div><div class="menu-globe" aria-hidden="true"><span></span></div><div class="menu-leaf leaf-one"></div><div class="menu-leaf leaf-two"></div><div class="menu-creature"></div></div>
-    <div class="menu-copy"><h1 id="menu-title">La vida<br>encuentra <em>su camino.</em></h1><p>Construye un hábitat, cuida las condiciones y observa cómo una colonia de isópodos responde al entorno. Cada detalle del terrario influye en la vida que lo habita.</p>
-      <div class="menu-actions"><button id="new-game" class="menu-primary">Nuevo terrario <span>↗</span></button><button id="continue-game" class="menu-secondary" disabled>Continuar partida</button><button id="open-settings" class="menu-secondary">Ajustes</button><button id="open-help" class="menu-secondary">Cómo se juega</button><button id="menu-fullscreen" class="menu-secondary">Pantalla completa</button></div>
-      <div class="menu-foot"><span>OBSERVAR</span><span>EXPERIMENTAR</span><span>DESCUBRIR</span></div>
-    </div>
-  </div><div class="menu-bottom"><span>UN MUNDO PEQUEÑO, UN SISTEMA COMPLEJO</span><span>DIORAMA 3D / VOXEL</span></div>
-</section>
-<section id="screen-setup" class="game-screen setup-screen" hidden aria-labelledby="setup-title"><div class="setup-card"><button id="back-to-menu" class="text-button">← Menú principal</button><h1 id="setup-title">Diseña tu <em>microcosmos.</em></h1><p>Elige la forma del recipiente y la forma de representar tu hábitat.</p>
-  <label for="setup-name">Nombre del terrario</label><input id="setup-name" name="terrarium-name" type="text" maxlength="40" value="Pequeño bosque" placeholder="Mi primer terrario" autocomplete="off" spellcheck="false">
-  <span class="setup-label">Forma del recipiente</span><div class="setup-options" role="group" aria-label="Forma del recipiente"><button type="button" data-setup-shape="rectangular" class="selected" aria-pressed="true"><span>▱</span><b>Rectangular</b><small>Visión amplia</small></button><button type="button" data-setup-shape="cilindrico" aria-pressed="false"><span>◯</span><b>Cilíndrico</b><small>Columna de vidrio</small></button><button type="button" data-setup-shape="esferico" aria-pressed="false"><span>◎</span><b>Esférico</b><small>Globo de cristal</small></button></div>
-  <span class="setup-label">Representación inicial</span><div class="setup-options" role="group" aria-label="Representación inicial"><button type="button" data-setup-mode="diorama" class="selected" aria-pressed="true"><span>◈</span><b>Diorama</b><small>Formas orgánicas</small></button><button type="button" data-setup-mode="voxel" aria-pressed="false"><span>▣</span><b>Voxel</b><small>Estética de bloque</small></button></div>
-  <button id="start-game" class="menu-primary setup-start">Entrar al terrario <span>↗</span></button>
-</div></section>
-<section id="screen-modal" class="game-screen modal-screen" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-card"><button id="close-modal" class="modal-close" aria-label="Cerrar diálogo">×</button><h2 id="modal-title">Título</h2><div id="modal-body"></div></div></section>
-<main class="shell" hidden>
-<header class="top"><a class="brand" href="../../" aria-label="Volver al jardín de juegos">← Jardín de juegos</a><div class="top-actions"><button id="open-game-menu" class="menu-in-game" type="button" aria-haspopup="dialog" aria-label="Abrir menú de pausa" title="Pausa"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5h3v14H8zM15 5h3v14h-3z" fill="currentColor"/></svg></button></div></header>
-<section class="workspace"><div class="view"><div class="viewhead"></div><div id="scene" role="img" aria-label="Terrario tridimensional interactivo. Arrastra para girar; usa los botones de cámara para acercar y alejar."></div><div class="clockbox"><strong id="clock">DÍA 01 · 08:00</strong><span id="state-note">Simulación en pausa</span></div><div class="action-tools" id="action-tools" role="toolbar" aria-label="Herramientas del terrario. Desliza horizontalmente para ver todas.">
-  <button type="button" data-tool="camera" id="tool-camera" class="active" aria-pressed="true" title="Arrastrar para orbitar la cámara" aria-label="Cámara"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m8 7 1.5-2h5L16 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg><span>Cámara</span></button><button type="button" data-tool="hand" id="tool-hand" aria-pressed="false" title="Mover isópodos y objetos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11V5a1.5 1.5 0 0 1 3 0v5-6a1.5 1.5 0 0 1 3 0v6-4a1.5 1.5 0 0 1 3 0v6-2a1.5 1.5 0 0 1 3 0v5c0 4-2.5 7-6.5 7h-1c-2.4 0-4.2-1.2-5.4-3.2L4.4 14a1.6 1.6 0 0 1 2.7-1.7L8 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mano</span></button>
-  <button type="button" data-tool="leaf-litter" id="tool-food" aria-pressed="false" title="Colocar hojarasca · coste: 4 bellotas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 4.5C11 4.2 5.1 6.8 5.1 13c0 3.3 2.3 5.3 5.3 5.3 6.2 0 9.1-6.5 9.1-13.8Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 21c2.4-5 6.3-8.6 12-11.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Hojarasca <small>Coste: 4 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="leaf-litter">1</b></small></span></button>
-  <button type="button" data-tool="shelter" id="tool-shelter" aria-pressed="false" title="Colocar refugio · coste: 12 bellotas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c1.8-7.2 4.7-11 9-11s7.2 3.8 9 11H3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 17c.5-3.3 1.8-5 4-5s3.5 1.7 4 5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Refugio <small>Coste: 12 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="shelter">1</b></small></span></button>
-</div>
-<aside class="camera-rail" id="camera-rail" aria-label="Controles de cámara">
-  <button type="button" id="camera-toggle" aria-expanded="false" aria-controls="camera-tools" aria-label="Mostrar controles de cámara" title="Cámara">◉</button>
-  <div id="camera-tools" hidden>
-    <button id="rotate" aria-label="Alternar giro automático" aria-pressed="true" title="Giro automático">↻</button>
-    <button id="zoom-in" aria-label="Acercar cámara" title="Acercar">+</button>
-    <button id="zoom-out" aria-label="Alejar cámara" title="Alejar">−</button>
-    <button id="reset" aria-label="Recentrar cámara" title="Recentrar">⌖</button>
-  </div>
-</aside></div>
-<aside class="panel" id="controls-panel">
-  <div class="panel-handle"><button type="button" id="panel-toggle" class="panel-toggle" aria-expanded="false" aria-controls="panel-content"><span class="panel-toggle-mark" aria-hidden="true"></span><span class="panel-toggle-copy"><strong>Controles del terrario</strong><small id="panel-summary">05 individuos · 78 % humedad</small></span><span class="panel-toggle-icon" aria-hidden="true">⌃</span></button></div>
-  <div class="panel-content" id="panel-content">
-  <div class="panel-group">
-    <h2>Representación</h2>
-    <div class="modes"><button data-mode="diorama" class="active" aria-pressed="true">◈ <span><b>Diorama</b><small>Más detalle</small></span></button><button data-mode="voxel" aria-pressed="false">▣ <span><b>Voxel</b><small>Bloques</small></span></button></div>
-  </div>
-
-  <div class="panel-group">
-    <h2>Ritmo del mundo</h2>
-    <div class="actions"><button id="pause" class="primary">▶ Iniciar</button><button id="step">Avanzar 1 min</button></div>
-    <label for="speed"><span>Velocidad</span><b id="speed-label">2×</b></label>
-    <input id="speed" type="range" min="0.5" max="4" step="0.1" value="2" aria-label="Velocidad de simulación">
-  </div>
-
-  <div class="panel-group">
-    <h2>Microclima</h2>
-    <div class="microclimate-overview">
-      <span class="colony-reading"><small>Colonia activa</small><strong><span id="count">05</span> individuos</strong></span>
-      <span class="microclimate-caption">Condiciones del sustrato</span>
-    </div>
-    <div class="climate-readings">
-      <section class="climate-control" role="group" aria-label="Ajustar humedad del terrario">
-        <div class="climate-reading"><span>Humedad</span><strong><span id="humidity">78</span><small>%</small></strong></div>
-        <div id="humidity-meter" class="climate-meter" role="meter" aria-label="Humedad relativa" aria-valuemin="20" aria-valuemax="100" aria-valuenow="78"><span></span></div>
-        <div class="climate-stepper"><button type="button" data-climate="humidity" data-step="-0.02" aria-label="Reducir humedad">−</button><small>Humedad relativa</small><button type="button" data-climate="humidity" data-step="0.02" aria-label="Aumentar humedad">+</button></div>
-      </section>
-      <section class="climate-control" role="group" aria-label="Ajustar temperatura del terrario">
-        <div class="climate-reading"><span>Temperatura</span><strong><span id="temperature">21.4</span><small>°C</small></strong></div>
-        <div id="temperature-meter" class="climate-meter temperature-meter" role="meter" aria-label="Temperatura del hábitat" aria-valuemin="10" aria-valuemax="30" aria-valuenow="21.4"><span></span></div>
-        <div class="climate-stepper"><button type="button" data-climate="temperature" data-step="-0.5" aria-label="Reducir temperatura">−</button><small>Temperatura ambiente</small><button type="button" data-climate="temperature" data-step="0.5" aria-label="Aumentar temperatura">+</button></div>
-      </section>
-    </div>
-    <div class="weather-control" role="group" aria-label="Clima del terrario">
-      <span>Tiempo</span>
-      <button type="button" data-weather="clear" aria-pressed="true">Claro</button>
-      <button type="button" data-weather="mist" aria-pressed="false">Bruma</button>
-      <button type="button" data-weather="rain" aria-pressed="false">Lluvia</button>
-    </div>
-  </div>
-
-  <div class="panel-group">
-    <h2>Personaliza el hábitat</h2>
-    <div class="shop-wallet"><span>Monedero</span><strong><span id="coins">30</span> <small>bellotas</small></strong></div>
-    <div id="shop-grid" class="shop-grid"><button type="button" data-buy="fern"><span>🌿</span><b>Helecho</b><small>Coste: 8 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="fern">0</b></small></button><button type="button" data-buy="mushroom"><span>🍄</span><b>Setas</b><small>Coste: 7 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="mushroom">0</b></small></button><button type="button" data-buy="stone"><span>🪨</span><b>Piedras</b><small>Coste: 5 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="stone">0</b></small></button><button type="button" data-buy="bark"><span>🪵</span><b>Tronco hueco</b><small>Coste: 10 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="bark">0</b></small></button><button type="button" data-buy="moss"><span>🌱</span><b>Isla de musgo</b><small>Coste: 6 bellotas</small><small class="placed-count">En terrario: <b data-placed-count="moss">0</b></small></button></div>
-    <p id="shop-note" class="note" role="status" aria-live="polite">Compra adornos y recursos del hábitat.</p><p id="resource-note" class="note" role="status" aria-live="polite">Recursos del hábitat</p>
-  </div>
-
-  <div class="panel-group compact">
-    <p id="behavior" class="note">Explorando</p>
-    <div class="actions save-actions"><button id="save">Guardar terrario</button><button id="load">Cargar</button></div>
-  </div>
-</div>
-</aside></section>
-</main><script type="module" src="./src/main.js"></script></body></html>
+  <div id="stage" aria-hidden="true"></div>
+  <div id="ui"></div>
+  <script type="module">import { start } from './src/ui/app.js'; start();</script>
+</body>
+</html>

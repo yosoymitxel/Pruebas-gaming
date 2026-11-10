@@ -1,5 +1,5 @@
 // Aberraciones (dibujos a tinta del dueño, ~19 previstas). Añadir una = una entrada aquí + su dibujo.
-// `role`: normal | elite | jefe. `sprite`: archivo en next/assets/sprites/ o `proc:<id>` (dibujado en
+// `role`: normal | elite | jefe. `sprite`: archivo en assets/sprites/ o `proc:<id>` (dibujado en
 // código). `height`: alto del dibujo en celdas. `attacks`: lo interpreta src/game/combat.js según `kind`:
 //   slash  golpe en cono delante (range, arc en radianes)
 //   charge embestida en línea recta (range = distancia recorrida)
@@ -20,7 +20,7 @@ export const ABERRATIONS = localize('aberrations', {
     attacks: [{ kind: 'slash', windup: 0.55, recover: 0.5, damage: 9, range: 1.1, arc: 1.2, cooldown: 1.4 }],
   },
   bufon: {
-    name: 'El Bufón', role: 'elite', sprite: 'el-bufon.png', height: 3.2, radius: 0.7,
+    name: 'El Bufón', role: 'elite', sprite: 'el-bufon.webp', height: 3.2, radius: 0.7,
     hp: 600, stagger: 220, speed: 2.1,
     pattern: 'Se agacha y embiste en línea recta; tras fallar queda clavado y presionado.',
     attacks: [
@@ -29,7 +29,7 @@ export const ABERRATIONS = localize('aberrations', {
     ],
   },
   segador: {
-    name: 'El Segador', role: 'elite', sprite: 'el-segador.png', height: 2.8, radius: 0.8,
+    name: 'El Segador', role: 'elite', sprite: 'el-segador.webp', height: 2.8, radius: 0.8,
     hp: 650, stagger: 240, speed: 1.4,
     pattern: 'Siega en arco amplio e invoca larvas; tras la siega amplia queda presionado.',
     attacks: [
@@ -38,7 +38,7 @@ export const ABERRATIONS = localize('aberrations', {
     ],
   },
   gemela: {
-    name: 'La Gemela', role: 'jefe', sprite: 'la-gemela.png', height: 4.2, radius: 0.9,
+    name: 'La Gemela', role: 'jefe', sprite: 'la-gemela.webp', height: 4.2, radius: 0.9,
     hp: 1400, stagger: 380, speed: 1.6,
     pattern: 'Zarpazos con la cabeza viva; la cabeza colgante grita y vacía tu ATB.',
     attacks: [
@@ -48,7 +48,7 @@ export const ABERRATIONS = localize('aberrations', {
     ],
   },
   comensal: {
-    name: 'El Comensal', role: 'jefe', sprite: 'el-comensal.png', height: 4, radius: 1.1,
+    name: 'El Comensal', role: 'jefe', sprite: 'el-comensal.webp', height: 4, radius: 1.1,
     hp: 1600, stagger: 420, speed: 1.1,
     pattern: 'Atrapa con un tentáculo, pisotea alrededor e invoca larvas; tras pisotear queda presionado.',
     attacks: [

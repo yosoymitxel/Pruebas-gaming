@@ -1,15 +1,15 @@
 // Recorrido completo en navegador: menú → terrario (construir) → archipiélago → recolección →
 // expedición → combate (pausa táctica) → resultado. Captura cada pantalla y falla con errores de consola.
 // Uso (con `npx vite --port 5199` corriendo en games/terrario-isopodos/):
-//   node next/tools/smoke.mjs [--mobile] [--out carpeta]
+//   node tools/smoke.mjs [--mobile] [--out carpeta]
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const mobile = process.argv.includes('--mobile');
-const out = process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1] : 'artifacts/next';
-const URL = process.env.URL ?? 'http://localhost:5199/next/';
+const out = process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1] : 'artifacts/visual';
+const URL = process.env.URL ?? 'http://localhost:5199/';
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -43,7 +43,7 @@ await page.getByRole('button', { name: /Piedra plana/ }).click();
 const before = await s(() => Object.keys(window.__terrario.game.home.grid.pieces).length);
 // Celda libre del terrario → posición en pantalla (centro de la celda).
 const spot = await s(async () => {
-  const { canPlace } = await import('/next/src/game/grid.js');
+  const { canPlace } = await import('/src/game/grid.js');
   const t = window.__terrario, g = t.game.home.grid;
   for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
     if (canPlace(g, 'piedra', i, j) && canPlace(g, 'piedra', i, j + 1)) return t.stage.project(i + 0.5 - g.w / 2, 0, j + 0.5 - g.h / 2);
@@ -94,8 +94,8 @@ await shot('10-tactica');
 await page.keyboard.press('KeyL');
 // Termina el combate con el piloto automático para comprobar el regreso al mapa.
 await s(async () => {
-  const { autopilot } = await import('/next/src/game/autopilot.js');
-  const { step } = await import('/next/src/game/combat.js');
+  const { autopilot } = await import('/src/game/autopilot.js');
+  const { step } = await import('/src/game/combat.js');
   const c = window.__terrario.combat;
   while (!c.result) step(c, 1 / 60, autopilot(c, 0.95));
 });

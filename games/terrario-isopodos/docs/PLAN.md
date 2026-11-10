@@ -15,7 +15,7 @@ Referencia de calidad y organización del código: KureiChaosChess.
   cual; versión voxel, píxel o por recortes, más adelante.
 - Nombre: «Terrario de isópodos».
 
-## Hecho (MVP en `next/`)
+## Hecho (MVP)
 
 Terrario (rejilla, piezas, producción, hambre, calma, ampliación) · archipiélago con recolección · nido de 7 capas
 · combate con ATB, rodar, presión y aturdimiento · 4 aberraciones + larva · cartas · guardado · pase de tinta ·
@@ -27,4 +27,3 @@ pruebas en Node y recorrido en navegador (PC y 360×800).
 2. Animación de los dibujos por partes (hoy se mueven como una sola lámina).
 3. Sonido y música; logros; bestiario/galería; exportar/importar partida (portar de KureiChaosChess).
 4. Más minijuegos de isla; tres dificultades; balance con jugadores reales.
-5. Sustituir el juego viejo por `next/` y borrar `src/`.

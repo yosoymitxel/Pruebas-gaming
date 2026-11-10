@@ -52,4 +52,4 @@ Para comprobar el framework con una sola ejecución:
 La descarga e instalación efectiva de las fuentes externas aún debe ejecutarse y validarse en un entorno con acceso a GitHub. No se considera completa solo por tener un instalador o una entrada en el catálogo.
 
 ## Alcance actual
-La fase actual estabiliza el framework y cierra la especificación del terrario de isópodos. La especificación no equivale a implementación: no crear `juegos/` ni iniciar el juego completo hasta validar el spike técnico de render y cerrar los riesgos documentados.
+El framework se usa en `games/terrario-isopodos/` (MVP jugable); su estado y pendientes están en su `docs/PLAN.md`.

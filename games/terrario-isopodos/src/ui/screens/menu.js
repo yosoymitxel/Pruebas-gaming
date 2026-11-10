@@ -6,7 +6,7 @@ export function Menu({ s }) {
   const [confirm, setConfirm] = useState(false);
   const start = () => (s.saved && !confirm ? setConfirm(true) : s.newGame());
   return html`<main class="screen menu">
-    <img class="menu-art" src=${spriteURL('el-bufon.png')} alt="" aria-hidden="true" />
+    <img class="menu-art" src=${spriteURL('el-bufon.webp')} alt="" aria-hidden="true" />
     <div class="menu-copy">
       <p class="kicker">${t('menu.kicker', 'Un diorama de terror acogedor')}</p>
       <h1>${t('menu.title', 'Terrario de isópodos')}</h1>

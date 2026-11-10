@@ -1,4 +1,4 @@
-// ¿Cada aberración es vencible por el equipo inicial y no trivial? node next/tools/combat-selfcheck.mjs
+// ¿Cada aberración es vencible por el equipo inicial y no trivial? node tools/combat-selfcheck.mjs
 // Juega 20 combates por aberración con el piloto automático y cuenta victorias. Sale con 1 si alguna
 // queda fuera de rango (imposible o paseo).
 import { createCombat, step } from '../src/game/combat.js';

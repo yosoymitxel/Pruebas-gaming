@@ -3,9 +3,9 @@
     {
       "id": "terrario-isopodos",
       "name": "Terrario de isópodos",
-      "category": "Simulación · ecología",
-      "status": "Prototipo jugable",
-      "description": "Diseña un microhábitat, añade refugios y hojarasca, y observa una colonia en un diorama 3D que puedes recorrer con la cámara.",
+      "category": "Terror acogedor · roguelike",
+      "status": "MVP jugable",
+      "description": "Cuida tu colonia en una isla bajo cristal, recoge recursos por el archipiélago y combate aberraciones dibujadas a tinta con ATB y pausa táctica.",
       "path": "./games/terrario-isopodos/",
       "art": "terrarium"
     }

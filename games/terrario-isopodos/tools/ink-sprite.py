@@ -1,6 +1,6 @@
 # Convierte las fotos de los dibujos a tinta en sprites PNG con fondo transparente.
-# Uso: python3 next/tools/ink-sprite.py  (desde games/terrario-isopodos/)
-# Lee art/aberraciones/<id>.webp y escribe next/assets/sprites/<id>.png (tinta negra, alfa = oscuridad).
+# Uso: python3 tools/ink-sprite.py  (desde games/terrario-isopodos/)
+# Lee art/aberraciones/<id>.webp y escribe assets/sprites/<id>.webp (tinta negra, alfa = oscuridad).
 # El papel se detecta por el brillo máximo de cada zona: así el fondo oscuro de la foto (teclado,
 # sábana) no se confunde con tinta y el garabato denso sí cuenta como tinta.
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
@@ -50,8 +50,8 @@ def sprite(src, crop, erase=None, tilt=0):
     return out
 
 if __name__ == '__main__':
-    os.makedirs('next/assets/sprites', exist_ok=True)
+    os.makedirs('assets/sprites', exist_ok=True)
     for name, crop in CROPS.items():
         img = sprite(f'art/aberraciones/{name}.webp', crop, ERASE.get(name), TILT.get(name, 0))
-        img.save(f'next/assets/sprites/{name}.png', optimize=True)
+        img.save(f'assets/sprites/{name}.webp', quality=88, method=6)
         print(name, img.size)
