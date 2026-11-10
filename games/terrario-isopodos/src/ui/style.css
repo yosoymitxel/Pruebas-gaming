@@ -113,20 +113,12 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 }
 
 /* Archipiélago */
-.islands { background: var(--paper); pointer-events: auto; }
-.sea { position: absolute; inset: 70px 0 0 0; width: 100%; height: calc(100% - 70px); }
-.isle .glass { fill: color-mix(in srgb, var(--water) 14%, transparent); stroke: var(--ink); stroke-width: 0.5; }
-.isle .soil { fill: var(--soil); }
-.isle .soil.dark { fill: var(--ink); opacity: 0.75; }
-.isle .moss { fill: var(--moss); }
-.isle .lip { fill: none; stroke: var(--amber); stroke-width: 0.6; }
-.isle .base { fill: var(--bark); }
-.isle .shadow { fill: var(--ink); opacity: 0.12; }
-.isle-hogar .glass { stroke-width: 0.7; }
-.isle text { font: 700 3.6px var(--hand); text-anchor: middle; fill: var(--ink); pointer-events: none; }
-.isle { cursor: pointer; outline: none; }
-.isle.sel .glass, .isle:focus-visible .glass { stroke-width: 1.2; }
-.isle.done { opacity: 0.35; cursor: default; }
+.isle-labels { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); }
+.isle-label { position: absolute; transform: translate(-50%, 0); }
+.isle-label button { display: inline-flex; align-items: center; gap: 4px; font: 700 18px/1 var(--hand); color: var(--ink); background: var(--paper);
+  border: var(--line); border-radius: 999px; padding: 4px 10px; box-shadow: 2px 2px 0 var(--ink); cursor: pointer; white-space: nowrap; }
+.isle-label.sel button { background: var(--ink); color: var(--paper); }
+.isle-label.done button { opacity: 0.45; box-shadow: none; cursor: default; }
 .island-info { flex-direction: column; flex-wrap: nowrap; bottom: max(var(--gap), env(safe-area-inset-bottom)); }
 .party-pick { display: flex; flex-wrap: wrap; gap: 8px; }
 .iso-chip { position: relative; display: grid; gap: 2px; text-align: left; min-width: 110px; min-height: 56px; padding: 8px 10px; border: var(--line); border-radius: var(--radius); background: var(--paper); font: inherit; color: inherit; cursor: pointer; }

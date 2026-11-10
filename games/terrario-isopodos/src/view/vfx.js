@@ -78,14 +78,14 @@ export class Weather {
   constructor(parent, kind, radius, top = 4) {
     this.kind = kind;
     this.r = radius; this.top = top;
-    const count = kind === 'lluvia' ? 260 : kind === 'niebla' ? 90 : 50;
+    const count = kind === 'lluvia' ? 260 : kind === 'niebla' ? 40 : 50;
     this.drops = Array.from({ length: count }, () => this.spawn(true));
     const geo = new THREE.BufferGeometry();
     this.buf = new Float32Array(count * 6);
     geo.setAttribute('position', new THREE.BufferAttribute(this.buf, 3));
     this.mesh = kind === 'lluvia'
       ? new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: P.ink, transparent: true, opacity: 0.45 }))
-      : new THREE.Points(geo, new THREE.PointsMaterial({ color: kind === 'niebla' ? P.paper : P.amber, size: kind === 'niebla' ? 1.6 : 0.09, transparent: true, opacity: kind === 'niebla' ? 0.35 : 0.8, depthWrite: false }));
+      : new THREE.Points(geo, new THREE.PointsMaterial({ color: kind === 'niebla' ? P.paper : P.amber, map: kind === 'niebla' ? blotTexture() : null, size: kind === 'niebla' ? 1.1 : 0.09, transparent: true, opacity: kind === 'niebla' ? 0.3 : 0.8, depthWrite: false }));
     this.mesh.frustumCulled = false;
     parent.add(this.mesh);
   }

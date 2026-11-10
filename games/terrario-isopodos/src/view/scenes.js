@@ -2,7 +2,8 @@
 // pasan; las reglas viven en src/game.
 import * as THREE from 'three';
 import { islandFromGrid, arena } from './island.js';
-import { tank, jar, jarShine, substrateDisc, CHARCOAL } from './vessel.js';
+import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
+import { mulberry32 } from '../core/rng.js';
 import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
 import { Vfx, Weather } from './vfx.js';
@@ -15,8 +16,7 @@ import { footprint, canPlace } from '../game/grid.js';
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
-  // vessel: 'tank' (tanque rectangular) o 'jar' (frasco redondo).
-  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tank', weather = 'claro' } = {}) {
+  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tanque', weather = 'claro' } = {}) {
     this.stage = stage;
     this.weatherKind = weather;
     this.vessel = vessel;
@@ -40,18 +40,7 @@ class GridScene {
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
     this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief });
-    if (this.vessel === 'tank') {
-      const xs = this.island.cells.map((c) => c.i), zs = this.island.cells.map((c) => c.j), ox = this.grid.w / 2, oz = this.grid.h / 2;
-      this.island.group.add(tank(Math.min(...xs) - ox, Math.min(...zs) - oz, Math.max(...xs) + 1 - ox, Math.max(...zs) + 1 - oz, 2.2));
-    } else {
-      const r = this.island.span + 0.3;
-      const ground = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.3, 64), new THREE.MeshLambertMaterial({ color: PALETTES.cozy.soil }));
-      ground.position.y = CHARCOAL[1] + 0.15;
-      ground.receiveShadow = true;
-      this.island.group.add(jar(r, 2.4), substrateDisc(r), ground);
-      this.shine = jarShine(r, 2.4);
-      this.island.group.add(this.shine);
-    }
+    this.shine = dress(this.island.group, this.vessel, this.island, this.grid, this.seed);
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
     if (this.weather) this.group.remove(this.weather.mesh);
@@ -88,6 +77,27 @@ class GridScene {
     }
   }
 }
+// Viste el paisaje con su recipiente (ver VESSELS en src/data/world.js). Devuelve los reflejos que
+// deben girar con la cámara, si los hay.
+export function dress(group, kind, island, grid, seed) {
+  const r = island.span + 0.3;
+  if (kind === 'tanque') {
+    const xs = island.cells.map((c) => c.i), zs = island.cells.map((c) => c.j), ox = grid.w / 2, oz = grid.h / 2;
+    group.add(tank(Math.min(...xs) - ox, Math.min(...zs) - oz, Math.max(...xs) + 1 - ox, Math.max(...zs) + 1 - oz, 2.2));
+    return null;
+  }
+  if (kind === 'diorama') { group.add(floatingRock(r * 0.95, r * 1.1, mulberry32(seed))); return null; }
+  const ground = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.3, 64), new THREE.MeshLambertMaterial({ color: PALETTES.cozy.soil }));
+  ground.position.y = CHARCOAL[1] + 0.15;
+  ground.receiveShadow = true;
+  group.add(substrateDisc(r), ground);
+  if (kind === 'globo') { group.add(globe(r + 0.4)); return null; }
+  group.add(jar(r, 2.4));
+  const shine = jarShine(r, 2.4);
+  group.add(shine);
+  return shine;
+}
+
 const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
 
 export class HomeView extends GridScene {
@@ -132,7 +142,7 @@ export class HomeView extends GridScene {
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: 'jar', weather: gather.island.weather });
+    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather });
     this.g = gather;
     this.syncProps();
   }
@@ -141,7 +151,7 @@ export class GatherView extends GridScene {
 
   update(time, dt) {
     this.tick(dt);
-    this.shine.rotation.y = this.stage.yaw;
+    if (this.shine) this.shine.rotation.y = this.stage.yaw;
     for (const n of this.g.nodes) if (n.taken && !n.shown) { n.shown = true; this.burst('pickup', n.x, n.y); }
     if (this.g.lost?.taken && !this.g.lost.shown) { this.g.lost.shown = true; this.burst('heal', this.g.lost.x, this.g.lost.y); }
     const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05;
@@ -154,13 +164,13 @@ export class GatherView extends GridScene {
 }
 
 export class CombatView {
-  constructor(stage, combat, seed, weather = 'niebla') {
+  constructor(stage, combat, seed, weather = 'niebla', vessel = 'frasco') {
     this.stage = stage;
     this.c = combat;
     this.group = new THREE.Group();
-    this.group.add(arena(ARENA_R, seed), jar(ARENA_R + 2.3, 1.8));
-    this.shine = jarShine(ARENA_R + 2.3, 1.8);
-    this.group.add(this.shine);
+    this.group.add(arena(ARENA_R, seed));
+    if (vessel === 'diorama') this.group.add(floatingRock(ARENA_R + 2, ARENA_R * 1.1, mulberry32(seed)));
+    else { this.group.add(jar(ARENA_R + 2.3, 1.8)); this.shine = jarShine(ARENA_R + 2.3, 1.8); this.group.add(this.shine); }
     this.actors = new ActorLayer(this.group);
     this.vfx = new Vfx(this.group);
     this.weather = new Weather(this.group, weather, ARENA_R + 1.5, 3);
@@ -179,7 +189,7 @@ export class CombatView {
   }
 
   update(time, dt) {
-    this.shine.rotation.y = this.stage.yaw;
+    if (this.shine) this.shine.rotation.y = this.stage.yaw;
     this.vfx.update(dt);
     this.weather.update(dt);
     for (const a of this.c.actors) {

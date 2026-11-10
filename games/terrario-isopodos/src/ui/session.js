@@ -10,6 +10,7 @@ import { footprint } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
 import { HomeView, GatherView, CombatView } from '../view/scenes.js';
+import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
 import { Group } from 'three';
@@ -53,7 +54,7 @@ export class Session {
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
   }
-  goArchipelago() { this.setMode('islands', null, 0.1); }
+  goArchipelago() { this.setMode('islands', new ArchipelagoView(this.stage, this.game), 0.1); }
   goMenu() { this.persist(); this.saved = load(); this.setMode('menu', null, 0); }
 
   // ——— Terrario ———
@@ -119,7 +120,7 @@ export class Session {
     if (this.run.state === 'combat') {
       this.combat = createCombat(combatSetup(this.run));
       this.tactical = false;
-      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather), 1);
+      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1);
     } else this.emit();
   }
   chooseCard(id) { pickCard(this.run, id); this.emit(); }
@@ -163,7 +164,7 @@ export class Session {
     this.view?.update(this.time, dt);
     this.stage.render(this.time);
     this.hudTimer = (this.hudTimer ?? 0) + dt;
-    if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home')) { this.hudTimer = 0; this.emit(); }
+    if (this.hudTimer > 0.08 && (this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }
     requestAnimationFrame((t) => this.frame(t));
   }
 

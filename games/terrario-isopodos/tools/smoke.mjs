@@ -60,7 +60,7 @@ await page.getByRole('button', { name: 'Listo' }).click();
 await page.getByRole('button', { name: 'Salir al archipiélago' }).click();
 await wait(400);
 await shot('05-archipielago');
-await page.locator('.isle-recoleccion').first().click();
+await page.locator('.isle-recoleccion:not(.done) button').first().click();
 await page.locator('.iso-chip').first().click();
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(1200);
@@ -77,7 +77,7 @@ await page.getByRole('button', { name: 'Volver al terrario' }).click();
 await wait(500);
 
 await page.getByRole('button', { name: 'Salir al archipiélago' }).click();
-await page.locator('.isle-nido').first().click();
+await page.locator('.isle-nido:not(.done) button').first().click();
 for (let k = 0; k < 3; k++) await page.locator('.iso-chip').nth(k).click();
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(600);
