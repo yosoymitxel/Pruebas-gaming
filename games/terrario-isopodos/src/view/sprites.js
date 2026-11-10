@@ -106,11 +106,10 @@ export function spriteTexture(key) {
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineJoin = 'round';
     if (ISO[kind]) ISO[kind](ctx, w, h, arg);
-    else if (kind === 'res') { // ficha redonda: halo del color del recurso, el dibujo dentro con trazo fino
-      const col = RES_COLOR[arg] ?? PALETTES.cozy.amber, g = ctx.createRadialGradient(w / 2, h / 2, w * 0.18, w / 2, h / 2, w * 0.5);
-      g.addColorStop(0, col); g.addColorStop(1, 'transparent'); ctx.globalAlpha = 0.45; ctx.fillStyle = g; ctx.fillRect(0, 0, w, h); ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.34, 0, 7); ctx.fillStyle = PALETTES.cozy.paper; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = col; ctx.stroke();
-      ctx.save(); ctx.translate(w * 0.22, h * 0.22); ctx.scale(0.56, 0.56); ctx.strokeStyle = INK; ctx.lineWidth = 4; RES[arg](ctx, w, h); ctx.restore();
+    else if (kind === 'res') { // ficha: disco de papel con filo fino del color del recurso y el dibujo grande dentro
+      const col = RES_COLOR[arg] ?? PALETTES.cozy.amber;
+      ctx.beginPath(); ctx.arc(w / 2, h / 2, w * 0.42, 0, 7); ctx.fillStyle = PALETTES.cozy.paper; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = col; ctx.stroke();
+      ctx.save(); ctx.translate(w * 0.15, h * 0.15); ctx.scale(0.7, 0.7); ctx.strokeStyle = INK; ctx.lineWidth = 4.5; RES[arg](ctx, w, h); ctx.restore();
     }
     else if (kind === 'badge') badge(ctx, w, h, +arg);
     else PROC_SPRITES[arg].draw(ctx, w, h);

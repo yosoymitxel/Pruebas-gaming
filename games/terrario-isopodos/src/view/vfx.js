@@ -30,6 +30,7 @@ export const PRESETS = {
   dust: { count: 6, speed: 1, up: 0.6, color: P.shade, size: 0.14, life: 0.5, gravity: 1 },
   spark: { count: 14, speed: 2.2, up: 2.8, color: P.amber, size: 0.08, life: 0.7, gravity: 4 },
   heal: { count: 16, speed: 0.5, up: 1.6, color: P.moss, size: 0.10, life: 1, gravity: -0.6, spread: 0.5 },
+  jump: { count: 8, speed: 1.4, up: 0.8, color: P.shade, size: 0.09, life: 0.4, gravity: 2 },
   pickup: { count: 10, speed: 1.6, up: 2.4, color: P.amber, size: 0.08, life: 0.6, gravity: 5 },
 };
 

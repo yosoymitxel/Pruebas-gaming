@@ -38,12 +38,13 @@ export class ActorLayer {
       const pull = w * 0.45;
       it.card.position.set(0, (a.lift ?? 0) + pull * Math.cos(TILT), pull * Math.sin(TILT));
       it.card.rotation.z = a.spin ?? 0; // bolita que rueda
-      it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8, 1, Math.min(w, h) * 0.35);
+      const sk = a.shadowK ?? 1;
+      it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8 * sk, 1, Math.min(w, h) * 0.35 * sk);
       it.root.position.set(a.x, a.y ?? 0, a.z);
       it.root.rotation.y = yaw;
       it.mat.opacity = a.alpha ?? 1;
       it.flash.value = a.flash ?? 0; // destello blanco al recibir un golpe (como en Cult of the Lamb)
-      it.shadow.visible = (a.lift ?? 0) < 1.5;
+      it.shadow.visible = (a.shadowK ?? 1) > 0 && ((a.shadowK ?? null) !== null || (a.lift ?? 0) < 1.5);
     }
     for (const [id, it] of this.items) if (!seen.has(id)) { this.group.remove(it.root); this.items.delete(id); }
   }

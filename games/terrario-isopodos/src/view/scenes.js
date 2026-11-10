@@ -233,18 +233,27 @@ export class HomeView extends GridScene {
       const w = this.toWorld(iso.x, iso.y);
       list.push({ id: `b${iso.id}`, sprite: 'res:hojarasca', ...w, height: 0.42, lift: 0.95 + Math.sin(time * 4 + iso.id) * 0.06 });
     }
+    const ready = new Set();
     for (const p of Object.values(this.grid.pieces)) {
       const s = this.home.stock[p.id];
       if (!s?.ready) continue;
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
-      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 1.1 + Math.sin(time * 3 + p.id) * 0.08, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.08 });
+      list.push({ id: `r${p.id}`, sprite: `res:${BUILDINGS[p.type].produces.res}`, ...w, y: this.floorOf(p.x, p.y, f), height: 0.5, lift: 0.72 + Math.sin(time * 3 + p.id) * 0.06, squash: 1 + Math.max(0, Math.sin(time * 5 + p.id)) * 0.06 });
+      ready.add(p.id);
+      // Anillo en el suelo bajo la pieza: marca qué tocar para recoger (como los aros de la recolección).
+      let ring = (this.rings ??= new Map()).get(p.id);
+      if (!ring) { ring = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40), new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2; this.group.add(ring); this.rings.set(p.id, ring); }
+      const k = Math.max(f.w, f.h) * 0.62 * (1 + Math.sin(time * 4 + p.id) * 0.06);
+      ring.scale.set(k, k, 1); ring.position.set(w.x, this.floorOf(p.x, p.y, f) + 0.04, w.z); ring.material.opacity = 0.55 + Math.sin(time * 4 + p.id) * 0.25;
     }
     // Globos sobre las piezas: comedero vacío (sin hojarasca) y mejora que ya se puede pagar.
     if (!this.extra) for (const p of Object.values(this.grid.pieces)) {
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2), bob = Math.sin(time * 3 + p.id) * 0.08;
-      if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 1, lift: 1 + bob });
-      else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.85, lift: 1.3 + bob });
+      if (BUILDINGS[p.type].feeds && !(this.home.resources.hojarasca > 0)) list.push({ id: `h${p.id}`, sprite: 'proc:hungry', ...w, y: this.floorOf(p.x, p.y, f), height: 0.6, lift: 0.75 + bob });
+      else if (!this.home.stock[p.id]?.ready && upgradeCost(p) && lvl(p) < MAX_LEVEL && canAfford(this.home, upgradeCost(p))) list.push({ id: `u${p.id}`, sprite: 'proc:up', ...w, y: this.floorOf(p.x, p.y, f), height: 0.55, lift: 0.95 + bob });
     }
+    for (const [id, ring] of this.rings ?? []) if (!ready.has(id)) { this.group.remove(ring); ring.geometry.dispose(); this.rings.delete(id); }
     this.actors.sync([...list, ...(this.extra?.(time) ?? [])], this.stage.yaw);
   }
 }
@@ -292,9 +301,23 @@ export class GatherView extends GridScene {
       if (m.visible) animatePickup(m, time, k);
     });
     // En el aire, bolita si la especie puede (como un isópodo que se deja caer); al caer al vacío se encoge.
-    const air = p.air || p.falling > 0, rolls = speciesOf(this.g.shell).rolls;
-    const list = [{ id: 'player', sprite: `${air && rolls ? 'ball' : 'iso'}:${this.g.shell ?? 'vulgare'}`, x: pw.x, z: pw.z, y: p.z + 0.05, height: air && rolls ? 0.6 : 0.9,
-      flip: p.vx < 0, lift: !air && moving ? bob(time, 1) : 0, spin: air && rolls ? -time * 14 : 0, squash: p.falling > 0 ? 0.5 : 1 }];
+    // Salto con peso: al despegar se estira (y suelta polvo de píxel), en el aire se estira al subir y se aplana
+    // al caer, deja estela; al tocar suelo se aplasta un instante. La sombra se queda en el suelo y encoge.
+    const air = p.air || p.falling > 0, rolls = speciesOf(this.g.shell).rolls, shell = this.g.shell ?? 'vulgare';
+    if (air && !this.wasAir && p.vz > 0) { this.burst('jump', p.x, p.y); this.trail = []; }
+    if (!air && this.wasAir) this.landT = 0.2;
+    this.wasAir = air;
+    this.landT = Math.max(0, (this.landT ?? 0) - dt);
+    const ground = Math.min(p.z, pw.y), up = Math.max(0, p.z - ground);
+    const stretch = air ? 1 + Math.max(-0.22, Math.min(0.28, p.vz * 0.045)) : this.landT > 0 ? 1 - 0.38 * (this.landT / 0.2) : 1;
+    const list = [{ id: 'player', sprite: `${air && rolls ? 'ball' : 'iso'}:${shell}`, x: pw.x, z: pw.z, y: ground + 0.05, height: air && rolls ? 0.6 : 0.9,
+      flip: p.vx < 0, lift: up + (!air && moving ? bob(time, 1) : 0), spin: air ? (rolls ? -time * 14 : (p.vx < 0 ? 1 : -1) * Math.max(-0.35, Math.min(0.35, p.vz * 0.05))) : 0,
+      squash: p.falling > 0 ? 0.5 : stretch, shadowK: Math.max(0.35, 1 - up * 0.35) }];
+    if (air && p.falling <= 0) {
+      (this.trail ??= []).push({ x: pw.x, z: pw.z, y: ground + 0.05, lift: up });
+      if (this.trail.length > 4) this.trail.shift();
+      this.trail.forEach((q, k) => { if (k % 2) list.push({ id: `trail${k}`, sprite: `${rolls ? 'ball' : 'iso'}:${shell}`, ...q, height: rolls ? 0.6 : 0.9, flip: p.vx < 0, alpha: 0.12 + k * 0.08, shadowK: 0 }); });
+    } else this.trail = [];
     const l = this.g.lost;
     if (l?.taken && !l.shown) { l.shown = true; this.burst('heal', l.x, l.y); this.onPick?.({ lost: true, x: l.x, y: l.y }); }
     if (l && !l.taken) {

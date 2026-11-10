@@ -15,5 +15,7 @@ export const PIXEL_VFX = {
   heal: { fx: 'holy/heal', h: 1.8, lift: -0.3 },
   pickup: { fx: 'pickups/collect-burst', h: 1.5, lift: -0.2 },
   build: { fx: 'impacts/heavy-landing', h: 1.1, lift: -0.2 },
+  dust: { fx: 'impacts/heavy-landing', h: 0.8, lift: -0.25 }, // al caer de un salto
+  jump: { fx: 'spawn/poof', h: 0.7, lift: -0.3 }, // al despegar
   boss: { fx: 'shadow/hex-sigil', h: 3.2, lift: -0.2 },
 };
