@@ -728,3 +728,13 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .combat .member kbd { font: 700 10px/1 var(--sans); padding: 1px 4px; margin-right: 4px; border-radius: 4px; border: 1px solid var(--ui-edge); background: rgb(0 0 0 / 0.3); }
 .gather .hint.floating:not(.keep) { animation: hint-out 500ms ease-in 5s forwards; }
 @keyframes hint-out { to { opacity: 0; transform: translate(-50%, 8px); visibility: hidden; } }
+
+/* Construir: rejilla de fichas cortas */
+.build-list { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-content: start; }
+.build-list .card-btn { gap: 5px; padding: 10px; }
+.build-list .card-btn b { font-size: 20px; }
+.build-list .desc { font-size: 12px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tags > span { display: inline-flex; align-items: center; gap: 2px; font: 700 11px/1 var(--sans); padding: 3px 6px; border-radius: 99px; background: rgb(255 255 255 / 0.07); }
+.tags .res-icon { width: 15px; height: 15px; }
+.tags .calm-tag { color: #7fd1c8; } .tags .calm-tag .icon-path { stroke: currentColor; }

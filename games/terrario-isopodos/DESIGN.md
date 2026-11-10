@@ -14,7 +14,7 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Personajes:** recortes de papel de pie sobre el diorama. Isópodos dibujados en código con el mismo trazo;
   aberraciones = los dibujos escaneados, rectos y sin papel.
 - **Fondo:** oscuridad alrededor del diorama (noche con grano y textura del clima); mar con olas en el
-  archipiélago; venas de tinta en los nidos. La interfaz sigue en papel.
+  archipiélago; venas de tinta en los nidos.
 - **Referencia Cult of the Lamb (estructura, no arte):** tilt-shift arriba y abajo (maqueta), personajes de papel
   que respiran y se aplastan al golpear, estela al rodar, manchas que quedan en el suelo, nidos enmarcados por
   raíces oscuras y antorchas, bocadillos de necesidad sobre la colonia, vegetación de recorte densa en los bordes
@@ -23,7 +23,8 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Día y noche:** el reloj del día gira la luz (alba cálida, día blanco, atardecer rojizo, noche azul con
   luciérnagas); de noche se produce menos y la colonia se inquieta; dormir pasa al alba con islas nuevas.
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en Ajustes y en la pausa.
-- **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
+- **Interfaz:** paneles de tinta oscura (tono terror), borde fino y sombra suave; acento óxido para lo principal y color fijo por significado (vida, hambre, calma, clima). Iconos antes que texto, una línea por dato; títulos a mano (Caveat), datos en sans. Botones táctiles ≥ 48 px, foco visible, movimiento reducido respetado.
+- **Colonia:** cada isópodo muestra qué hace (explora, come, duerme, hambre…); se selecciona tocándolo (la cámara lo sigue) y su ficha da órdenes (comer, dormir, bolita), nombre y distintivo.
   ≥ 48 px, foco visible, movimiento reducido respetado.
 - **Combate legible:** cada ataque enemigo se anuncia en el suelo (≥ 0,4 s) y se llena mientras carga. La
   interfaz se aparta: vida pegada a cada aberración, barra de la guardiana arriba, equipo en fichas chicas y un
