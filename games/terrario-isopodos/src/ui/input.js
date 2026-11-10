@@ -3,6 +3,7 @@
 const keys = new Set();
 const pressed = new Set();
 const stick = { x: 0, y: 0 };
+const holding = new Set(); // botones táctiles mantenidos (salto variable)
 const BIND = { KeyJ: 'attack', KeyK: 'roll', Space: 'roll', KeyL: 'tactical', Tab: 'tactical', Digit1: 'p1', Digit2: 'p2', Digit3: 'p3', Escape: 'pause', KeyP: 'pause' };
 
 export function bindKeyboard(target = window) {
@@ -16,6 +17,7 @@ export function bindKeyboard(target = window) {
 }
 
 export const press = (action) => pressed.add(action);
+export const hold = (action, on) => (on ? holding.add(action) : holding.delete(action));
 export function setStick(x, y) { stick.x = x; stick.y = y; }
 
 export function read() {
@@ -25,6 +27,7 @@ export function read() {
   if (keys.has('KeyW') || keys.has('ArrowUp')) y -= 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) y += 1;
   const out = { move: { x, y }, turn: (keys.has('KeyE') ? 1 : 0) - (keys.has('KeyQ') ? 1 : 0) };
+  out.held = { roll: holding.has('roll') || keys.has('Space') || keys.has('KeyK') };
   for (const p of pressed) out[p] = true;
   pressed.clear();
   return out;

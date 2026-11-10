@@ -305,24 +305,20 @@ export class GatherView extends GridScene {
       if (n.taken && m.visible) { m.visible = false; this.burst('pickup', n.x, n.y); this.onPick?.(n); }
       if (m.visible) animatePickup(m, time, k);
     });
-    // En el aire, bolita si la especie puede (como un isópodo que se deja caer); al caer al vacío se encoge.
-    // Salto con peso: al despegar se estira (y suelta polvo de píxel), en el aire se estira al subir y se aplana
-    // al caer, deja estela; al tocar suelo se aplasta un instante. La sombra se queda en el suelo y encoge.
-    const air = p.air || p.falling > 0, rolls = speciesOf(this.g.shell).rolls, shell = this.g.shell ?? 'vulgare';
-    if (air && !this.wasAir && p.vz > 0) { this.burst('jump', p.x, p.y); this.trail = []; }
-    if (!air && this.wasAir) this.landT = 0.2;
+    // Salto con peso (sin bolita ni fantasmas): agacharse 0,06 s antes de despegar no cabe en un salto con
+    // respuesta inmediata, así que el peso va en el aire y al caer: estirado al subir, aplanado al bajar,
+    // inclinado hacia donde avanza, y un aplastón con polvo al tocar suelo. La sombra se queda en el suelo.
+    const air = p.air || p.falling > 0, shell = this.g.shell ?? 'vulgare';
+    if (air && !this.wasAir && p.vz > 0) this.burst('jump', p.x, p.y);
+    if (!air && this.wasAir) this.landT = 0.16;
     this.wasAir = air;
     this.landT = Math.max(0, (this.landT ?? 0) - dt);
-    const ground = Math.min(p.z, pw.y), up = Math.max(0, p.z - ground);
-    const stretch = air ? 1 + Math.max(-0.22, Math.min(0.28, p.vz * 0.045)) : this.landT > 0 ? 1 - 0.38 * (this.landT / 0.2) : 1;
-    const list = [{ id: 'player', sprite: `${air && rolls ? 'ball' : 'iso'}:${shell}`, x: pw.x, z: pw.z, y: ground + 0.05, height: air && rolls ? 0.6 : 0.9,
-      flip: p.vx < 0, lift: up + (!air && moving ? bob(time, 1) : 0), spin: air ? (rolls ? -time * 14 : (p.vx < 0 ? 1 : -1) * Math.max(-0.35, Math.min(0.35, p.vz * 0.05))) : 0,
-      squash: p.falling > 0 ? 0.5 : stretch, shadowK: Math.max(0.35, 1 - up * 0.35) }];
-    if (air && p.falling <= 0) {
-      (this.trail ??= []).push({ x: pw.x, z: pw.z, y: ground + 0.05, lift: up });
-      if (this.trail.length > 4) this.trail.shift();
-      this.trail.forEach((q, k) => { if (k % 2) list.push({ id: `trail${k}`, sprite: `${rolls ? 'ball' : 'iso'}:${shell}`, ...q, height: rolls ? 0.6 : 0.9, flip: p.vx < 0, alpha: 0.12 + k * 0.08, shadowK: 0 }); });
-    } else this.trail = [];
+    const ground = Math.min(p.z, pw.y), up = Math.max(0, p.z - ground), land = this.landT / 0.16;
+    const stretch = p.falling > 0 ? 0.5 : air ? 1 + Math.max(-0.18, Math.min(0.22, p.vz * 0.035)) : 1 - 0.32 * land * land;
+    const lean = air ? Math.max(-0.3, Math.min(0.3, Math.hypot(p.vx, p.vy) * 0.06 * Math.sign(p.vz || 1))) * (p.vx < 0 ? 1 : -1) : 0;
+    const list = [{ id: 'player', sprite: `iso:${shell}`, x: pw.x, z: pw.z, y: ground + 0.05, height: 0.9,
+      flip: p.vx < 0, lift: up + (!air && moving ? bob(time, 1) : 0), spin: lean,
+      squash: stretch, shadowK: Math.max(0.3, 1 - up * 0.4) }];
     const l = this.g.lost;
     if (l?.taken && !l.shown) { l.shown = true; this.burst('heal', l.x, l.y); this.onPick?.({ lost: true, x: l.x, y: l.y }); }
     if (l && !l.taken) {

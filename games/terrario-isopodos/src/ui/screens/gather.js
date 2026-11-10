@@ -1,7 +1,7 @@
 import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BIOMES, WEATHERS, GATHER_SHAPES } from '../../data/world.js';
-import { press } from '../input.js';
+import { press, hold } from '../input.js';
 import { Icon } from '../icons.js';
 import { gatherLoot, GATHER_TIME } from '../../game/gather.js';
 import { Resources, Bar, Stick, CamControls, FxLayer, PauseButton } from './common.js';
@@ -19,7 +19,7 @@ export function Gather({ s }) {
       <${PauseButton} s=${s} />
     </header>
     <p class=${`hint floating${g.lost && !g.lost.taken ? ' keep' : ''}`}>${g.lost && !g.lost.taken ? t('gather.lost', 'Hay un isópodo perdido en la isla: ve a buscarlo.') : `${GATHER_SHAPES[g.shape].hint} ${t('gather.jumpHint', 'Salta con espacio o el botón.')}`}</p>
-    <section class="actions-pad gather-pad"><button class="pad attack" onPointerDown=${(e) => { e.preventDefault(); press('roll'); }} aria-label=${t('gather.jump', 'Saltar (espacio)')}><${Icon} name="jump" size="32" /></button></section>
+    <section class="actions-pad gather-pad"><button class="pad attack" onPointerDown=${(e) => { e.preventDefault(); press('roll'); hold('roll', true); }} onPointerUp=${() => hold('roll', false)} onPointerCancel=${() => hold('roll', false)} onPointerLeave=${() => hold('roll', false)} aria-label=${t('gather.jump', 'Saltar (espacio)')}><${Icon} name="jump" size="32" /></button></section>
     ${g.done && html`<section class="drawer center">
       <h3>${t('gather.done', 'Fin de la recolección')}</h3>
       ${g.rescued && html`<p>${t('gather.rescued', 'Un isópodo perdido vuelve contigo.')}</p>`}

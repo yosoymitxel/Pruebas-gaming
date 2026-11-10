@@ -46,5 +46,5 @@ export const Icon = ({ name, size = 22, label }) => html`<svg class="icon" width
   role=${label ? 'img' : null} aria-label=${label} aria-hidden=${label ? null : 'true'}><path d=${ICONS[name]} transform=${at(name)} /></svg>`;
 
 // Para dibujar dentro de otro SVG (nodos del mapa): centrado en (x, y), de lado `size`.
-export const IconAt = ({ name, x, y, size }) => html`<path class="icon-path" d=${ICONS[name]}
-  transform=${`translate(${x - size / 2} ${y - size / 2}) scale(${size / 24}) ${at(name) ?? ''}`} fill="none" stroke-width=${2.4} stroke-linecap="round" stroke-linejoin="round" />`;
+export const IconAt = ({ name, x, y, size }) => html`<svg x=${x - size / 2} y=${y - size / 2} width=${size} height=${size} viewBox="0 0 24 24" overflow="visible">
+  <path class="icon-path" d=${ICONS[name]} transform=${at(name)} fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>`;

@@ -399,9 +399,10 @@ export class Session {
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
     else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
-      const g = this.gather, falls = g.falls, air = g.player.air;
-      tickGather(g, dt, input.move, input.roll);
-      if (!air && g.player.air && input.roll) this.sfx('roll', 1.3);
+      const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;
+      tickGather(g, dt, input.move, input.roll, input.held?.roll);
+      if ((g.chained ?? 0) > chained) { this.sfx('pickup', 1 + g.chain.n * 0.08); this.floatText(`×${g.chain.n} +0,4 s`, g.player.x - g.side / 2, g.player.y - g.side / 2, 'ally', 1.2); }
+      if (!air && g.player.air && g.player.vz > 0) this.sfx('roll', 1.3);
       if (air && !g.player.air) { this.sfx('build', 1.6); this.view.burst('dust', g.player.x, g.player.y); }
       if (g.falls > falls) { this.sfx('hurt'); this.shake(0.2); this.floatText(t('gather.fell', '¡Al vacío! −2,5 s'), g.player.x - g.side / 2, g.player.y - g.side / 2, 'ally', 1); }
       if (g.done) this.emit();
