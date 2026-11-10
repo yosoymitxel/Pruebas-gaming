@@ -3,9 +3,9 @@ import { localize } from '../i18n/index.js';
 
 // Islas del mapa exterior. `kind`: hogar (terrario), recoleccion (minijuego), nido (expedición).
 export const ISLAND_KINDS = localize('islandKinds', {
-  hogar: { name: 'Terrario', desc: 'Tu colonia. Construye, alimenta y prepara al equipo.' },
-  recoleccion: { name: 'Isla de recolección', desc: 'Recoge recursos antes de que se acabe el tiempo.' },
-  nido: { name: 'Nido de aberraciones', desc: 'Expedición por capas hasta su guardiana.' },
+  hogar: { name: 'Terrario', desc: 'Tu colonia.' },
+  recoleccion: { name: 'Isla de recolección', desc: 'Recoge antes de que acabe el tiempo.' },
+  nido: { name: 'Nido de aberraciones', desc: 'Capas hasta la guardiana.' },
 });
 
 // Recipientes: el terrario es la referencia, pero fuera de casa también hay dioramas al aire.
@@ -55,9 +55,9 @@ export const TRIP_COST = { recoleccion: 0.12, nido: 0.25 };
 // `icon`: nombre en src/ui/icons.js.
 export const NODE_TYPES = localize('nodeTypes', {
   combate: { desc: 'Larvas de tinta: dos o tres.', name: 'Combate', icon: 'combate' },
-  elite: { desc: 'Una aberración de élite del bioma.', name: 'Élite', icon: 'elite' },
-  botin: { desc: 'Recursos y, a veces, un isópodo perdido.', name: 'Botín', icon: 'botin' },
-  refugio: { desc: 'Un hueco seco: el equipo recupera la mitad de la vida.', name: 'Refugio', icon: 'refugio' },
-  carta: { desc: 'Elige una carta entre tres para el resto del nido.', name: 'Carta', icon: 'carta' },
-  jefe: { desc: 'La guardiana del nido. Si cae, el nido es tuyo.', name: 'Guardiana', icon: 'jefe' },
+  elite: { desc: 'Una aberración fuerte.', name: 'Élite', icon: 'elite' },
+  botin: { desc: 'Recursos y quizá un isópodo.', name: 'Botín', icon: 'botin' },
+  refugio: { desc: 'Recupera media vida.', name: 'Refugio', icon: 'refugio' },
+  carta: { desc: 'Una carta de tres.', name: 'Carta', icon: 'carta' },
+  jefe: { desc: 'Si cae, el nido es tuyo.', name: 'Guardiana', icon: 'jefe' },
 });

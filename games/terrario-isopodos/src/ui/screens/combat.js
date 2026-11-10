@@ -66,7 +66,7 @@ export function Combat({ s }) {
     ${s.tactical && !c.result && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>
       ${team.filter((a) => a.hp > 0).map((a) => html`<div class="tm-member">
         <b>${a.name}</b>
-        ${CLASSES[a.cls].abilities.map((id) => html`<button class="btn" disabled=${a.atb < ABILITIES[id].atb || a.held > 0} onClick=${() => s.ability(a.id, id)}>
+        ${(a.abilities ?? CLASSES[a.cls].abilities).map((id) => html`<button class="btn" disabled=${a.atb < ABILITIES[id].atb || a.held > 0} onClick=${() => s.ability(a.id, id)}>
           ${ABILITIES[id].name} <small>${'◆'.repeat(ABILITIES[id].atb)}</small></button>`)}
       </div>`)}
       <div class="tm-member"><b>${t('combat.items', 'Objetos')}</b>

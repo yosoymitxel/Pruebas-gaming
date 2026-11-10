@@ -8,9 +8,17 @@ import { Icon } from '../icons.js';
 
 export const ResIcon = ({ res }) => html`<img class="res-icon" src=${resourceIconURL(res)} alt="" aria-hidden="true" />`;
 
+// Al cambiar una cifra salta (verde si sube, roja si baja) y suelta un +n / −n, como en Cult of the Lamb.
 export function Resources({ have, compact }) {
+  const prev = useRef(null), last = useRef({});
+  const before = prev.current ?? have;
+  for (const r of Object.keys(RESOURCES)) { const d = (have[r] ?? 0) - (before[r] ?? 0); if (d) last.current[r] = { d, k: (last.current[r]?.k ?? 0) + 1 }; }
+  prev.current = { ...have };
   return html`<ul class=${`resources${compact ? ' compact' : ''}`} aria-label=${t('ui.resources', 'Recursos')}>
-    ${Object.keys(RESOURCES).map((r) => html`<li title=${RESOURCES[r].name}><${ResIcon} res=${r} /><b>${have[r] ?? 0}</b><span class="sr">${RESOURCES[r].name}</span></li>`)}
+    ${Object.keys(RESOURCES).map((r) => { const ch = last.current[r];
+      return html`<li title=${RESOURCES[r].name} class=${ch ? (ch.d > 0 ? 'up' : 'down') : ''} key=${`${r}${ch?.k ?? 0}`}>
+        <${ResIcon} res=${r} /><b>${have[r] ?? 0}</b><span class="sr">${RESOURCES[r].name}</span>
+        ${ch && html`<i class="delta" aria-hidden="true">${ch.d > 0 ? '+' : '−'}${Math.abs(ch.d)}</i>`}</li>`; })}
   </ul>`;
 }
 
@@ -25,10 +33,12 @@ export const Bar = ({ value, max, kind = 'hp', label }) => html`
     <i style=${{ width: `${Math.max(0, Math.min(1, value / max)) * 100}%` }}></i>
   </span>`;
 
-export function Loot({ loot }) {
+export function Loot({ loot, big }) {
   const entries = Object.entries(loot).filter(([, n]) => n > 0);
   if (!entries.length) return html`<p class="muted">${t('ui.noLoot', 'Nada que traer esta vez.')}</p>`;
-  return html`<ul class="loot">${entries.map(([r, n]) => html`<li><${ResIcon} res=${r} /> ${RESOURCES[r].name} <b>×${n}</b></li>`)}</ul>`;
+  if (big) return html`<ul class="loot big">${entries.map(([r, n], i) => html`<li style=${`--i:${i}`} title=${RESOURCES[r].name}>
+    <${ResIcon} res=${r} /><b>×${n}</b><small>${RESOURCES[r].name}</small></li>`)}</ul>`;
+  return html`<ul class="loot">${entries.map(([r, n], i) => html`<li style=${`--i:${i}`}><${ResIcon} res=${r} /> ${RESOURCES[r].name} <b>×${n}</b></li>`)}</ul>`;
 }
 
 // Palanca táctil: aparece donde se apoya el dedo en la mitad izquierda.
@@ -69,7 +79,10 @@ export function CamControls({ s }) {
     <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}><${Icon} name="turnLeft" /></button>
     <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}><${Icon} name="turnRight" /></button>
     <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
-    <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>`}
+    <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
+    ${s.mode === 'home' && html`
+    <button class=${`btn icon${s.freeCam ? ' active' : ''}`} aria-pressed=${!!s.freeCam} onClick=${() => { s.freeCam = !s.freeCam; s.emit(); }} aria-label=${t('ui.freeCam', 'Cámara libre: arrastra para desplazar')}><${Icon} name="pan" /></button>
+    <button class=${`btn icon${s.moveMode ? ' active' : ''}`} aria-pressed=${!!s.moveMode} onClick=${() => { s.moveMode = !s.moveMode; s.selPiece = null; s.emit(); }} aria-label=${t('ui.moveMode', 'Mover piezas: toca una')}><${Icon} name="move" /></button>`}`}
   </div>`;
 }
 
@@ -86,8 +99,9 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
   role=${onSleep ? null : 'img'} aria-label=${onSleep ? `${label} · ${t('home.sleep', 'Dormir hasta el alba')}` : label} onClick=${onSleep}>
   <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" />
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
-    <line x1="20" y1="20" x2=${20 + 15 * Math.sin(clock * 6.283)} y2=${20 - 15 * Math.cos(clock * 6.283)} /></svg>
-  <span><small>${t('ui.day', 'Día')}</small><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
+    <line x1=${20 + 9 * Math.sin(clock * 6.283)} y1=${20 - 9 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
+    <circle class="hub" cx="20" cy="20" r="8.5" /></svg>
+  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><${Icon} name="refugio" size="14" /></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;

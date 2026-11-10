@@ -12,3 +12,19 @@ export const CLASSES = localize('classes', {
 
 export const NAMES = ['Bolita', 'Cal', 'Turrón', 'Pimienta', 'Ovillo', 'Guijarro', 'Miga', 'Tiza', 'Corcho',
   'Lenteja', 'Botón', 'Nuez', 'Hollín', 'Avena', 'Grafito', 'Canica'];
+
+// Qué está haciendo cada isópodo en el terrario (icono + palabra en la colonia y sobre su cabeza).
+export const STATUS = localize('isoStatus', {
+  explora: { name: 'Explora', icon: 'eye' },
+  comer: { name: 'Va a comer', icon: 'leaf' },
+  come: { name: 'Come', icon: 'leaf' },
+  hambre: { name: 'Hambre', icon: 'leaf', warn: true },
+  dormir: { name: 'Va a dormir', icon: 'refugio' },
+  duerme: { name: 'Duerme', icon: 'refugio' },
+  bolita: { name: 'Bolita', icon: 'roll' },
+  muda: { name: 'Muda', icon: 'shield' },
+  cria: { name: 'Cría', icon: 'colony' },
+});
+
+// Distintivos que el jugador pone a su isópodo (banderín sobre la cabeza); índice en BADGES de palettes.js.
+export const MAX_NAME = 14;

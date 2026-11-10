@@ -37,6 +37,7 @@ export const BEHAVIOR = {
   moltTime: 10,       // vulnerable y quieta mientras muda; deja una muda que se recoge como cal
   growTime: 120,      // una cría (manca) tarda esto en ser adulta y unirse a la colonia
   breedEvery: 90,     // cada cuánto puede nacer una cría si la colonia está tranquila
+  restTime: 30,       // lo que duerme en un refugio cuando se le manda a dormir
 };
 
 export const speciesOf = (id) => SPECIES[id] ?? SPECIES.vulgare;

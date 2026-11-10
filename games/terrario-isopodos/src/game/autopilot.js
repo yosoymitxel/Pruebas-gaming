@@ -14,7 +14,7 @@ export function autopilot(c, skill = 1) {
   const team = allies(c).filter((a) => a.hp > 0);
   const hurt = team.reduce((s, a) => s + a.hp / a.maxHp, 0) / team.length < 0.55;
   for (const a of team) {
-    for (const id of CLASSES[a.cls].abilities) {
+    for (const id of a.abilities ?? CLASSES[a.cls].abilities) {
       const ab = ABILITIES[id];
       const good = ab.kind === 'heal' ? hurt : ab.kind === 'shield' ? hurt : ab.kind === 'taunt' ? false
         : foes.some((e) => e.staggered > 0 || e.pressured > 0);
