@@ -1,0 +1,69 @@
+// Personajes como recortes de papel de pie sobre el diorama: un plano inclinado hacia la cámara con su
+// sombra en el suelo. sync() recibe la lista del fotograma y crea, mueve o retira lo necesario.
+import * as THREE from 'three';
+import { spriteTexture } from './sprites.js';
+import { PALETTES } from '../data/palettes.js';
+import { TILT } from './stage.js';
+
+const LEAN = -0.45;
+const plane = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+const disc = new THREE.CircleGeometry(0.5, 20).rotateX(-Math.PI / 2);
+const shadowMat = new THREE.MeshBasicMaterial({ color: PALETTES.cozy.ink, transparent: true, opacity: 0.18, depthWrite: false });
+
+export class ActorLayer {
+  constructor(parent) {
+    this.group = new THREE.Group();
+    parent.add(this.group);
+    this.items = new Map();
+  }
+
+  // a: { id, sprite, x, z, y (suelo), height, flip, flash (0–1), alpha, lift, width?, squash (1 = normal) }. `yaw`: giro de cámara,
+  // para que los recortes la miren siempre de frente.
+  sync(list, yaw = 0) {
+    const seen = new Set();
+    for (const a of list) {
+      seen.add(a.id);
+      let it = this.items.get(a.id);
+      if (!it || it.sprite !== a.sprite) {
+        if (it) this.group.remove(it.root);
+        it = this.make(a);
+        this.items.set(a.id, it);
+      }
+      const aspect = it.mat.map.userData.aspect ?? 1;
+      const h = a.height, w = (a.width ?? h * aspect);
+      const sq = a.squash ?? 1; // aplastar conserva el volumen: más bajo, más ancho
+      it.card.scale.set(w * (a.flip ? -1 : 1) / Math.sqrt(sq), h * sq, 1);
+      // El recorte se adelanta hacia la cámara por su rayo de visión: en pantalla no se mueve, pero deja de
+      // atravesar la pared o el escalón que tiene detrás.
+      const pull = w * 0.45;
+      it.card.position.set(0, (a.lift ?? 0) + pull * Math.cos(TILT), pull * Math.sin(TILT));
+      it.card.rotation.z = a.spin ?? 0; // bolita que rueda
+      const sk = a.shadowK ?? 1;
+      it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8 * sk, 1, Math.min(w, h) * 0.35 * sk);
+      it.root.position.set(a.x, a.y ?? 0, a.z);
+      it.root.rotation.y = yaw;
+      it.mat.opacity = a.alpha ?? 1;
+      it.flash.value = a.flash ?? 0; // destello blanco al recibir un golpe (como en Cult of the Lamb)
+      it.shadow.visible = (a.shadowK ?? 1) > 0 && ((a.shadowK ?? null) !== null || (a.lift ?? 0) < 1.5);
+    }
+    for (const [id, it] of this.items) if (!seen.has(id)) { this.group.remove(it.root); this.items.delete(id); }
+  }
+
+  make(a) {
+    const root = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ map: spriteTexture(a.sprite), transparent: true, alphaTest: 0.08, side: THREE.DoubleSide });
+    const flash = { value: 0 };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uFlash = flash;
+      sh.fragmentShader = 'uniform float uFlash;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uFlash);');
+    };
+    const card = new THREE.Mesh(plane, mat);
+    card.rotation.x = LEAN;
+    card.castShadow = true;
+    const shadow = new THREE.Mesh(disc, shadowMat);
+    shadow.position.y = 0.02;
+    root.add(shadow, card);
+    this.group.add(root);
+    return { root, card, shadow, mat, flash, sprite: a.sprite };
+  }
+}

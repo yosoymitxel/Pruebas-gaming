@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content="Terrario de isópodos: cuida tu colonia, sal al archipiélago y combate aberraciones dibujadas a tinta." />
+  <title>Terrario de isópodos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" />
+  <link rel="stylesheet" href="./src/ui/style.css" />
+  <!-- Estilo del aviso de arranque sin depender del JS ni del CSS empaquetado. -->
+  <style>html, body { margin: 0; height: 100%; background: #efe6d2; color: #1d1a16; }
+    .boot { position: fixed; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 24px; text-align: center;
+      font: 700 clamp(26px, 7vw, 40px)/1.15 Caveat, "Segoe Print", cursive; }</style>
+</head>
+<body>
+  <div id="stage" aria-hidden="true"></div>
+  <div id="ui"><p class="boot">Cargando el terrario…</p></div>
+  <!-- Si el módulo no llega a arrancar (navegador viejo, error de red), se dice en vez de quedar en blanco. -->
+  <script>setTimeout(function () { if (!window.__terrario) { var b = document.querySelector('#ui .boot'); if (b) b.textContent = 'El juego no pudo arrancar en este navegador. Prueba a recargar o con Chrome/Firefox actualizados.'; } }, 12000);</script>
+  <script type="module">import { start } from './src/ui/app.js'; start();</script>
+</body>
+</html>
