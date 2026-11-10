@@ -72,7 +72,7 @@ function Tree({ s, iso }) {
     </svg>
     ${cells.map(([id, k]) => { const got = has(id), open = canLearn(home, iso, id), afford = canAfford(home, k.cost);
       const ab = k.ability?.[iso.cls];
-      return html`<button class=${`node${got ? ' got' : open ? ' open' : ' locked'}`} style=${{ gridColumn: k.col + 1, gridRow: k.row + 1 }}
+      return html`<button class=${`skill${got ? ' got' : open ? ' open' : ' locked'}`} style=${{ gridColumn: k.col + 1, gridRow: k.row + 1 }}
           disabled=${got || !open || !afford} onClick=${() => s.learnSkill(iso.id, id)} aria-label=${`${k.name}: ${k.desc}`}>
         <span class="gem"><${Icon} name=${ab ? KIND_ICON[ABILITIES[ab].kind] : k.hpMul ? 'shield' : k.speedMul ? 'jump' : 'attack'} size="18" /></span>
         <b>${ab ? ABILITIES[ab].name : k.name}</b><small>${k.desc}</small>
