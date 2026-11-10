@@ -1,4 +1,4 @@
-// Mapa exterior: página de cuaderno con las islas del día. Elegir isla y, si se sale, quién va.
+// Mapa exterior: página de cuaderno con los terrarios flotantes del día. Elegir uno y, si se sale, quién va.
 import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { ISLAND_KINDS, BIOMES, WEATHERS } from '../../data/world.js';
@@ -6,13 +6,28 @@ import { ABERRATIONS } from '../../data/aberrations.js';
 import { CLASSES } from '../../data/isopods.js';
 import { Bar } from './common.js';
 
-const blob = (isl) => {
-  const pts = Array.from({ length: 9 }, (_, k) => {
-    const a = (k / 9) * Math.PI * 2, r = isl.r * (0.82 + ((isl.seed >> k) % 7) / 30);
-    return `${(isl.x + Math.cos(a) * r * 1.25) * 100},${(isl.y + Math.sin(a) * r * 0.75) * 100}`;
-  });
-  return `M${pts.join('L')}Z`;
-};
+// Cada isla es un terrario flotante dibujado a tinta: tanque (hogar), frasco (recolección), globo (nido).
+function Vessel({ isl }) {
+  const x = isl.x * 100, y = isl.y * 100, r = isl.r * 100;
+  const shadow = html`<ellipse class="shadow" cx=${x} cy=${y + r * 1.25} rx=${r * 0.8} ry=${r * 0.14} />`;
+  if (isl.kind === 'hogar') {
+    const w = r * 1.7, h = r * 1.2;
+    return html`${shadow}<rect class="soil" x=${x - w / 2} y=${y + h * 0.1} width=${w} height=${h * 0.4} />
+      <path class="moss" d=${`M${x - w / 2},${y + h * 0.1} q${w / 4},${-h * 0.12} ${w / 2},0 t${w / 2},0 v${h * 0.08} h${-w} z`} />
+      <rect class="glass" x=${x - w / 2} y=${y - h / 2} width=${w} height=${h} />
+      <rect class="base" x=${x - w / 2 - 1} y=${y + h / 2} width=${w + 2} height="1.6" />`;
+  }
+  if (isl.kind === 'recoleccion') {
+    const w = r * 1.2, h = r * 1.5;
+    return html`${shadow}<rect class="soil" x=${x - w / 2} y=${y + h * 0.05} width=${w} height=${h * 0.45} rx="1.5" />
+      <path class="moss" d=${`M${x - w / 2},${y + h * 0.05} q${w / 2},${-h * 0.16} ${w},0 v${h * 0.06} h${-w} z`} />
+      <rect class="glass" x=${x - w / 2} y=${y - h / 2} width=${w} height=${h} rx="2.5" />
+      <ellipse class="lip" cx=${x} cy=${y - h / 2} rx=${w / 2} ry="1.2" />`;
+  }
+  return html`${shadow}<path class="soil dark" d=${`M${x - r * 0.95},${y + r * 0.3} A${r},${r} 0 0 0 ${x + r * 0.95},${y + r * 0.3} Z`} />
+    <circle class="glass" cx=${x} cy=${y} r=${r} />
+    <rect class="base" x=${x - r * 0.55} y=${y + r * 0.95} width=${r * 1.1} height="1.6" />`;
+}
 
 export function Islands({ s }) {
   const [sel, setSel] = useState(null);
@@ -29,10 +44,9 @@ export function Islands({ s }) {
       ${s.game.islands.map((i) => html`<g role="listitem" class=${`isle isle-${i.kind}${sel === i.id ? ' sel' : ''}${done(i) ? ' done' : ''}`}
           tabindex=${done(i) ? -1 : 0} onClick=${() => !done(i) && (setSel(i.id), setParty([]))}
           onKeyDown=${(e) => e.key === 'Enter' && !done(i) && (setSel(i.id), setParty([]))} aria-label=${ISLAND_KINDS[i.kind].name}>
-        <path class="under" d=${blob({ ...i, y: i.y + 0.025 })} />
-        <path d=${blob(i)} />
-        <text x=${i.x * 100} y=${(i.y + i.r * 0.75 + 0.06) * 100}>${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</text>
-        <text class="glyph" x=${i.x * 100} y=${i.y * 100 + 1.5}>${i.kind === 'nido' ? '☠' : i.kind === 'hogar' ? '⌂' : '✿'}</text>
+        <${Vessel} isl=${i} />
+        <text x=${i.x * 100} y=${(i.y + i.r * 1.25 + 0.05) * 100}>${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</text>
+        <text class="glyph" x=${i.x * 100} y=${i.y * 100 - i.r * 15}>${i.kind === 'nido' ? '☠' : i.kind === 'hogar' ? '⌂' : '✿'}</text>
       </g>`)}
     </svg>
 

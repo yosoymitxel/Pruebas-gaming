@@ -6,8 +6,9 @@ Referencia de calidad y organización del código: KureiChaosChess.
 
 ## Decidido
 
-- El terrario es el núcleo: isla flotante bajo cristal, ampliable, con rejilla y colisiones reales.
-- Mundo: archipiélago de islas pequeñas generadas por día, cada una con bioma y clima.
+- El terrario es el núcleo y la referencia de todo: cada escenario es un terrario (tanque, frasco, globo).
+  El hogar es ampliable, con rejilla y colisiones reales.
+- Mundo: archipiélago de terrarios flotantes generados por día, cada uno con bioma y clima.
 - Dos mapas: exterior (islas, minijuegos, recursos) e interior (nido por capas hasta la guardiana).
 - Isópodos y recursos se recogen; los rescatados se suman a la colonia.
 - Equipo: 1 principal + 2 de apoyo. Cartas durante la expedición.

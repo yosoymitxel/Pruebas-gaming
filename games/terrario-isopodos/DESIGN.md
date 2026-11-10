@@ -1,9 +1,13 @@
 # Dirección visual — cuaderno maldito
 
+**El terrario es la referencia; todo gira en torno a él.** Cada escenario es un terrario: el hogar es un tanque,
+las islas de recolección son frascos, los nidos y la arena son recipientes oscuros, y el archipiélago es una
+página de terrarios flotantes. Siempre se ve el vidrio y las capas de un terrario real (grava, carbón, tierra).
+
 El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punteado y garabato.
 
-- **Escena:** diorama 3D de verdad: islas en terrazas (columnas con estratos), colinas y vegetación alrededor,
-  cono de roca debajo, sombras proyectadas y niebla que aclara lo lejano. Cámara inclinada que gira (Q/E, arrastre)
+- **Escena:** diorama 3D dentro del recipiente: suelo en terrazas, colinas y vegetación junto al vidrio, capas
+  de drenaje visibles, sombras proyectadas y niebla que aclara lo lejano. Cámara inclinada que gira (Q/E, arrastre)
   y acerca. El pase de tinta (`src/view/ink.js`) pone contorno, punteado en las sombras y aguada sobre papel.
 - **Dos tonos:** cozy en el terrario y las islas (papel cálido, color tenue); terror en el nido (color retirado,
   viñeta, puntos que tiemblan).

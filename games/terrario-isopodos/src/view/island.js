@@ -1,11 +1,12 @@
-// Islas flotantes en terrazas: cada celda es una columna de tierra con su altura (ruido suave por semilla),
-// laterales más oscuros por estratos, decoración en lo cerrado y un cono de roca debajo. Solo visual: las
-// reglas y colisiones siguen en el plano (src/game). Mundo: x = columna − w/2, z = fila − h/2.
+// Paisaje de terrario en terrazas: cada celda es una columna de tierra con su altura (ruido suave por
+// semilla) sobre las capas de drenaje, con decoración en lo cerrado. Va dentro de un recipiente (vessel.js).
+// Solo visual: reglas y colisiones siguen en el plano (src/game). Mundo: x = columna − w/2, z = fila − h/2.
 import * as THREE from 'three';
 import { PALETTES } from '../data/palettes.js';
 import { mulberry32 } from '../core/rng.js';
+import { substrateCells, substrateDisc, CHARCOAL } from './vessel.js';
 
-const STEP = 0.15, BASE = -1.2;
+const STEP = 0.15, BASE = CHARCOAL[1];
 const P = PALETTES.cozy;
 const lambert = (hex, extra) => new THREE.MeshLambertMaterial({ color: hex, ...extra });
 
@@ -32,19 +33,6 @@ function columnGeometry() {
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   return geo;
-}
-
-function underside(radius, depth, rng) {
-  const geo = new THREE.ConeGeometry(radius, depth, 13, 4, true);
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    if (pos.getY(i) < depth / 2 - 0.01) { const k = 0.75 + rng() * 0.5; pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); }
-  }
-  geo.computeVertexNormals();
-  const m = new THREE.Mesh(geo, lambert(P.soil, { side: THREE.DoubleSide }));
-  m.rotation.x = Math.PI;
-  m.position.y = BASE - depth / 2 + 0.05;
-  return m;
 }
 
 // Decoración: rocas, helechos y matas sobre la cima de cada punto [x, y, z, escala].
@@ -82,7 +70,7 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   const heightAt = (x, y) => { const v = heights[Math.floor(y) * grid.w + Math.floor(x)]; return Number.isNaN(v) || v === undefined ? 0 : v; };
 
   let span = 0;
-  for (const { i, j } of cells) span = Math.max(span, Math.abs(i + 0.5 - ox), Math.abs(j + 0.5 - oz));
+  for (const { i, j } of cells) span = Math.max(span, Math.hypot(i + 0.5 - ox, j + 0.5 - oz) + 0.71);
   const cols = new THREE.InstancedMesh(columnGeometry(), lambert(0xffffff, { vertexColors: true }), cells.length);
   const m = new THREE.Matrix4(), col = new THREE.Color();
   const soil = new THREE.Color(P.soil), moss = new THREE.Color(P.moss), shade = new THREE.Color(P.shade);
@@ -98,7 +86,7 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   cols.castShadow = cols.receiveShadow = true;
   group.add(cols);
   decor(group, rocks, ferns, tufts);
-  group.add(underside(span * 1.2, span * 1.15, rng));
+  group.add(substrateCells(cells.map(({ i, j }) => [i + 0.5 - ox, j + 0.5 - oz])));
 
   const pts = [];
   for (const { i, j, open, h } of cells) {
@@ -111,15 +99,15 @@ export function islandFromGrid(grid, { seed = 1, rim = 0, relief = 0.3 } = {}) {
   const gridLines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: P.ink, transparent: true, opacity: 0.3 }));
   gridLines.visible = false;
   group.add(gridLines);
-  return { group, gridLines, heightAt };
+  return { group, gridLines, heightAt, span, cells };
 }
 
 // Arena de combate: suelo llano (las reglas son planas) rodeado de un anillo de columnas en terrazas,
-// rocas y helechos, sobre su cono de roca.
+// rocas y helechos, sobre las capas de drenaje.
 export function arena(radius, seed = 1) {
   const rng = mulberry32(seed), n = noise2(seed, 2.5);
   const group = new THREE.Group();
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 0.3, radius + 0.3, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.shade).lerp(new THREE.Color(PALETTES.terror.paper), 0.5)));
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius + 2.1, radius + 2.1, -BASE, 48).translate(0, BASE / 2, 0), lambert(new THREE.Color(PALETTES.terror.shade).lerp(new THREE.Color(PALETTES.terror.paper), 0.5)));
   floor.receiveShadow = true;
   group.add(floor);
   const ring = [];
@@ -142,20 +130,6 @@ export function arena(radius, seed = 1) {
   group.add(cols);
   const tufts = Array.from({ length: 50 }, () => { const a = rng() * Math.PI * 2, d = Math.sqrt(rng()) * radius * 0.95; return [Math.cos(a) * d, 0, Math.sin(a) * d, 0.8 + rng() * 0.5, rng()]; });
   decor(group, rocks, ferns, tufts);
-  group.add(underside(radius + 2, radius * 1.1, rng));
-  return group;
-}
-
-// Paredes de vidrio alrededor de lo abierto: el terrario es una isla bajo cristal.
-export function glass(grid, height = 1.8) {
-  let x0 = grid.w, z0 = grid.h, x1 = 0, z1 = 0;
-  for (let j = 0; j < grid.h; j++) for (let i = 0; i < grid.w; i++) {
-    if (grid.open[j * grid.w + i]) { x0 = Math.min(x0, i); z0 = Math.min(z0, j); x1 = Math.max(x1, i + 1); z1 = Math.max(z1, j + 1); }
-  }
-  const ox = grid.w / 2, oz = grid.h / 2, w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2 - ox, cz = (z0 + z1) / 2 - oz;
-  const group = new THREE.Group();
-  const box = new THREE.BoxGeometry(w, height, d).translate(cx, height / 2 - 0.1, cz);
-  group.add(new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: P.water, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.BackSide })));
-  group.add(new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: P.ink, transparent: true, opacity: 0.5 })));
+  group.add(substrateDisc(radius + 2.1));
   return group;
 }

@@ -1,7 +1,8 @@
 // Las tres escenas del mundo: terrario, isla de recolección y arena. Solo dibujan el estado que les
 // pasan; las reglas viven en src/game.
 import * as THREE from 'three';
-import { islandFromGrid, arena, glass } from './island.js';
+import { islandFromGrid, arena } from './island.js';
+import { tank, jar, jarShine, substrateDisc, CHARCOAL } from './vessel.js';
 import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
 import { BUILDINGS } from '../data/buildings.js';
@@ -13,8 +14,10 @@ import { footprint, canPlace } from '../game/grid.js';
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
-  constructor(stage, grid, seed, rim = 0, relief = 0.3) {
+  // vessel: 'tank' (tanque rectangular) o 'jar' (frasco redondo).
+  constructor(stage, grid, seed, rim = 0, relief = 0.3, vessel = 'tank') {
     this.stage = stage;
+    this.vessel = vessel;
     this.grid = grid;
     this.rim = rim;
     this.relief = relief;
@@ -27,7 +30,18 @@ class GridScene {
   rebuild() {
     if (this.island) this.group.remove(this.island.group);
     this.island = islandFromGrid(this.grid, { seed: this.seed, rim: this.rim, relief: this.relief });
-    if (this.rim) this.island.group.add(glass(this.grid));
+    if (this.vessel === 'tank') {
+      const xs = this.island.cells.map((c) => c.i), zs = this.island.cells.map((c) => c.j), ox = this.grid.w / 2, oz = this.grid.h / 2;
+      this.island.group.add(tank(Math.min(...xs) - ox, Math.min(...zs) - oz, Math.max(...xs) + 1 - ox, Math.max(...zs) + 1 - oz, 2.2));
+    } else {
+      const r = this.island.span + 0.3;
+      const ground = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.3, 64), new THREE.MeshLambertMaterial({ color: PALETTES.cozy.soil }));
+      ground.position.y = CHARCOAL[1] + 0.15;
+      ground.receiveShadow = true;
+      this.island.group.add(jar(r, 2.4), substrateDisc(r), ground);
+      this.shine = jarShine(r, 2.4);
+      this.island.group.add(this.shine);
+    }
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
   }
@@ -70,7 +84,7 @@ export class HomeView extends GridScene {
     this.home = home;
   }
 
-  get camera() { const side = Math.sqrt(this.openCount); return { target: [0, 0.5], distance: side * 1.45 + 5, fit: (side + 2) * 1.35 }; }
+  get camera() { const side = Math.sqrt(this.openCount); return { target: [0, 0.5], distance: (side + 2) * 1.6 + 6, fit: (side + 2) * 1.45 }; }
 
   setBuildMode(on) { this.island.gridLines.visible = on; if (!on) this.setGhost(null); }
 
@@ -105,14 +119,15 @@ export class HomeView extends GridScene {
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed, 0, 0.6);
+    super(stage, gather.grid, gather.island.seed, 0, 0.6, 'jar');
     this.g = gather;
     this.syncProps();
   }
 
-  get camera() { return { target: [0, 0.4], distance: 20, fit: 15 }; }
+  get camera() { const r = this.island.span + 0.6; return { target: [0, 0.4], distance: r * 2.2 + 6, fit: r * 2.3 }; }
 
   update(time) {
+    this.shine.rotation.y = this.stage.yaw;
     const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05;
     const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...this.toWorld(p.x, p.y), height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
     for (const n of this.g.nodes) if (!n.taken) list.push({ id: `n${n.id}`, sprite: `res:${n.res}`, ...this.toWorld(n.x, n.y), height: 0.55, lift: 0.15 + Math.sin(time * 2.5 + n.id) * 0.06 });
@@ -127,17 +142,20 @@ export class CombatView {
     this.stage = stage;
     this.c = combat;
     this.group = new THREE.Group();
-    this.group.add(arena(ARENA_R, seed));
+    this.group.add(arena(ARENA_R, seed), jar(ARENA_R + 2.3, 1.8));
+    this.shine = jarShine(ARENA_R + 2.3, 1.8);
+    this.group.add(this.shine);
     this.actors = new ActorLayer(this.group);
     this.tele = new Map();
     this.flash = new Map();
   }
 
-  get camera() { return { target: [0, 0.6], distance: 18, fit: ARENA_R * 2 + 0.5 }; }
+  get camera() { return { target: [0, 0.6], distance: 19, fit: ARENA_R * 2 + 3 }; }
 
   hit(id) { this.flash.set(id, 1); }
 
   update(time, dt) {
+    this.shine.rotation.y = this.stage.yaw;
     const list = [];
     for (const a of this.c.actors) {
       if (a.side === 'enemy' && a.hp <= 0) continue;

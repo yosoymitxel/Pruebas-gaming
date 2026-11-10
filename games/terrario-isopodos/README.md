@@ -1,7 +1,7 @@
 # Terrario de isópodos
 
-Terror acogedor: cuidas una colonia de isópodos en su terrario (una isla flotante bajo cristal), sales al
-archipiélago a recoger recursos y bajas a nidos a combatir aberraciones dibujadas a tinta.
+Terror acogedor alrededor de un terrario: cuidas una colonia de isópodos en su tanque, viajas entre terrarios
+flotantes a recoger recursos y bajas a nidos a combatir aberraciones dibujadas a tinta.
 
 Plan y decisiones en [docs/PLAN.md](docs/PLAN.md); dirección visual en [DESIGN.md](DESIGN.md).
 
