@@ -8,12 +8,25 @@ import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
-import { CLIMATES } from '../../data/substrate.js';
+import { CLIMATES, HUMIDITY } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
 import { speciesOf } from '../../data/species.js';
 import { portraitURL } from '../../view/sprites.js';
 
 const drag = { x: 0, moved: false, down: false };
+
+// Medidor de humedad: franjas seco · ideal · húmedo · moho con una aguja; se entiende sin leer.
+const ZONES = [['seco', HUMIDITY.dry], ['ideal', HUMIDITY.wet], ['humedo', HUMIDITY.flood], ['moho', 1]];
+const CLIMATE_ICON = { seco: 'refugio', ideal: 'leaf', humedo: 'items', moho: 'nido' };
+function HumidityGauge({ home, onClick }) {
+  const h = humidity(home), kind = climate(home);
+  let from = 0;
+  return html`<button class=${`gauge gauge-${kind}`} onClick=${onClick} aria-label=${`${CLIMATES[kind].name} · ${Math.round(h * 100)} %`} title=${CLIMATES[kind].desc}>
+    <${Icon} name=${CLIMATE_ICON[kind]} size="18" />
+    <span class="track">${ZONES.map(([z, to]) => { const el = html`<i class=${`z-${z}`} style=${{ left: `${from * 100}%`, width: `${(to - from) * 100}%` }}></i>`; from = to; return el; })}
+      <b class="needle" style=${{ left: `${Math.min(1, h) * 100}%` }}></b></span>
+  </button>`;
+}
 
 export function Home({ s }) {
   const home = s.game.home;
@@ -48,8 +61,8 @@ export function Home({ s }) {
       <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
           onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
         <div><span class="kicker">${DAY_PHASES[s.phase].name}${s.phase === 'atardecer' || s.phase === 'noche' ? ` · ${t('home.sleepHint2', 'toca el reloj: dormir')}` : ''}</span><h2>${t('home.title', 'Tu terrario')}</h2></div></div>
-      <button class="climate-chip" onClick=${() => toggle('comp')}>${CLIMATES[climate(home)].name} · ${Math.round(humidity(home) * 100)} %</button>
-      <div class="calm"><span>${t('home.calm', 'Calma')}</span><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
+      <${HumidityGauge} home=${home} onClick=${() => toggle('comp')} />
+      <div class="calm" title=${t('home.calm', 'Calma')}><${Icon} name="leaf" size="18" /><${Bar} value=${calm(home)} max=${1} kind="calm" label=${t('home.calm', 'Calma')} /></div>
       <${Resources} have=${home.resources} />
     </header>
 

@@ -23,6 +23,9 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Día y noche:** el reloj del día gira la luz (alba cálida, día blanco, atardecer rojizo, noche azul con
   luciérnagas); de noche se produce menos y la colonia se inquieta; dormir pasa al alba con islas nuevas.
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en Ajustes y en la pausa.
+- **Se ve, no se lee:** cuanto más intuitivo lo visual, menos texto. El clima se ve en el diorama (grietas si
+  está seco, gotas en el vidrio si está húmedo, manchas de moho), la humedad es un medidor de franjas con aguja,
+  la calma un icono con barra, y los globos sobre las piezas avisan (comedero vacío, mejora pagable).
 - **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
   ≥ 48 px, foco visible, movimiento reducido respetado.
 - **Combate legible:** cada ataque enemigo se anuncia en el suelo (≥ 0,4 s) y se llena mientras carga. La
