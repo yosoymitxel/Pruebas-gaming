@@ -1,16 +1,18 @@
 // ¿Cada aberración es vencible por el equipo inicial y no trivial? node tools/combat-selfcheck.mjs
-// Juega 20 combates por aberración con el piloto automático y cuenta victorias. Sale con 1 si alguna
+// Juega 20 combates por aberración con el piloto automático, rotando las arenas que le tocan (charcas, raíces,
+// hondonada…), y cuenta victorias. Sale con 1 si alguna
 // queda fuera de rango (imposible o paseo).
 import { createCombat, step } from '../src/game/combat.js';
 import { autopilot } from '../src/game/autopilot.js';
 import { ABERRATIONS } from '../src/data/aberrations.js';
 import { CLASSES } from '../src/data/isopods.js';
+import { ARENAS, BOSS_ARENAS } from '../src/data/arenas.js';
 
 const PARTY = ['rodador', 'guardian', 'musgoso'].map((cls, i) => ({ id: i + 1, cls, name: cls, hp: CLASSES[cls].hp, maxHp: CLASSES[cls].hp }));
 const ENCOUNTERS = { larva: ['larva', 'larva', 'larva'], bufon: ['bufon'], segador: ['segador'], gemela: ['gemela'], comensal: ['comensal'] };
 
-export function fight(kinds, seed, skill = 0.85) {
-  const c = createCombat({ party: PARTY.map((p) => ({ ...p })), enemies: kinds, items: { gota: 2, hongo: 1 }, seed });
+export function fight(kinds, seed, skill = 0.85, arena = 'claro') {
+  const c = createCombat({ party: PARTY.map((p) => ({ ...p })), enemies: kinds, items: { gota: 2, hongo: 1 }, seed, arena });
   for (let k = 0; k < 60 * 240 && !c.result; k++) step(c, 1 / 60, autopilot(c, skill));
   const hpLeft = c.actors.filter((a) => a.side === 'ally').reduce((s, a) => s + a.hp / a.maxHp, 0) / 3;
   return { result: c.result ?? 'timeout', time: c.t, hpLeft };
@@ -19,7 +21,8 @@ export function fight(kinds, seed, skill = 0.85) {
 export function selfcheck(runs = 20) {
   const rows = [];
   for (const [id, kinds] of Object.entries(ENCOUNTERS)) {
-    const games = Array.from({ length: runs }, (_, s) => fight(kinds, 1000 + s));
+    const arenas = ABERRATIONS[id].role === 'jefe' ? BOSS_ARENAS : Object.keys(ARENAS);
+    const games = Array.from({ length: runs }, (_, s) => fight(kinds, 1000 + s, 0.85, arenas[s % arenas.length]));
     const wins = games.filter((g) => g.result === 'win');
     const minWins = ABERRATIONS[id].role === 'jefe' ? 0.5 : 0.75;
     rows.push({

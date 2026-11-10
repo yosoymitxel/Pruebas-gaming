@@ -1,8 +1,10 @@
-// HUD de combate: equipo con vida y ATB (toca un retrato para controlarlo), barras de las aberraciones,
-// botones de acción y pausa táctica (el tiempo va al 10 % mientras eliges habilidad u objeto).
+// HUD de combate (estructura de Cult of the Lamb: la acción manda, la interfaz se aparta): vida pegada a cada
+// aberración, barra de la guardiana arriba, equipo en fichas chicas abajo, combo y cartel de sala despejada.
+// La pausa táctica detiene el tiempo mientras eliges habilidad u objeto.
 import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
+import { ARENAS } from '../../data/arenas.js';
 import { ABILITIES, ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
@@ -30,19 +32,28 @@ export function Combat({ s }) {
     <${CamControls} s=${s} />
     <${PauseButton} s=${s} />
     ${s.run && html`<${RoomMap} dungeon=${s.run.dungeon} layers=${LAYERS} />`}
-    <header class="foes">${shown.map((e) => html`<div class="foe">
-      <b>${ABERRATIONS[e.kind].name}</b>
-      ${e.staggered > 0 ? html`<em class="tag stag">${t('combat.staggered', 'Aturdida')}</em>` : e.pressured > 0 ? html`<em class="tag press">${t('combat.pressured', 'Presionada')}</em>` : null}
-      <${Bar} value=${e.hp} max=${e.maxHp} kind="foe" label=${t('ui.hp', 'Vida')} />
-      <${Bar} value=${e.staggered > 0 ? e.staggerMax : e.stagger} max=${e.staggerMax} kind="stagger" label=${t('combat.stagger', 'Aturdimiento')} />
-    </div>`)}${!boss && foes.length > 1 ? html`<small class="muted">×${foes.length}</small>` : null}</header>
+    ${boss ? html`<header class="boss-bar">
+      <b>${ABERRATIONS[boss.kind].name}</b>${boss.staggered > 0 ? html`<em class="tag stag">${t('combat.staggered', 'Aturdida')}</em>` : boss.pressured > 0 ? html`<em class="tag press">${t('combat.pressured', 'Presionada')}</em>` : null}
+      <${Bar} value=${boss.hp} max=${boss.maxHp} kind="foe" label=${t('ui.hp', 'Vida')} />
+      <${Bar} value=${boss.staggered > 0 ? boss.staggerMax : boss.stagger} max=${boss.staggerMax} kind="stagger" label=${t('combat.stagger', 'Aturdimiento')} />
+    </header>` : null}
+    <div class="foe-tags" aria-hidden="true">${foes.filter((e) => e !== boss && e.hp > 0).map((e) => {
+      const p = s.stage.project(e.x, ABERRATIONS[e.kind].height * 0.62 + 0.25, e.y); // el recorte se inclina hacia atrás: su cima queda más baja
+      return html`<div class=${`foe-tag${e.staggered > 0 ? ' stag' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px` }}>
+        <i class="hp" style=${{ width: `${(e.hp / e.maxHp) * 100}%` }}></i><i class="st" style=${{ width: `${((e.staggered > 0 ? e.staggerMax : e.stagger) / e.staggerMax) * 100}%` }}></i></div>`;
+    })}</div>
+    ${s.combo?.n >= 2 && s.time - s.combo.at < 1.4 && html`<div class="combo" key=${s.combo.n} aria-hidden="true"><b>×${s.combo.n}</b><small>${t('combat.combo', 'golpes')}</small></div>`}
+    ${!boss && c.t < 2.2 && html`<div class="arena-name" aria-live="polite"><b>${ARENAS[c.arena.kind].name}</b><small>${ARENAS[c.arena.kind].hint}</small></div>`}
+    ${s.cleared && html`<div class="cleared" aria-live="polite"><b>${t('combat.cleared', 'Sala despejada')}</b></div>`}
+    ${s.hurtAt && s.time - s.hurtAt < 0.3 && html`<div class="hurt-flash" aria-hidden="true"></div>`}
 
     <${FxLayer} s=${s} />
     ${boss && c.t < 2.4 && html`<div class="boss-card" aria-live="polite"><img src=${portraitURL(ABERRATIONS[boss.kind].sprite)} alt="" /><div><small>${t(`role.${ABERRATIONS[boss.kind].role}`, ABERRATIONS[boss.kind].role === 'jefe' ? 'Guardiana' : 'Élite')}</small><b>${ABERRATIONS[boss.kind].name}</b></div></div>`}
 
     <section class="team">${team.map((a, k) => html`<button class=${`member${a.id === c.main ? ' main' : ''}${a.hp <= 0 ? ' down' : ''}`}
         onClick=${() => s.switchTo(a.id)} aria-pressed=${a.id === c.main} aria-label=${`${a.name}, ${CLASSES[a.cls].name}`}>
-      <span class="who"><kbd>${k + 1}</kbd> ${a.name}${a.held > 0 ? ' · ⛓' : ''}</span>
+      <img src=${portraitURL(`iso:${a.shell}`)} alt="" />
+      <span class="who"><kbd>${k + 1}</kbd>${a.id === c.main ? ` ${a.name}` : ''}${a.held > 0 ? ' ⛓' : ''}</span>
       <${Bar} value=${a.hp} max=${a.maxHp} label=${t('ui.hp', 'Vida')} />
       <${Atb} value=${a.atb} />
     </button>`)}</section>
@@ -65,7 +76,7 @@ export function Combat({ s }) {
       <button class="btn ghost" onClick=${() => s.setTactical(false)}>${t('ui.back', 'Volver')}</button>
     </section>`}
 
-    ${c.result && html`<section class="drawer center">
+    ${c.result && (!s.cleared || s.time - s.cleared > 1.4) && html`<section class="drawer center">
       <h3>${c.result === 'win' ? t('combat.win', 'Las aberraciones se deshacen en tinta.') : t('combat.lose', 'El equipo cae. Hay que volver.')}</h3>
       <button class="btn primary" onClick=${() => s.endCombat()}>${t('ui.continue', 'Continuar')}</button>
     </section>`}

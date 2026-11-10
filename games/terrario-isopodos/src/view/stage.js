@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { createInkPass, FILTERS } from './ink.js';
 import { PALETTES } from '../data/palettes.js';
 import { createBackdrop } from './backdrop.js';
+import { PixelFx } from './pixfx.js';
 
 const TILT = 0.95; // radianes desde la vertical
 export const DEFAULT_YAW = 0.35;
@@ -40,6 +41,7 @@ export class Stage {
     sun.shadow.bias = -0.0015;
     this.sun = sun; this.hemi = new THREE.HemisphereLight(0xfff6e0, 0x6b5a48, 1.6);
     this.scene.add(sun, sun.target, this.hemi);
+    this.pixfx = new PixelFx();
     this.ink = createInkPass();
     this.rt = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
     this.ink.material.uniforms.tColor.value = this.rt.texture;
@@ -81,6 +83,7 @@ export class Stage {
   // `fit`: ancho del mundo (celdas) que debe caber a lo ancho; en vertical aleja la cámara lo justo.
   setScene(group, { target = [0, 0], distance = 22, fit = 0 } = {}) {
     this.root.clear();
+    this.pixfx.clear();
     this.root.add(group);
     this.backdrop.group.visible = group.children.length > 0;
     this.yaw = DEFAULT_YAW;
@@ -155,6 +158,8 @@ export class Stage {
     this.renderer.render(this.scene, this.camera);
     this.renderer.setRenderTarget(null);
     this.renderer.render(this.ink.scene, this.ink.camera);
+    this.pixfx.update(dt);
+    if (this.pixfx.live.length) { this.renderer.autoClear = false; this.renderer.render(this.pixfx.scene, this.camera); this.renderer.autoClear = true; }
   }
 
   // Punto del suelo (x, z del mundo) a la altura `y` bajo un evento de puntero, o null.

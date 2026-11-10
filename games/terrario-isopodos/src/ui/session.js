@@ -117,6 +117,7 @@ export class Session {
     if (!b || b.i === null) return false;
     if (!build(this.game.home, b.type, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
     this.sfx('build');
+    { const f = footprint(b.type, b.rot); this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); }
     this.persist();
     this.hoverBuild(b.i + Math.floor((footprint(b.type, b.rot).w - 1) / 2), b.j + Math.floor((footprint(b.type, b.rot).h - 1) / 2));
     return true;
@@ -175,10 +176,13 @@ export class Session {
     if (!enterNode(this.run, nodeId)) return;
     if (this.run.state === 'combat') {
       const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
+      this.combo = null; this.cleared = null; this.hurtAt = null; this.slowmo = 0;
       this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg } });
       this.tactical = false;
       this.sfx(this.run.node.type === 'jefe' ? 'boss' : 'open');
+      const bossFoe = this.run.node.type === 'jefe' && this.combat.actors.find((a) => a.side === 'enemy');
       this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1, this.run.island.weather);
+      if (bossFoe) this.stage.pixfx.spawn('boss', bossFoe.x, 0.05, bossFoe.y);
     } else this.emit();
   }
   chooseCard(id) { pickCard(this.run, id); this.sfx('heal'); this.emit(); }
@@ -248,6 +252,8 @@ export class Session {
     if (input.tactical) this.setTactical(!this.tactical);
     for (const [k, n] of [['p1', 0], ['p2', 1], ['p3', 2]]) if (input[k]) { const a = allies(c)[n]; if (a) switchMain(c, a.id); }
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
+    // Cámara lenta al matar (más larga con la última): el golpe final se saborea, como en Cult of the Lamb.
+    if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.3; }
     const from = c.events.length;
     step(c, dt * (this.tactical ? TACTICAL_SPEED[this.settings.tactical ?? 'pausa'] : 1), this.tactical ? {} : input);
     for (const ev of c.events.slice(from)) {
@@ -257,12 +263,22 @@ export class Session {
         this.view.burst(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', ev.id);
         this.sfx(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', 0.9 + Math.random() * 0.2);
         this.fx.push({ id: Math.random(), x: a.x, z: a.y, text: ev.amount, kind: a.side, at: this.time, big: ev.staggered });
+        if (a.side === 'enemy') this.combo = { n: this.combo && this.time - this.combo.at < 1.4 ? this.combo.n + 1 : 1, at: this.time };
+        else this.hurtAt = this.time;
         if (!this.settings.reduceMotion) {
-          if (a.side === 'enemy') this.hitstop = 0.05;
+          if (a.side === 'enemy') { this.hitstop = ev.staggered ? 0.09 : 0.05; this.shake(ev.amount >= 20 ? 0.3 : 0.08); }
           if (a.side === 'ally' && ev.heavy) this.shake(0.35);
         }
       } else if (ev.type === 'stagger') { this.view.burst('spark', ev.id); this.sfx('stagger'); this.shake(0.25); this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.staggerFx', '¡Aturdida!'), kind: 'note', at: this.time }); }
-      else if (ev.type === 'death') { this.view.burst('death', ev.id); this.sfx('death'); }
+      else if (ev.type === 'death') {
+        this.view.burst('death', ev.id); this.sfx('death');
+        const foe = c.actors.find((x) => x.id === ev.id);
+        if (foe?.side === 'enemy') {
+          const last = !c.actors.some((x) => x.side === 'enemy' && x.hp > 0);
+          if (!this.settings.reduceMotion) { this.slowmo = last ? 0.7 : 0.22; this.shake(last ? 0.5 : 0.3); }
+          if (last) { this.cleared = this.time; this.sfx('win'); for (let k = 0; k < 3; k++) this.stage.pixfx.spawn('pickup', foe.x + (k - 1) * 0.8, 0, foe.y + (k % 2) * 0.5); }
+        }
+      }
       else if (ev.type === 'telegraph') this.sfx('telegraph');
       else if (ev.type === 'ability' || ev.type === 'item') { const heal = ['rocio', 'gota'].includes(ev.ability ?? ev.item); this.view.burst(heal ? 'heal' : 'spark', ev.id); this.sfx(heal ? 'heal' : 'swing'); }
       else if (ev.type === 'dodge') this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.dodgeFx', 'Esquiva'), kind: 'note', at: this.time });

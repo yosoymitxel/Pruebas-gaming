@@ -1,7 +1,7 @@
 // Las tres escenas del mundo: terrario, isla de recolección y arena. Solo dibujan el estado que les
 // pasan; las reglas viven en src/game.
 import * as THREE from 'three';
-import { islandFromGrid, arena } from './island.js';
+import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
@@ -33,7 +33,7 @@ class GridScene {
     this.vfx = new Vfx(this.group);
   }
 
-  burst(kind, x, y) { const w = this.toWorld(x, y); this.vfx.burst(kind, w.x, w.y + 0.3, w.z); }
+  burst(kind, x, y) { const w = this.toWorld(x, y); this.vfx.burst(kind, w.x, w.y + 0.3, w.z); this.stage.pixfx.spawn(kind, w.x, w.y + 0.3, w.z); }
 
   tick(dt) {
     this.vfx.update(dt);
@@ -231,6 +231,8 @@ export class CombatView {
     this.c = combat;
     this.group = new THREE.Group();
     this.group.add(arena(ARENA_R, seed));
+    this.features = arenaFeatures(combat.arena, seed);
+    this.group.add(this.features);
     if (vessel === 'diorama') this.group.add(floatingRock(ARENA_R + 2, ARENA_R * 1.1, mulberry32(seed)));
     else { this.group.add(jar(ARENA_R + 2.3, 1.8)); this.shine = jarShine(ARENA_R + 2.3, 1.8); this.group.add(this.shine); }
     this.actors = new ActorLayer(this.group);
@@ -243,9 +245,17 @@ export class CombatView {
     this.ghosts = [];
     this.stains = [];
     this.flash = new Map();
+    // Anillo bajo el isópodo que controlas, con una flecha hacia donde mira: siempre sabes quién eres.
+    this.marker = new THREE.Group();
+    const mm = new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
+    this.marker.add(new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 28).rotateX(-Math.PI / 2), mm));
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.3, 3).rotateZ(-Math.PI / 2).rotateX(-Math.PI / 2), mm);
+    tip.position.x = 0.8; this.marker.add(tip);
+    this.marker.position.y = 0.04;
+    this.group.add(this.marker);
   }
 
-  get camera() { return { target: [0, 0.6], distance: 15, fit: 10 }; }
+  get camera() { return { target: [0, 0.6], distance: 13, fit: 7.5 }; } // cerca, como Cult of the Lamb: la arena sobresale
 
   hit(id) { this.flash.set(id, 1); }
 
@@ -274,13 +284,18 @@ export class CombatView {
   burst(kind, id) {
     const a = this.c.actors.find((x) => x.id === id);
     if (a && (kind === 'death' || kind === 'heavy')) this.stain(a.x, a.y, kind === 'death' ? 1.6 + (a.r ?? 0.4) * 2 : 0.8);
-    if (a) this.vfx.burst(kind, a.x, a.side === 'enemy' ? ABERRATIONS[a.kind].height * 0.4 : 0.4, a.y);
+    if (!a) return;
+    const h = a.side === 'enemy' ? ABERRATIONS[a.kind].height * 0.4 : 0.4;
+    this.vfx.burst(kind, a.x, h, a.y);
+    this.stage.pixfx.spawn(kind, a.x, kind === 'spark' ? h * 2 : h, a.y);
   }
 
   update(time, dt) {
     if (!this.still) sway.value += dt;
+    for (const d of this.features.userData.pools ?? []) d.material.opacity = 0.45 + Math.sin(time * 3) * 0.12; // la charca late
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
     const main = this.c.actors.find((a) => a.id === this.c.main);
+    if (main) { this.marker.position.x = main.x; this.marker.position.z = main.y; this.marker.rotation.y = -main.facing; }
     if (main) this.stage.follow(main.x * 0.55, main.y * 0.55 + 0.6, dt, 3);
     this.vfx.update(dt);
     this.weather.update(dt);

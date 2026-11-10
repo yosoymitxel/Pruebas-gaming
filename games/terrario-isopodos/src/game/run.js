@@ -1,6 +1,7 @@
 // Expedición a un nido: un isópodo principal + dos de apoyo recorren el mapa interior. La vida se
 // arrastra entre salas; el botín y los rescatados vuelven al terrario al terminar (si se pierde,
 // solo la mitad del botín y ningún rescatado).
+import { ARENAS, BOSS_ARENAS } from '../data/arenas.js';
 import { CLASSES } from '../data/isopods.js';
 import { CARDS } from '../data/cards.js';
 import { BIOMES } from '../data/world.js';
@@ -44,7 +45,8 @@ export function enterNode(run, nodeId) {
   const rng = mulberry32(run.seed + node.id * 31);
   if (node.type === 'combate' || node.type === 'elite' || node.type === 'jefe') {
     run.state = 'combat';
-    run.encounter = { enemies: enemiesFor(node, run.island.biome), enemyHpMul: enemyHpMul(node), seed: Math.floor(rng() * 1e9) };
+    const kinds = node.type === 'jefe' ? BOSS_ARENAS : node.layer === 0 ? ['claro', 'raices'] : Object.keys(ARENAS);
+    run.encounter = { enemies: enemiesFor(node, run.island.biome), enemyHpMul: enemyHpMul(node), seed: Math.floor(rng() * 1e9), arena: kinds[Math.floor(rng() * kinds.length)] };
   } else if (node.type === 'botin') {
     const before = { ...run.loot };
     addLoot(run, rng, 3);
@@ -85,7 +87,7 @@ export function pickCard(run, cardId) {
 export function combatSetup(run) {
   return {
     party: run.party.map((p) => ({ ...p, hp: Math.max(1, p.hp) })), enemies: run.encounter.enemies,
-    enemyHpMul: run.encounter.enemyHpMul, items: run.items, mods: runMods(run), seed: run.encounter.seed,
+    enemyHpMul: run.encounter.enemyHpMul, items: run.items, mods: runMods(run), seed: run.encounter.seed, arena: run.encounter.arena,
   };
 }
 
