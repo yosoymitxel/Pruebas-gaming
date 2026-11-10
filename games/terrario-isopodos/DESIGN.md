@@ -15,6 +15,9 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
   aberraciones = los dibujos escaneados, rectos y sin papel.
 - **Fondo:** el vacío nunca es plano: papel con grano y la textura del clima (motas, lluvia, niebla; venas de
   tinta en los nidos).
+- **Referencia Cult of the Lamb (estructura, no arte):** tilt-shift arriba y abajo (maqueta), personajes de papel
+  que respiran y se aplastan al golpear, estela al rodar, manchas que quedan en el suelo, nidos enmarcados por
+  raíces oscuras y antorchas, bocadillos de necesidad sobre la colonia.
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en el menú.
 - **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
   ≥ 48 px, foco visible, movimiento reducido respetado.

@@ -100,6 +100,18 @@ export function dress(group, kind, island, grid, seed) {
   return shine;
 }
 
+function stainTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff';
+  for (let k = 0; k < 9; k++) {
+    const a = Math.random() * Math.PI * 2, d = k ? 20 + Math.random() * 34 : 0, r = k ? 4 + Math.random() * 9 : 30;
+    g.beginPath(); g.arc(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, r, 0, Math.PI * 2); g.fill();
+  }
+  return new THREE.CanvasTexture(c);
+}
+
 const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
 
 export class HomeView extends GridScene {
@@ -130,8 +142,14 @@ export class HomeView extends GridScene {
     this.syncProps();
     const list = this.home.isopods.map((iso) => {
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
-      return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: 0.8, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0 };
+      return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: 0.8, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0, squash: 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    // Bocadillos de necesidad sobre la cabeza (como los seguidores de Cult of the Lamb): hambre.
+    for (const iso of this.home.isopods) {
+      if (iso.hunger >= 0.35) continue;
+      const w = this.toWorld(iso.x, iso.y);
+      list.push({ id: `b${iso.id}`, sprite: 'res:hojarasca', ...w, height: 0.42, lift: 0.95 + Math.sin(time * 4 + iso.id) * 0.06 });
+    }
     for (const p of Object.values(this.grid.pieces)) {
       const s = this.home.stock[p.id];
       if (!s?.ready) continue;
@@ -211,6 +229,8 @@ export class CombatView {
     this.rolling = new Set();
     this.swung = new Set();
     this.slashes = [];
+    this.ghosts = [];
+    this.stains = [];
     this.flash = new Map();
   }
 
@@ -229,8 +249,20 @@ export class CombatView {
     this.slashes.push({ mesh, t: 0 });
   }
 
+  // Mancha de tinta que queda en el suelo (muertes y golpes fuertes), como la sangre que se queda en Cult of the Lamb.
+  stain(x, z, size) {
+    const tex = (this.stainTex ??= stainTexture());
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: tex, color: PALETTES.terror.ink, transparent: true, opacity: 0.75, depthWrite: false }));
+    m.position.set(x, 0.015 + this.stains.length * 0.0005, z);
+    m.rotation.y = Math.random() * 6;
+    this.group.add(m);
+    this.stains.push(m);
+    if (this.stains.length > 40) this.group.remove(this.stains.shift());
+  }
+
   burst(kind, id) {
     const a = this.c.actors.find((x) => x.id === id);
+    if (a && (kind === 'death' || kind === 'heavy')) this.stain(a.x, a.y, kind === 'death' ? 1.6 + (a.r ?? 0.4) * 2 : 0.8);
     if (a) this.vfx.burst(kind, a.x, a.side === 'enemy' ? ABERRATIONS[a.kind].height * 0.4 : 0.4, a.y);
   }
 
@@ -259,18 +291,27 @@ export class CombatView {
       if (a.side === 'enemy' && a.hp <= 0) continue;
       const f = Math.max(0, (this.flash.get(a.id) ?? 0) - dt * 5);
       this.flash.set(a.id, f);
+      const breathe = 1 + Math.sin(time * 3 + a.id) * 0.025; // respiración en reposo
       if (a.side === 'ally') {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
         const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
-        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: a.state === 'roll' ? 0.7 : 1.05, flip: Math.cos(a.facing) < 0,
+        const squash = a.state === 'attack' && a.phase === 'windup' ? 0.86 : a.state === 'roll' ? 0.7 : breathe * (1 - f * 0.18);
+        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: 1.05, squash, flip: Math.cos(a.facing) < 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
+        if (a.state === 'roll' && (this.ghostT = (this.ghostT ?? 0) - dt) <= 0) { // estela del rodar
+          this.ghostT = 0.04;
+          this.ghosts.push({ id: `g${this.ghostN = (this.ghostN ?? 0) + 1}`, sprite: `iso:${a.shell}`, x: a.x, z: a.y, height: 1.05, squash: 0.7, flip: Math.cos(a.facing) < 0, t: 0 });
+        }
       } else {
         const def = ABERRATIONS[a.kind], wind = a.state === 'windup';
         const sway = a.staggered > 0 ? Math.sin(time * 20) * 0.08 : wind ? Math.sin(time * 30) * 0.05 : 0;
-        list.push({ id: a.id, sprite: def.sprite, x: a.x + sway, z: a.y, height: def.height * (wind ? 0.94 : 1), flip: Math.cos(a.facing) < 0,
+        const squash = wind ? 0.9 + Math.sin(time * 30) * 0.02 : a.state === 'recover' ? 1.06 : breathe * (1 - f * 0.12);
+        list.push({ id: a.id, sprite: def.sprite, x: a.x + sway, z: a.y, height: def.height, squash, flip: Math.cos(a.facing) < 0,
           flash: Math.max(f, a.staggered > 0 ? 0.35 : 0) });
       }
     }
+    this.ghosts = this.ghosts.filter((g) => (g.t += dt) < 0.25);
+    for (const g of this.ghosts) list.push({ ...g, alpha: 0.45 * (1 - g.t / 0.25) });
     this.actors.sync(list, this.stage.yaw);
     this.telegraphs();
   }

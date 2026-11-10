@@ -16,7 +16,7 @@ export class ActorLayer {
     this.items = new Map();
   }
 
-  // a: { id, sprite, x, z, y (suelo), height, flip, flash (0–1), alpha, lift, width? }. `yaw`: giro de cámara,
+  // a: { id, sprite, x, z, y (suelo), height, flip, flash (0–1), alpha, lift, width?, squash (1 = normal) }. `yaw`: giro de cámara,
   // para que los recortes la miren siempre de frente.
   sync(list, yaw = 0) {
     const seen = new Set();
@@ -30,7 +30,8 @@ export class ActorLayer {
       }
       const aspect = it.mat.map.userData.aspect ?? 1;
       const h = a.height, w = (a.width ?? h * aspect);
-      it.card.scale.set(w * (a.flip ? -1 : 1), h, 1);
+      const sq = a.squash ?? 1; // aplastar conserva el volumen: más bajo, más ancho
+      it.card.scale.set(w * (a.flip ? -1 : 1) / Math.sqrt(sq), h * sq, 1);
       it.card.position.y = a.lift ?? 0;
       it.shadow.scale.set(Math.min(w, h * 1.2) * 0.8, 1, Math.min(w, h) * 0.35);
       it.root.position.set(a.x, a.y ?? 0, a.z);
