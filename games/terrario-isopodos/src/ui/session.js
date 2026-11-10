@@ -3,7 +3,7 @@
 import { newGame, visit, tickClock, dayPhase, sleep } from '../game/game.js';
 import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -196,6 +196,14 @@ export class Session {
     return ok;
   }
   renameIso(id, name) { const iso = this.game.home.isopods.find((i) => i.id === id); const ok = iso && renameIso(this.game.home, iso, name); if (ok) this.persist(); this.emit(); return ok; }
+  learnSkill(id, skill) {
+    const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
+    if (!iso || !learnSkill(home, iso, skill)) { this.sfx('hurt', 1.6); return false; }
+    const w = this.view.toWorld(iso.x, iso.y);
+    this.sfx('heal'); this.view.burst('heal', iso.x, iso.y); this.shake(0.08);
+    this.floatText(t('colony.molted', '¡Muda!'), w.x, w.z, 'gain', 1.2);
+    this.persist(); this.emit(); return true;
+  }
   badgeIso(id, k) { const iso = this.game.home.isopods.find((i) => i.id === id); if (iso) { badgeIso(this.game.home, iso, k); this.persist(); this.sfx('click'); } this.emit(); }
   upgradePiece(id) {
     const home = this.game.home, p = home.grid.pieces[id];

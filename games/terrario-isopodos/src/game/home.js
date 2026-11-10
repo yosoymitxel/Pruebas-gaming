@@ -3,6 +3,7 @@
 import { BUILDINGS, EXPANSIONS, GRID_SIDE, MAX_LEVEL } from '../data/buildings.js';
 import { CLASSES, NAMES, MAX_NAME } from '../data/isopods.js';
 import { BADGES } from '../data/palettes.js';
+import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
@@ -311,3 +312,23 @@ export function renameIso(home, iso, name) {
 }
 
 export function badgeIso(home, iso, k) { iso.badge = k === null || k === iso.badge ? null : Math.max(0, Math.min(BADGES.length - 1, k)); }
+
+// Árbol de mudas: lo que suma lo aprendido y qué habilidades tiene en combate.
+export function isoStats(iso) {
+  const out = { hpMul: 1, damageAdd: 0, speedMul: 1, abilities: [...CLASSES[iso.cls].abilities] };
+  for (const id of iso.skills ?? []) {
+    const k = SKILLS[id]; if (!k) continue;
+    out.hpMul += k.hpMul ?? 0; out.damageAdd += k.damageAdd ?? 0; out.speedMul += k.speedMul ?? 0;
+    if (k.ability?.[iso.cls]) out.abilities.push(k.ability[iso.cls]);
+  }
+  return out;
+}
+
+export const canLearn = (home, iso, id) => !!SKILLS[id] && !(iso.skills ?? []).includes(id) && (!SKILLS[id].needs || (iso.skills ?? []).includes(SKILLS[id].needs)) && !(iso.baby > 0);
+
+export function learnSkill(home, iso, id) {
+  if (!canLearn(home, iso, id) || !canAfford(home, SKILLS[id].cost)) return false;
+  pay(home, SKILLS[id].cost);
+  (iso.skills ??= []).push(id);
+  return true;
+}

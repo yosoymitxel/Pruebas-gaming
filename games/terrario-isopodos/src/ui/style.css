@@ -761,3 +761,47 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .combat .member.main { border-color: var(--ui-accent) !important; box-shadow: 0 0 0 1.5px var(--ui-accent), 0 4px 14px rgb(10 8 6 / 0.3) !important; }
 .combat .member .who, .combat .member.main .who { color: var(--ui-fg); }
 .combat .member.main .who { font-weight: 800; }
+
+/* Ficha del isópodo: pestañas, cifras, habilidades y árbol de mudas */
+.iso-hub { max-height: min(64vh, 560px); overflow: auto; }
+.cls-line { display: inline-flex; align-items: center; gap: 4px; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tab { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 40px; font: 700 13px/1 var(--sans); color: var(--ui-fg);
+  background: transparent; border: 1px solid transparent; border-radius: var(--chip); cursor: pointer; opacity: 0.65; transition: opacity 140ms, background-color 140ms; }
+.tab.on { opacity: 1; background: var(--ui-bg-2); border-color: var(--ui-edge); }
+.tab .dot { position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--ui-accent); animation: attn 1.2s ease-in-out infinite; }
+.sheet { display: grid; gap: 10px; animation: fade-in 200ms var(--ease-out); }
+.sp-line { margin: 0; font-size: 12px; opacity: 0.8; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; }
+.stats3 > div { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; background: var(--ui-bg-2); border-radius: var(--chip); box-shadow: inset 0 0 0 1px var(--ui-edge); }
+.stats3 dt { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; opacity: 0.75; }
+.stats3 dd { margin: 0; font: 800 22px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.abil { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.abil li { display: grid; grid-template-columns: 22px 1fr auto auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--chip-b); background: var(--ui-bg-2); box-shadow: inset 3px 0 0 var(--k, var(--ui-edge)); }
+.abil li.k-strike, .abil li.k-burst { --k: #c2412f; } .abil li.k-shield, .abil li.k-taunt { --k: #4f8fd6; } .abil li.k-heal { --k: #5f9e4a; }
+.abil small { opacity: 0.7; font-size: 12px; }
+.atb-cost { display: flex; gap: 3px; } .atb-cost i { width: 9px; height: 9px; transform: rotate(45deg); background: #4f8fd6; border-radius: 2px; }
+.tree { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto; gap: 18px 8px; padding: 4px 0 2px; animation: fade-in 200ms var(--ease-out); }
+.tree-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.tree-links path { fill: none; stroke: var(--ui-edge); stroke-width: 2; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.tree-links path.open { stroke: var(--amber); }
+.tree-links path.on { stroke: var(--ui-accent); stroke-dasharray: none; stroke-width: 3; }
+.node { position: relative; z-index: 1; display: grid; justify-items: center; gap: 3px; padding: 8px 4px; text-align: center; color: var(--ui-fg); font: inherit; cursor: pointer;
+  background: var(--ui-bg); border: 1px solid var(--ui-edge); border-radius: var(--chip); transition: transform 160ms var(--ease-out), border-radius 400ms; }
+.node:nth-child(odd) { border-radius: var(--chip-b); }
+.node .gem { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; background: rgb(29 26 22 / 0.1); }
+.node b { font: 700 13px/1.1 var(--sans); }
+.node small { font-size: 11px; opacity: 0.75; }
+.node .cost { font-size: 12px; }
+.node.got { border-color: var(--ui-accent); background: color-mix(in srgb, var(--ui-accent) 14%, var(--ui-bg)); cursor: default; }
+.node.got .gem { background: var(--ui-accent); } .node.got .gem .icon-path { stroke: #fff3e6; }
+.node.got .ok { color: var(--ui-accent); font-weight: 800; opacity: 1; }
+.node.open:not(:disabled) { border-color: var(--amber); box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber) 40%, transparent); animation: attn 1.6s ease-in-out infinite; }
+.node.open:not(:disabled):hover { transform: translateY(-2px) rotate(-1deg); }
+.node.locked { opacity: 0.5; cursor: not-allowed; }
+.node:disabled:not(.got):not(.locked) { opacity: 0.7; }
+.node .lock { font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .node.open, .tab .dot { animation: none !important; } }
+.build-list .thumb { width: 100%; height: 84px; object-fit: contain; margin: -4px 0 -2px; filter: drop-shadow(0 6px 6px rgb(10 8 6 / 0.25)); transition: transform 220ms var(--ease-out); }
+.build-list .card-btn:hover:not(:disabled) .thumb { transform: translateY(-3px) scale(1.06) rotate(-2deg); }
+.build-list .card-btn:disabled .thumb { filter: grayscale(0.8); }

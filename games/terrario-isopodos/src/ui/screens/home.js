@@ -8,6 +8,7 @@ import { Resources, Cost, Bar, ResIcon, CamControls, FxLayer, DayClock } from '.
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
 import { ColonyList, IsoHub } from './colony.js';
+import { pieceThumb } from '../../view/thumbs.js';
 import { CLIMATES } from '../../data/substrate.js';
 import { WEATHERS, DAY_PHASES } from '../../data/world.js';
 
@@ -84,7 +85,7 @@ export function Home({ s }) {
 
     ${panel === 'build' && !s.build && html`<section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
       ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
-        <b>${b.name}</b><span class="desc">${b.desc}</span><span class="tags"><span>${b.size.w}×${b.size.h}</span>${b.produces && html`<span title=${RESOURCES[b.produces.res].name}>+<${ResIcon} res=${b.produces.res} /></span>`}
+        <img class="thumb" src=${pieceThumb(s.stage.renderer, id)} alt="" /><b>${b.name}</b><span class="desc">${b.desc}</span><span class="tags"><span>${b.size.w}×${b.size.h}</span>${b.produces && html`<span title=${RESOURCES[b.produces.res].name}>+<${ResIcon} res=${b.produces.res} /></span>`}
           ${b.beds && html`<span title=${t('home.beds', 'camas')}><${Icon} name="colony" size="14" />+${b.beds}</span>`}${b.calm && html`<span class="calm-tag" title=${t('home.calm', 'calma')}><${Icon} name="leaf" size="14" />+</span>`}</span>
         <${Cost} cost=${b.cost} have=${home.resources} />
       </button>`)}
