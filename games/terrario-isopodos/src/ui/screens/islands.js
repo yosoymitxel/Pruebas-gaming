@@ -49,8 +49,8 @@ export function Islands({ s }) {
     <section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}>
       <div class="isl-head">
         <div>
-          <h3><${Icon} name=${isl.kind} size="22" /> ${ISLAND_KINDS[isl.kind].name}${isl.kind !== 'hogar' ? ` · ${BIOMES[isl.biome].name}` : ''}</h3>
-          <p>${ISLAND_KINDS[isl.kind].desc}</p>
+          <h3><${Icon} name=${isl.kind} size="20" /> ${isl.kind !== 'hogar' ? BIOMES[isl.biome].name : ISLAND_KINDS[isl.kind].name}</h3>
+          <p>${isl.kind !== 'hogar' ? html`<b>${ISLAND_KINDS[isl.kind].name}</b> · ` : ''}${ISLAND_KINDS[isl.kind].desc}</p>
           ${isl.kind !== 'hogar' && html`<p class="chips"><span class="chip">${VESSELS[isl.vessel ?? 'tanque'].name}</span><span class="chip">${WEATHERS[isl.weather].name}${WEATHERS[isl.weather].yield > 1 ? ` · ${t('islands.more', 'más recursos')}` : ''}</span></p>`}
         </div>
       </div>
