@@ -8,6 +8,19 @@ import { PartyPicker } from './party.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
 
+// Rótulos sin solaparse en pantalla: de arriba abajo, cada uno baja lo justo si choca con uno ya puesto.
+const LABEL_W = 120, LABEL_H = 34;
+function spread(list) {
+  const placed = [], out = {};
+  for (const l of [...list].sort((a, b) => a.y - b.y)) {
+    let y = l.y;
+    for (const p of placed) if (Math.abs(p.x - l.x) < LABEL_W && Math.abs(p.y - y) < LABEL_H) y = p.y + LABEL_H;
+    placed.push({ x: l.x, y });
+    out[l.id] = { x: l.x, y };
+  }
+  return out;
+}
+
 export function Islands({ s }) {
   const [sel, setSel] = useState(null);
   const [party, setParty] = useState([]);
@@ -16,12 +29,14 @@ export function Islands({ s }) {
   const need = isl?.kind === 'nido' ? 3 : 1;
   const go = () => (isl.kind === 'hogar' ? s.goHome() : isl.kind === 'nido' ? s.startRun(isl, party) : s.startGather(isl, party[0]));
 
+  const pos = spread(s.game.islands.map((i) => ({ id: i.id, ...s.view.labelAt(i.id) })));
+
   return html`<main class="screen islands">
     <header class="hud-top"><div class="title-block"><span class="kicker">${t('ui.day', 'Día')} ${s.game.day}</span><h2>${t('islands.title', 'El archipiélago')}</h2></div></header>
     <div class="world-input" onPointerDown=${(e) => { const id = s.view.pick(e); const i = s.game.islands.find((x) => x.id === id); if (i && !done(i)) { setSel(i.id); setParty([]); } }}></div>
     <${CamControls} s=${s} />
     <ul class="isle-labels">${s.game.islands.map((i) => {
-      const p = s.view.labelAt(i.id);
+      const p = pos[i.id];
       return html`<li class=${`isle-label isle-${i.kind}${sel === i.id ? ' sel' : ''}${done(i) ? ' done' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px` }}>
         <button disabled=${done(i)} aria-pressed=${sel === i.id} onClick=${() => { setSel(i.id); setParty([]); }}>
           <${Icon} name=${i.kind} size="16" /> ${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}

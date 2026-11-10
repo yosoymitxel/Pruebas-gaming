@@ -50,8 +50,24 @@ export function start() {
   addEventListener('pointerdown', unlockAudio, { once: true });
   addEventListener('keydown', unlockAudio, { once: true });
   document.getElementById('ui').addEventListener('click', (e) => { if (e.target.closest('button:not(.pad)')) playSfx('click'); });
-  const stage = new Stage(document.getElementById('stage'));
-  const session = new Session(stage);
-  window.__terrario = session;
-  render(html`<${App} s=${session} />`, document.getElementById('ui'));
+  const ui = document.getElementById('ui');
+  ui.textContent = '';
+  try {
+    const session = new Session(new Stage(document.getElementById('stage')));
+    window.__terrario = session;
+    render(html`<${App} s=${session} />`, ui);
+  } catch (err) {
+    window.__terrario = { failed: err };
+    render(html`<${BootError} err=${err} />`, ui);
+  }
+}
+
+// Sin WebGL (o con el contexto bloqueado tras un fallo de la GPU) no hay escena: se explica y se ofrece recargar.
+function BootError({ err }) {
+  const gl = /WebGL/i.test(String(err?.message));
+  return html`<main class="screen result"><section class="drawer center">
+    <h3>${gl ? t('boot.gl', 'Tu navegador no deja dibujar en 3D ahora mismo') : t('boot.fail', 'El juego no pudo arrancar')}</h3>
+    <p>${gl ? t('boot.glHint', 'Cierra otras pestañas o reinicia el navegador y vuelve a intentarlo.') : String(err?.message ?? err)}</p>
+    <button class="btn primary" onClick=${() => location.reload()}>${t('boot.retry', 'Recargar')}</button>
+  </section></main>`;
 }

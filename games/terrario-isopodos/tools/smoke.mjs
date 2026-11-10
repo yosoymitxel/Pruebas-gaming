@@ -71,7 +71,7 @@ await page.getByRole('button', { name: 'Listo' }).click();
 await page.getByRole('button', { name: 'Archipiélago' }).click();
 await wait(400);
 await shot('05-archipielago');
-await page.locator('.isle-recoleccion:not(.done) button').first().click();
+await page.locator('.isle-recoleccion:not(.done) button').first().dispatchEvent('click'); // los rótulos flotan con las islas
 await page.locator('.iso-card').first().click();
 await page.getByRole('button', { name: 'Partir' }).click();
 await wait(1200);
@@ -88,7 +88,7 @@ await page.getByRole('button', { name: 'Volver al terrario' }).click();
 await wait(500);
 
 await page.getByRole('button', { name: 'Archipiélago' }).click();
-await page.locator('.isle-nido:not(.done) button').first().click();
+await page.locator('.isle-nido:not(.done) button').first().dispatchEvent('click');
 await page.getByRole('button', { name: 'Equipo recomendado' }).click();
 await shot('07b-equipo');
 await page.getByRole('button', { name: 'Partir' }).click();
