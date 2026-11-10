@@ -39,6 +39,13 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 :focus-visible { outline: 3px solid var(--rust); outline-offset: 2px; }
 
+/* Iconos */
+.icon { display: inline-block; vertical-align: -0.3em; flex: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.icon-path { stroke: var(--ink); pointer-events: none; }
+.node.here .icon-path { stroke: var(--paper); }
+.pad { display: grid; place-items: center; }
+
 /* HUD */
 .hud-top { position: relative; z-index: var(--z-hud); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; pointer-events: none; }
 .title-block { display: grid; gap: 2px; margin-right: auto; }
@@ -117,7 +124,6 @@ h3 { font-size: 26px; margin-bottom: 8px; }
 .isle .shadow { fill: var(--ink); opacity: 0.12; }
 .isle-hogar .glass { stroke-width: 0.7; }
 .isle text { font: 700 3.6px var(--hand); text-anchor: middle; fill: var(--ink); pointer-events: none; }
-.isle text.glyph { font-size: 5px; }
 .isle { cursor: pointer; outline: none; }
 .isle.sel .glass, .isle:focus-visible .glass { stroke-width: 1.2; }
 .isle.done { opacity: 0.35; cursor: default; }

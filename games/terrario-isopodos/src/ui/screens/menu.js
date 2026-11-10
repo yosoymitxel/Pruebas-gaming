@@ -1,6 +1,9 @@
 import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { spriteURL } from '../../view/sprites.js';
+import { FILTERS } from '../../view/ink.js';
+
+const FILTER_NAMES = () => ({ tinta: t('menu.filterInk', 'tinta'), crt: t('menu.filterCrt', 'CRT'), papel: t('menu.filterPaper', 'papel viejo') });
 
 export function Menu({ s }) {
   const [confirm, setConfirm] = useState(false);
@@ -16,6 +19,9 @@ export function Menu({ s }) {
         <button class=${`btn${s.saved ? '' : ' primary'}`} onClick=${start}>${confirm ? t('menu.confirmNew', '¿Borrar la partida y empezar?') : t('menu.new', 'Nueva partida')}</button>
         <button class="btn ghost" onClick=${() => s.setSetting('tactical', (s.settings.tactical ?? 'pausa') === 'pausa' ? 'lento' : 'pausa')}>
           ${t('menu.tactical', 'Pausa táctica')}: ${(s.settings.tactical ?? 'pausa') === 'pausa' ? t('menu.tacticalStop', 'detiene el tiempo') : t('menu.tacticalSlow', 'cámara lenta')}
+        </button>
+        <button class="btn ghost" onClick=${() => s.setSetting('filter', FILTERS[(FILTERS.indexOf(s.settings.filter ?? 'tinta') + 1) % FILTERS.length])}>
+          ${t('menu.filter', 'Filtro')}: ${FILTER_NAMES()[s.settings.filter ?? 'tinta']}
         </button>
         <button class="btn ghost" onClick=${() => s.setSetting('reduceMotion', !s.settings.reduceMotion)} aria-pressed=${!!s.settings.reduceMotion}>
           ${t('menu.motion', 'Movimiento reducido')}: ${s.settings.reduceMotion ? t('ui.on', 'sí') : t('ui.off', 'no')}

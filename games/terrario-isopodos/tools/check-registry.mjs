@@ -11,6 +11,7 @@ import { CARDS } from '../src/data/cards.js';
 import { BIOMES, WEATHERS, NODE_TYPES, ISLAND_KINDS } from '../src/data/world.js';
 import { PALETTES, SHELL_COLORS } from '../src/data/palettes.js';
 import { PROC_SPRITES } from '../src/view/sprites.js';
+import { ICONS } from '../src/ui/icons.js';
 
 const ATTACK_KINDS = ['slash', 'charge', 'scream', 'stomp', 'grab', 'summon'];
 const ABILITY_KINDS = ['strike', 'burst', 'heal', 'shield', 'taunt'];
@@ -51,6 +52,8 @@ export function checkRegistry() {
     for (const r of b.loot) if (!RESOURCES[r]) fail(`bioma ${id}: botín "${r}" no es un recurso`);
     for (const k of ['boss', 'elite']) if (!ABERRATIONS[b[k]]) fail(`bioma ${id}: ${k} "${b[k]}" no existe`);
   }
+  for (const [id, n] of Object.entries(NODE_TYPES)) if (!ICONS[n.icon]) fail(`nodo ${id}: icono "${n.icon}" no existe`);
+  for (const k of Object.keys(ISLAND_KINDS)) if (!ICONS[k]) fail(`isla ${k}: sin icono`);
   for (const [id, c] of Object.entries(CARDS)) if (!c.desc || !c.mods) fail(`carta ${id}: falta descripción o efecto`);
 
   const keys = Object.keys(PALETTES.cozy).sort().join();

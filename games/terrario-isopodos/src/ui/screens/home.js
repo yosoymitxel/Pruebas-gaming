@@ -5,6 +5,7 @@ import { CLASSES } from '../../data/isopods.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, beds, canAfford, nextExpansion } from '../../game/home.js';
 import { Resources, Cost, Bar, ResIcon, CamControls } from './common.js';
+import { Icon } from '../icons.js';
 
 const drag = { x: 0, moved: false, down: false };
 
@@ -69,10 +70,10 @@ export function Home({ s }) {
     </section>`}
 
     <nav class="hud-bottom">
-      <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}>${t('home.build', 'Construir')}</button>
-      <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}>${t('home.colony', 'Colonia')}</button>
-      <button class="btn primary" onClick=${() => s.goArchipelago()}>${t('home.out', 'Salir al archipiélago')}</button>
-      <button class="btn ghost icon" onClick=${() => s.goMenu()} aria-label=${t('ui.menu', 'Menú')}>☰</button>
+      <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> ${t('home.build', 'Construir')}</button>
+      <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> ${t('home.colony', 'Colonia')}</button>
+      <button class="btn primary" onClick=${() => s.goArchipelago()}><${Icon} name="out" /> ${t('home.out', 'Salir al archipiélago')}</button>
+      <button class="btn ghost icon" onClick=${() => s.goMenu()} aria-label=${t('ui.menu', 'Menú')}><${Icon} name="menu" /></button>
     </nav>
   </main>`;
 }

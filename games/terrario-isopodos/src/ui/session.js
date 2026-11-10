@@ -25,6 +25,7 @@ export class Session {
     this.saved = load();
     this.rng = mulberry32(Date.now() % 1e9);
     this.settings = loadSettings();
+    stage.setFilter(this.settings.filter ?? 'tinta');
     this.time = 0;
     this.hitstop = 0;
     this.fx = [];
@@ -141,7 +142,12 @@ export class Session {
   item(id) { const ok = useItem(this.combat, id); if (ok) this.setTactical(false); return ok; }
   switchTo(id) { switchMain(this.combat, id); this.emit(); }
 
-  setSetting(k, v) { this.settings[k] = v; try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings)); } catch {} this.emit(); }
+  setSetting(k, v) {
+    this.settings[k] = v;
+    if (k === 'filter') this.stage.setFilter(v);
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings)); } catch {}
+    this.emit();
+  }
 
   // ——— Bucle ———
   frame(now) {

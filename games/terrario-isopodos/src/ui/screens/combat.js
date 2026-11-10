@@ -8,6 +8,7 @@ import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
 import { press } from '../input.js';
 import { Bar, Stick, CamControls } from './common.js';
+import { Icon } from '../icons.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
   ${Array.from({ length: ATB_MAX }, (_, k) => html`<i class=${value >= k + 1 ? 'full' : ''}><b style=${{ width: `${Math.max(0, Math.min(1, value - k)) * 100}%` }}></b></i>`)}
@@ -43,9 +44,9 @@ export function Combat({ s }) {
     </button>`)}</section>
 
     <section class="actions-pad">
-      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}>${t('combat.rollShort', 'Rodar')}</button>
-      <button class="pad attack" onPointerDown=${hold('attack')} aria-label=${t('combat.attack', 'Atacar (J)')}>${t('combat.attackShort', 'Atacar')}</button>
-      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}>${t('combat.tacticalShort', 'Táctica')}</button>
+      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="roll" size="26" /></button>
+      <button class="pad attack" onPointerDown=${hold('attack')} aria-label=${t('combat.attack', 'Atacar (J)')}><${Icon} name="attack" size="34" /></button>
+      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="tactical" size="28" /></button>
     </section>
 
     ${s.tactical && !c.result && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>

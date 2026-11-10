@@ -1,7 +1,7 @@
 // Escenario único: un renderer, una cámara inclinada de diorama y el pase de tinta. Las escenas
 // (terrario, isla, arena) son grupos que se cambian sin recrear el contexto WebGL.
 import * as THREE from 'three';
-import { createInkPass } from './ink.js';
+import { createInkPass, FILTERS } from './ink.js';
 import { PALETTES } from '../data/palettes.js';
 
 const TILT = 0.95; // radianes desde la vertical
@@ -88,6 +88,8 @@ export class Stage {
     u.res.value.set(w * dpr, h * dpr); u.dpr.value = dpr;
     this.frame([this.target.x, this.target.z], this.distance, this.fit);
   }
+
+  setFilter(name) { this.ink.material.uniforms.look.value = Math.max(0, FILTERS.indexOf(name)); }
 
   shake(amount) { this.shakeT = Math.max(this.shakeT, amount); }
 

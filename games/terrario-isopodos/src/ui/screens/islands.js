@@ -5,6 +5,7 @@ import { ISLAND_KINDS, BIOMES, WEATHERS } from '../../data/world.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
 import { CLASSES } from '../../data/isopods.js';
 import { Bar } from './common.js';
+import { IconAt } from '../icons.js';
 
 // Cada isla es un terrario flotante dibujado a tinta: tanque (hogar), frasco (recolección), globo (nido).
 function Vessel({ isl }) {
@@ -46,7 +47,7 @@ export function Islands({ s }) {
           onKeyDown=${(e) => e.key === 'Enter' && !done(i) && (setSel(i.id), setParty([]))} aria-label=${ISLAND_KINDS[i.kind].name}>
         <${Vessel} isl=${i} />
         <text x=${i.x * 100} y=${(i.y + i.r * 1.25 + 0.05) * 100}>${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</text>
-        <text class="glyph" x=${i.x * 100} y=${i.y * 100 - i.r * 15}>${i.kind === 'nido' ? '☠' : i.kind === 'hogar' ? '⌂' : '✿'}</text>
+        <${IconAt} name=${i.kind} x=${i.x * 100} y=${i.y * 100 - i.r * 15 - 1.5} size="4.5" />
       </g>`)}
     </svg>
 

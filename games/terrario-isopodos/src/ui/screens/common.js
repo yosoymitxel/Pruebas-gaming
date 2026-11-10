@@ -4,6 +4,7 @@ import { RESOURCES } from '../../data/resources.js';
 import { resourceIconURL } from '../../view/sprites.js';
 import { setStick } from '../input.js';
 import { t } from '../../i18n/index.js';
+import { Icon } from '../icons.js';
 
 export const ResIcon = ({ res }) => html`<img class="res-icon" src=${resourceIconURL(res)} alt="" aria-hidden="true" />`;
 
@@ -60,8 +61,8 @@ export function Stick() {
 
 // Girar y acercar la cámara (también Q/E y la rueda).
 export const CamControls = ({ s }) => html`<div class="cam-controls" role="group" aria-label=${t('ui.camera', 'Cámara')}>
-  <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}>⟲</button>
-  <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}>⟳</button>
-  <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}>+</button>
-  <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}>−</button>
+  <button class="btn icon" onClick=${() => s.stage.rotate(-Math.PI / 4)} aria-label=${t('ui.turnLeft', 'Girar a la izquierda (Q)')}><${Icon} name="turnLeft" /></button>
+  <button class="btn icon" onClick=${() => s.stage.rotate(Math.PI / 4)} aria-label=${t('ui.turnRight', 'Girar a la derecha (E)')}><${Icon} name="turnRight" /></button>
+  <button class="btn icon" onClick=${() => s.stage.zoom(0.85)} aria-label=${t('ui.zoomIn', 'Acercar')}><${Icon} name="zoomIn" /></button>
+  <button class="btn icon" onClick=${() => s.stage.zoom(1 / 0.85)} aria-label=${t('ui.zoomOut', 'Alejar')}><${Icon} name="zoomOut" /></button>
 </div>`;
