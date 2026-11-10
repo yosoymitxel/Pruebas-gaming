@@ -9,15 +9,17 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Escena:** diorama 3D dentro del recipiente: suelo en terrazas, colinas y vegetación junto al vidrio, capas
   de drenaje visibles, sombras proyectadas y niebla que aclara lo lejano. Cámara inclinada que gira (Q/E, arrastre)
   y acerca. El pase de tinta (`src/view/ink.js`) pone contorno, punteado en las sombras y aguada sobre papel.
-- **Dos tonos:** cozy en el terrario y las islas (papel cálido, color tenue); terror en el nido (color retirado,
-  viñeta, puntos que tiemblan).
+- **Dos tonos:** cozy en el terrario y las islas (color vivo: verde claro, camino de tierra rojiza, acentos rojos);
+  terror en el nido (color retirado, más punteado, viñeta cerrada).
 - **Personajes:** recortes de papel de pie sobre el diorama. Isópodos dibujados en código con el mismo trazo;
   aberraciones = los dibujos escaneados, rectos y sin papel.
-- **Fondo:** el vacío nunca es plano: papel con grano y la textura del clima (motas, lluvia, niebla; venas de
-  tinta en los nidos).
+- **Fondo:** oscuridad alrededor del diorama (noche con grano y textura del clima); mar con olas en el
+  archipiélago; venas de tinta en los nidos. La interfaz sigue en papel.
 - **Referencia Cult of the Lamb (estructura, no arte):** tilt-shift arriba y abajo (maqueta), personajes de papel
   que respiran y se aplastan al golpear, estela al rodar, manchas que quedan en el suelo, nidos enmarcados por
-  raíces oscuras y antorchas, bocadillos de necesidad sobre la colonia.
+  raíces oscuras y antorchas, bocadillos de necesidad sobre la colonia, vegetación de recorte densa en los bordes
+  (`view/flora.js`), camino pintado, rombos en los mapas (nido sobre fondo oscuro con runas rojas; islas con cartel
+  de título en cinta) y reloj de día.
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en el menú.
 - **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
   ≥ 48 px, foco visible, movimiento reducido respetado.

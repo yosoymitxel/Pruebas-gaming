@@ -9,7 +9,7 @@ import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
 
 // Rótulos sin solaparse en pantalla: de arriba abajo, cada uno baja lo justo si choca con uno ya puesto.
-const LABEL_W = 120, LABEL_H = 34;
+const LABEL_W = 130, LABEL_H = 66;
 function spread(list) {
   const placed = [], out = {};
   for (const l of [...list].sort((a, b) => a.y - b.y)) {
@@ -39,7 +39,7 @@ export function Islands({ s }) {
       const p = pos[i.id];
       return html`<li class=${`isle-label isle-${i.kind}${sel === i.id ? ' sel' : ''}${done(i) ? ' done' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px` }}>
         <button disabled=${done(i)} aria-pressed=${sel === i.id} onClick=${() => { setSel(i.id); setParty([]); }}>
-          <${Icon} name=${i.kind} size="16" /> ${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}
+          <span class="gem"><${Icon} name=${i.kind} size="18" /></span><span class="nm">${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</span>
         </button>
       </li>`;
     })}</ul>

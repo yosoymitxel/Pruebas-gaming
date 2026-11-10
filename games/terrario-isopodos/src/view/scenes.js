@@ -116,7 +116,7 @@ const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
 
 export class HomeView extends GridScene {
   constructor(stage, home) {
-    super(stage, home.grid, 17, { rim: 1, weather: home.weather });
+    super(stage, home.grid, 17, { rim: 1, relief: 0, weather: home.weather });
     this.home = home;
   }
 

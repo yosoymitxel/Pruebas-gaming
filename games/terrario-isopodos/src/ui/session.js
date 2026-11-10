@@ -52,7 +52,7 @@ export class Session {
     this.mode = mode;
     this.view = view;
     this.stage.setMood(mood);
-    this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mood >= 0.6 ? 'terror' : 'cozy');
+    this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
     this.emit();
   }
