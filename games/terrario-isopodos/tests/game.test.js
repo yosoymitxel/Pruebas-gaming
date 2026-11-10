@@ -151,3 +151,25 @@ test('día y noche: el reloj avanza, de noche se produce menos, dormir lleva al 
   visit(g, nest.id);
   assert.ok(g.clock > before, 'un viaje gasta tiempo');
 });
+
+test('arenas: cada tipo deja libres las salidas, las raíces cortan el paso y las charcas queman a todos', async () => {
+  const { layoutArena } = await import('../src/game/arena.js');
+  const { ARENAS } = await import('../src/data/arenas.js');
+  const { createCombat, step } = await import('../src/game/combat.js');
+  for (const kind of Object.keys(ARENAS)) for (let seed = 1; seed < 30; seed++) {
+    const a = layoutArena(kind, seed);
+    assert.equal(a.pillars.length, ARENAS[kind].pillars, `${kind} con todas sus raíces`);
+    for (const o of [...a.pillars, ...a.pools]) assert.ok(Math.hypot(o.x, o.y - 4) > o.r + 0.5, `${kind}: el equipo empieza libre`);
+  }
+  const party = [{ id: 1, cls: 'rodador', name: 'a', hp: 70, maxHp: 70 }];
+  const c = createCombat({ party, enemies: ['larva'], seed: 3, arena: 'charcas' });
+  const pool = c.arena.pools[0], foe = c.actors.find((x) => x.side === 'enemy');
+  Object.assign(foe, { x: pool.x, y: pool.y, state: 'stagger' });
+  const hp = foe.hp;
+  for (let k = 0; k < 40; k++) { foe.x = pool.x; foe.y = pool.y; step(c, 1 / 60); }
+  assert.ok(foe.hp < hp, 'la charca daña a la aberración');
+  const r = createCombat({ party, enemies: ['larva'], seed: 3, arena: 'raices' }), p = r.arena.pillars[0], me = r.actors[0];
+  Object.assign(me, { x: p.x, y: p.y + 0.01 });
+  step(r, 1 / 60);
+  assert.ok(Math.hypot(me.x - p.x, me.y - p.y) >= p.r + me.r - 1e-6, 'la raíz empuja fuera');
+});

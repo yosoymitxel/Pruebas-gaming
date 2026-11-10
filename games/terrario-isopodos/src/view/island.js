@@ -179,3 +179,36 @@ export function arena(radius, seed = 1) {
   }
   return group;
 }
+
+// Lo que trae cada arena (game/arena.js): raíces que cortan el paso, charcas de esporas que brillan y un pozo
+// oscuro con borde de piedras. En el mundo, y del plano: x = x, z = y.
+export function arenaFeatures({ pillars, pools, pit }, seed = 1) {
+  const g = new THREE.Group(), rng = mulberry32(seed + 5), T = PALETTES.terror;
+  const plants = [];
+  for (const p of pillars) {
+    const h = 1.6 + rng() * 1.2;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 0.75, p.r, h, 7), lambert(T.bark));
+    trunk.position.set(p.x, h / 2, p.y); trunk.castShadow = trunk.receiveShadow = true;
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(p.r * 1.25, 0.6, 7), lambert(T.moss));
+    cap.position.set(p.x, h + 0.2, p.y); cap.castShadow = true;
+    g.add(trunk, cap);
+    for (let k = 0; k < 4; k++) { const a = rng() * Math.PI * 2; plants.push([p.x + Math.cos(a) * (p.r + 0.15), 0, p.y + Math.sin(a) * (p.r + 0.15), 0.4 + rng() * 0.3, FLORA[k % FLORA.length], rng() * 3]); }
+  }
+  const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(P.grass).lerp(new THREE.Color(P.amber), 0.25), transparent: true, opacity: 0.55, depthWrite: false });
+  for (const p of pools) {
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(p.r, 24).rotateX(-Math.PI / 2), glow);
+    disc.position.set(p.x, 0.03, p.y);
+    const rim = new THREE.Mesh(new THREE.RingGeometry(p.r * 0.96, p.r * 1.08, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: P.ink, transparent: true, opacity: 0.6 }));
+    rim.position.set(p.x, 0.035, p.y);
+    g.add(disc, rim);
+    g.userData.pools = [...(g.userData.pools ?? []), disc];
+  }
+  if (pit) {
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(pit, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: T.ink }));
+    hole.position.y = 0.025; g.add(hole);
+    const n = Math.round(pit * 12), geo = new THREE.DodecahedronGeometry(0.16, 0);
+    for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2, st = new THREE.Mesh(geo, lambert(T.stone)); st.position.set(Math.cos(a) * (pit + 0.1), 0.06, Math.sin(a) * (pit + 0.1)); st.castShadow = true; g.add(st); }
+  }
+  if (plants.length) g.add(flora(plants));
+  return g;
+}

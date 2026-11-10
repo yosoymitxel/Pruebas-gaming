@@ -4,6 +4,7 @@
 import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
+import { ARENAS } from '../../data/arenas.js';
 import { ABILITIES, ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
@@ -42,6 +43,7 @@ export function Combat({ s }) {
         <i class="hp" style=${{ width: `${(e.hp / e.maxHp) * 100}%` }}></i><i class="st" style=${{ width: `${((e.staggered > 0 ? e.staggerMax : e.stagger) / e.staggerMax) * 100}%` }}></i></div>`;
     })}</div>
     ${s.combo?.n >= 2 && s.time - s.combo.at < 1.4 && html`<div class="combo" key=${s.combo.n} aria-hidden="true"><b>×${s.combo.n}</b><small>${t('combat.combo', 'golpes')}</small></div>`}
+    ${!boss && c.t < 2.2 && html`<div class="arena-name" aria-live="polite"><b>${ARENAS[c.arena.kind].name}</b><small>${ARENAS[c.arena.kind].hint}</small></div>`}
     ${s.cleared && html`<div class="cleared" aria-live="polite"><b>${t('combat.cleared', 'Sala despejada')}</b></div>`}
     ${s.hurtAt && s.time - s.hurtAt < 0.3 && html`<div class="hurt-flash" aria-hidden="true"></div>`}
 

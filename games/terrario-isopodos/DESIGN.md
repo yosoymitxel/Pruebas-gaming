@@ -25,4 +25,12 @@ El juego tiene que parecer dibujado en el cuaderno del dueño: tinta negra, punt
 - **Filtros:** tinta (por defecto), CRT y papel viejo, en Ajustes y en la pausa.
 - **Interfaz:** papel, borde de tinta y sombra dura; títulos a mano (Caveat), datos en sans. Botones táctiles
   ≥ 48 px, foco visible, movimiento reducido respetado.
-- **Combate legible:** cada ataque enemigo se anuncia en el suelo (≥ 0,4 s) y se llena mientras carga.
+- **Combate legible:** cada ataque enemigo se anuncia en el suelo (≥ 0,4 s) y se llena mientras carga. La
+  interfaz se aparta: vida pegada a cada aberración, barra de la guardiana arriba, equipo en fichas chicas y un
+  anillo bajo el isópodo que controlas. Cada golpe responde: destello blanco, número grande, efecto de píxel
+  (pixelfx, `src/vendor/pixelfx`), combo, y cámara lenta con cartel al despejar la sala.
+- **Arenas:** claro, raíces (cobertura), charcas de esporas (queman a todos), hondonada (pelea en anillo) y maraña;
+  se anuncian al entrar con una pista (`src/data/arenas.js`).
+- **Cartas:** el sistema de KureiChaosChess: marco por tipo, gema y borde por rareza, reparto boca abajo.
+- **Efectos de píxel:** pixelfx en tiempo real y las reglas de pixel-studio (rampas de paleta, a los fps del
+  efecto); se registran en `src/data/vfx.js`.

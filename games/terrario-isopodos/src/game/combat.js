@@ -4,6 +4,8 @@
 import { ABERRATIONS } from '../data/aberrations.js';
 import { ABILITIES, ITEMS } from '../data/abilities.js';
 import { CLASSES } from '../data/isopods.js';
+import { layoutArena } from './arena.js';
+import { POOL } from '../data/arenas.js';
 import { mulberry32 } from '../core/rng.js';
 import { bump } from '../core/physics.js';
 
@@ -14,8 +16,8 @@ const ROLL = { time: 0.32, invuln: 0.3, speed: 9, cooldown: 0.5 };
 const COMBO = [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }];
 const REACH = 1.25;
 
-export function createCombat({ party, enemies, mods = {}, enemyHpMul = 1, items = {}, seed = 1 }) {
-  const c = { t: 0, rng: mulberry32(seed), actors: [], events: [], items: { ...items }, mods, result: null, nextId: 1, main: 0 };
+export function createCombat({ party, enemies, mods = {}, enemyHpMul = 1, items = {}, seed = 1, arena = 'claro' }) {
+  const c = { t: 0, rng: mulberry32(seed), actors: [], events: [], items: { ...items }, mods, result: null, nextId: 1, main: 0, arena: layoutArena(arena, seed), poolT: 0 };
   party.forEach((p, i) => addAlly(c, p, i, party.length));
   enemies.forEach((kind, i) => addEnemy(c, kind, (i - (enemies.length - 1) / 2) * 2.2, -3, enemyHpMul));
   c.main = c.actors[0].id;
@@ -60,6 +62,7 @@ export function step(c, dt, input = {}) {
   if (input.switchTo) switchMain(c, input.switchTo);
   for (const a of c.actors) if (alive(a)) a.side === 'ally' ? tickAlly(c, a, dt, a === main ? input : null) : tickEnemy(c, a, dt);
   physics(c, dt);
+  hazards(c, dt);
   if (!enemies(c).length) finish(c, 'win');
   else if (!allies(c).some(alive)) finish(c, 'lose');
 }
@@ -318,6 +321,18 @@ function apply(c, a, ab) {
   }
 }
 
+// Charcas de esporas: cada medio segundo queman a quien esté dentro, sea del bando que sea.
+function hazards(c, dt) {
+  if (!c.arena.pools.length || (c.poolT += dt) < POOL.tick) return;
+  c.poolT = 0;
+  for (const a of c.actors) {
+    if (!alive(a) || !c.arena.pools.some((p) => Math.hypot(a.x - p.x, a.y - p.y) < p.r + a.r * 0.4)) continue;
+    const dmg = POOL.dps * POOL.tick;
+    if (a.side === 'enemy') hurtEnemy(c, a, dmg, 0.3, null);
+    else hurtAlly(c, a, dmg / (c.mods.enemyDamageMul ?? 1), null);
+  }
+}
+
 function physics(c, dt) {
   const live = c.actors.filter((a) => alive(a) || a.side === 'ally');
   for (const a of live) {
@@ -326,6 +341,12 @@ function physics(c, dt) {
     if (a.kbx) { const k = Math.exp(-dt * 10); a.kbx *= k; a.kby *= k; if (Math.abs(a.kbx) + Math.abs(a.kby) < 0.05) a.kbx = a.kby = 0; }
     const d = Math.hypot(a.x, a.y), max = ARENA_R - a.r;
     if (d > max) { a.x *= max / d; a.y *= max / d; }
+    const { pillars, pit } = c.arena;
+    if (pit && d < pit + a.r) { const k = (pit + a.r) / Math.max(d, 0.01); a.x = (a.x || 0.01) * k; a.y *= k; }
+    for (const p of pillars) {
+      const dx = a.x - p.x, dy = a.y - p.y, dd = Math.hypot(dx, dy), min = p.r + a.r;
+      if (dd < min) { a.x = p.x + (dx / (dd || 1)) * min; a.y = p.y + (dy / (dd || 1)) * min; }
+    }
   }
   const solid = live.filter((a) => a.state !== 'down' && !(a.held > 0));
   for (let i = 0; i < solid.length; i++) {

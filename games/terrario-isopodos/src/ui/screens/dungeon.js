@@ -11,6 +11,7 @@ import { nextNodes, enemiesFor, LAYERS } from '../../game/dungeon.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Bar, Loot, ResIcon, PauseButton } from './common.js';
 import { Icon, IconAt } from '../icons.js';
+import { CardPick, CardFace } from './cards.js';
 
 const X = (n) => 10 + n.x * 80, Y = (n) => 93 - (n.layer / (LAYERS - 1)) * 84;
 // Rombo de lado `r` (como el selector de niveles de Cult of the Lamb) y runas rojas sueltas por la página.
@@ -78,14 +79,11 @@ export function Dungeon({ s }) {
 
     <footer class="run-bar">
       <span class="chips">${Object.entries(run.items).map(([id, n]) => html`<span class="chip"><${Icon} name="items" size="16" />${ITEMS[id].name} ×${n}</span>`)}</span>
-      ${run.cards.length > 0 && html`<span class="chips">${run.cards.map((id) => html`<span class="chip card" title=${CARDS[id].desc}><${Icon} name="carta" size="16" />${CARDS[id].name}</span>`)}</span>`}
+      ${run.cards.length > 0 && html`<span class="hand">${run.cards.map((id) => html`<span class="hand-card" title=${`${CARDS[id].name}: ${CARDS[id].desc}`}><${CardFace} id=${id} mini /></span>`)}</span>`}
       <span class="chips">${Object.entries(run.loot).map(([r, n]) => html`<span class="chip"><${ResIcon} res=${r} />×${n}</span>`)}</span>
       <button class="btn ghost" onClick=${() => s.retreat()}>${t('dungeon.retreat', 'Retirarse con el botín')}</button>
     </footer>
 
-    ${run.state === 'card' && html`<section class="drawer center cards" aria-label=${t('dungeon.pickCard', 'Elige una carta')}>
-      <h3>${t('dungeon.pickCard', 'Elige una carta')}</h3>
-      <div class="card-row">${run.offer.map((id) => html`<button class="game-card" onClick=${() => s.chooseCard(id)}><${Icon} name="carta" size="28" /><b>${CARDS[id].name}</b><span>${CARDS[id].desc}</span></button>`)}</div>
-    </section>`}
+    ${run.state === 'card' && html`<${CardPick} title=${t('dungeon.pickCard', 'Elige una carta')} cards=${run.offer} onConfirm=${(id) => s.chooseCard(id)} />`}
   </main>`;
 }

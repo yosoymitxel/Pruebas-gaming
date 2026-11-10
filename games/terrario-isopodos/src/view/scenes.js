@@ -1,7 +1,7 @@
 // Las tres escenas del mundo: terrario, isla de recolección y arena. Solo dibujan el estado que les
 // pasan; las reglas viven en src/game.
 import * as THREE from 'three';
-import { islandFromGrid, arena } from './island.js';
+import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
@@ -231,6 +231,8 @@ export class CombatView {
     this.c = combat;
     this.group = new THREE.Group();
     this.group.add(arena(ARENA_R, seed));
+    this.features = arenaFeatures(combat.arena, seed);
+    this.group.add(this.features);
     if (vessel === 'diorama') this.group.add(floatingRock(ARENA_R + 2, ARENA_R * 1.1, mulberry32(seed)));
     else { this.group.add(jar(ARENA_R + 2.3, 1.8)); this.shine = jarShine(ARENA_R + 2.3, 1.8); this.group.add(this.shine); }
     this.actors = new ActorLayer(this.group);
@@ -290,6 +292,7 @@ export class CombatView {
 
   update(time, dt) {
     if (!this.still) sway.value += dt;
+    for (const d of this.features.userData.pools ?? []) d.material.opacity = 0.45 + Math.sin(time * 3) * 0.12; // la charca late
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
     const main = this.c.actors.find((a) => a.id === this.c.main);
     if (main) { this.marker.position.x = main.x; this.marker.position.z = main.y; this.marker.rotation.y = -main.facing; }
