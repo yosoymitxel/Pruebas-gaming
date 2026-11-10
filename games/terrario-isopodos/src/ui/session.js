@@ -79,7 +79,7 @@ export class Session {
     if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
-    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else { this.selPiece = m.piece; this.emit(); } } else if (m.iso != null) this.selectIso(m.iso); };
+    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else { this.selPiece = m.piece; this.emit(); } } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -410,6 +410,7 @@ export class Session {
     this.view?.update(this.time, dt);
     if (this.fx.length) this.fx = this.fx.filter((f) => this.time - f.at < 0.9);
     this.stage.render(this.time, dt);
+    this.view?.markers?.place();
     this.hudTimer = (this.hudTimer ?? 0) + dt;
     if (this.toastAch && this.time - this.toastAch.at < 3.4) this.hudTimer += 0.1; // que el cartel se vaya a tiempo
     if (this.hudTimer > 0.08 && (this.toastAch || this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }

@@ -999,3 +999,41 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 @keyframes day-wipe { 0% { transform: translateX(-120%); } 42%, 58% { transform: translateX(0); } 100% { transform: translateX(120%); } }
 @keyframes day-num { 0%, 30% { opacity: 0; scale: 0.8; } 45%, 60% { opacity: 1; scale: 1; } 75%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .day-wipe { display: none; } }
+
+/* Sin selección de texto ni resaltado de toque en el juego (se abría el buscador al mantener pulsado). */
+html, body, #ui { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+.marker { outline: none !important; -webkit-tap-highlight-color: transparent; touch-action: none; }
+.marker:active { scale: 1; filter: brightness(0.9); }
+.marker.m-pickup { width: 24px; height: 24px; margin: -12px 0 0 -12px; border-width: 1.5px; --mk: rgb(29 26 22 / 0.5); box-shadow: 0 2px 4px rgb(10 8 6 / 0.4); }
+.marker.m-pickup::after { display: none; }
+.marker.m-pickup img { width: 15px; height: 15px; animation: none; }
+
+/* Combate: equipo arriba a la izquierda (bajo el minimapa) en fichas chicas sin nombre; la palanca queda libre.
+   Respuesta: golpe = sacudida y destello rojo; vida baja = late en rojo; carga llena = brillo azul; caído = gris con ✕. */
+.combat .team { top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px) !important; bottom: auto !important; left: max(var(--gap), env(safe-area-inset-left)) !important;
+  grid-auto-flow: row !important; width: 132px !important; gap: 5px !important; }
+.combat .member { grid-template-columns: 34px 1fr !important; grid-template-areas: 'img hp' 'img atb' !important; padding: 4px 8px 5px 4px !important; min-height: 0; gap: 3px 6px !important; }
+.combat .member .face { grid-area: img; position: relative; display: grid; place-items: center; }
+.combat .member .face img { width: 34px; }
+.combat .member .face .x { position: absolute; font: 800 18px/1 var(--sans); font-style: normal; color: #9a2a1c; }
+.combat .member .hp { grid-area: hp; } .combat .member .hp .bar { height: 8px; }
+.combat .member .atb { grid-area: atb; }
+.combat .member.hit { animation: mem-hit 340ms ease-out; }
+.combat .member.hit::after { background: #f2b3a6 !important; }
+.combat .member.low:not(.down) .hp .bar i { animation: attn 0.8s ease-in-out infinite; background: #c2412f; }
+.combat .member.ready { filter: drop-shadow(0 0 6px rgb(79 143 214 / 0.9)); }
+.combat .member.down { opacity: 0.55; filter: grayscale(1); }
+@keyframes mem-hit { 20% { translate: -4px 0; } 40% { translate: 4px 0; } 60% { translate: -2px 0; } 100% { translate: 0; } }
+.ko-banner { position: absolute; z-index: var(--z-fx); left: 50%; top: 30%; translate: -50% 0; padding: 8px 18px; color: #efe6d2; background: #0d0c0b;
+  font: 600 16px/1 var(--sans); clip-path: polygon(0 6px, 6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); animation: ko 1.6s ease-out forwards; pointer-events: none; }
+.ko-banner b { font: 700 24px/1 var(--hand); color: #f2b3a6; }
+@keyframes ko { 0% { opacity: 0; scale: 1.3; } 12% { opacity: 1; scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+/* Pausa táctica: hoja baja y translúcida sobre los botones, sin tapar el centro de la arena. */
+.tactic-menu { top: auto !important; bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 96px) !important; left: 50% !important; transform: translateX(-50%) !important;
+  width: min(94vw, 520px) !important; max-height: 46vh !important; display: grid !important; gap: 6px !important; padding: 10px 12px !important; background: rgb(239 230 210 / 0.82) !important; animation: none !important; }
+.tactic-menu .tm-member { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tactic-menu .tm-member > b { font: 700 13px/1 var(--sans); min-width: 64px; }
+.tactic-menu .btn { min-height: 40px; padding: 0 10px; font-size: 13px; }
+.tactic-menu > .btn.ghost { justify-self: end; min-height: 36px; }
+@media (prefers-reduced-motion: reduce) { .combat .member.hit, .ko-banner { animation: none; } }
