@@ -881,3 +881,21 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .maxed-s { font-size: 11px; font-weight: 700; color: var(--ui-accent); }
 .strata li.fix-target { clip-path: none; background: rgb(19 112 111 / 0.1); box-shadow: inset 0 0 0 1px rgb(19 112 111 / 0.4); }
 @media (max-width: 560px) { .strata li { grid-template-columns: 28px 1fr auto !important; gap: var(--s2) !important; } .strata li .btn, .strata li > small { grid-column: auto !important; justify-self: end !important; } }
+
+/* Exploración: título y pausa arriba (pausa en la esquina), recursos y tiempo debajo (tiempo a la derecha). */
+.gather .hud-top { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title pause" "res timer"; align-items: center; gap: var(--s2) var(--s3); }
+.gather .hud-top .title-block { grid-area: title; }
+.gather .hud-top .pause-btn { grid-area: pause; justify-self: end; }
+.gather .hud-top .resources { grid-area: res; justify-self: start; }
+.gather .hud-top .timer { grid-area: timer; justify-self: end; min-width: 96px; text-align: right; }
+.gather .timer .bar { width: 100%; }
+
+/* Bordes más finos: la losa es el mismo recorte que la cara, apenas corrido (sombra de tinta de 2 px). */
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .tab.on, .slot, .pause-btn)::before { clip-path: var(--qb) !important; inset: 0 !important; translate: 2px 2px; }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .tab.on, .slot, .pause-btn)::after { inset: 0 2px 2px 0 !important; box-shadow: inset 0 0 0 1px rgb(29 26 22 / 0.35); }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::before { translate: 3px 3px; animation: none; }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::after { animation: jolt 260ms steps(2); }
+.card-btn, .iso-card, .skill { --slab: rgb(29 26 22 / 0.45); }
+.btn.ghost { --slab: rgb(29 26 22 / 0.3); }
+.slot { --slab: rgb(29 26 22 / 0.2); }
+.hud-bottom .btn { filter: drop-shadow(0 4px 6px rgb(10 8 6 / 0.35)); }
