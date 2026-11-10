@@ -14,7 +14,8 @@ import { read } from './input.js';
 import { t } from '../i18n/index.js';
 import { Group } from 'three';
 
-const SLOW = 0.1;
+// Pausa táctica: «pausa» detiene el tiempo (como por turnos); «lento» lo deja al 10 %.
+const TACTICAL_SPEED = { pausa: 0, lento: 0.1 };
 
 export class Session {
   constructor(stage) {
@@ -46,7 +47,11 @@ export class Session {
   continueGame() { this.game = this.saved; this.goHome(); }
   persist() { if (this.game) save(this.game); }
 
-  goHome() { this.build = null; this.setMode('home', new HomeView(this.stage, this.game.home), 0); }
+  goHome() {
+    this.build = null;
+    this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
+    this.setMode('home', new HomeView(this.stage, this.game.home), 0);
+  }
   goArchipelago() { this.setMode('islands', null, 0.1); }
   goMenu() { this.persist(); this.saved = load(); this.setMode('menu', null, 0); }
 
@@ -77,6 +82,8 @@ export class Session {
     });
     if (!piece) return null;
     const n = collect(home, piece.id);
+    const f = footprint(piece.type, piece.rot);
+    this.view.burst('pickup', piece.x + f.w / 2, piece.y + f.h / 2);
     this.persist(); this.emit();
     return { res: BUILDINGS[piece.type].produces.res, n };
   }
@@ -111,7 +118,7 @@ export class Session {
     if (this.run.state === 'combat') {
       this.combat = createCombat(combatSetup(this.run));
       this.tactical = false;
-      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed), 1);
+      this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather), 1);
     } else this.emit();
   }
   chooseCard(id) { pickCard(this.run, id); this.emit(); }
@@ -161,14 +168,20 @@ export class Session {
     for (const [k, n] of [['p1', 0], ['p2', 1], ['p3', 2]]) if (input[k]) { const a = allies(c)[n]; if (a) switchMain(c, a.id); }
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
     const from = c.events.length;
-    step(c, dt * (this.tactical ? SLOW : 1), this.tactical ? {} : input);
+    step(c, dt * (this.tactical ? TACTICAL_SPEED[this.settings.tactical ?? 'pausa'] : 1), this.tactical ? {} : input);
     for (const ev of c.events.slice(from)) {
       if (ev.type === 'hit') {
         this.view.hit(ev.id);
         const a = c.actors.find((x) => x.id === ev.id);
+        this.view.burst(a.side === 'ally' ? 'hurt' : ev.amount >= 20 ? 'heavy' : 'hit', ev.id);
         this.fx.push({ id: Math.random(), x: a.x, z: a.y, text: ev.amount, kind: a.side, at: this.time, big: ev.staggered });
-        if (a.side === 'enemy' && !this.settings.reduceMotion) this.hitstop = 0.05;
-      } else if (ev.type === 'stagger') this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.staggerFx', '¡Aturdida!'), kind: 'note', at: this.time });
+        if (!this.settings.reduceMotion) {
+          if (a.side === 'enemy') this.hitstop = 0.05;
+          if (a.side === 'ally' && ev.heavy) this.stage.shake(0.35);
+        }
+      } else if (ev.type === 'stagger') { this.view.burst('spark', ev.id); if (!this.settings.reduceMotion) this.stage.shake(0.25); this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.staggerFx', '¡Aturdida!'), kind: 'note', at: this.time }); }
+      else if (ev.type === 'death') this.view.burst('death', ev.id);
+      else if (ev.type === 'ability' || ev.type === 'item') this.view.burst(['rocio', 'gota'].includes(ev.ability ?? ev.item) ? 'heal' : 'spark', ev.id);
       else if (ev.type === 'dodge') this.fx.push({ id: Math.random(), ...pos(c, ev.id), text: t('combat.dodgeFx', 'Esquiva'), kind: 'note', at: this.time });
     }
     this.fx = this.fx.filter((f) => this.time - f.at < 0.9);

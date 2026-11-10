@@ -21,6 +21,7 @@ export class Stage {
     this.distance = 22;
     this.yaw = 0;
     this.zoomK = 1;
+    this.shakeT = 0;
     this.root = new THREE.Group();
     this.scene.add(this.root);
     const sun = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -88,8 +89,17 @@ export class Stage {
     this.frame([this.target.x, this.target.z], this.distance, this.fit);
   }
 
+  shake(amount) { this.shakeT = Math.max(this.shakeT, amount); }
+
   render(time) {
     const u = this.ink.material.uniforms;
+    if (this.shakeT > 0) {
+      this.frame([this.target.x, this.target.z], this.distance, this.fit);
+      this.shakeT = Math.max(0, this.shakeT - 1 / 60);
+      const k = this.shakeT * 0.6;
+      this.camera.position.x += (Math.random() - 0.5) * k; this.camera.position.y += (Math.random() - 0.5) * k;
+      if (!this.shakeT) this.frame([this.target.x, this.target.z], this.distance, this.fit);
+    }
     u.time.value = time; u.near.value = this.camera.near; u.far.value = this.camera.far;
     u.fogNear.value = this.camDist * 0.95; u.fogFar.value = this.camDist * 1.5;
     this.renderer.setRenderTarget(this.rt);

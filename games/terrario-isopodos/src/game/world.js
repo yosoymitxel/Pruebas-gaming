@@ -4,7 +4,7 @@ import { mulberry32, pickFrom } from '../core/rng.js';
 
 export function genArchipelago(seed, day) {
   const rng = mulberry32(seed * 977 + day);
-  const islands = [{ id: 'hogar', kind: 'hogar', x: 0.5, y: 0.78, r: 0.13, biome: 'hojarasca', weather: 'claro', seed: seed }];
+  const islands = [{ id: 'hogar', kind: 'hogar', x: 0.5, y: 0.78, r: 0.13, biome: 'hojarasca', weather: pickFrom(rng, Object.keys(WEATHERS)), seed: seed }];
   const kinds = ['recoleccion', 'recoleccion', 'nido', rng() < 0.5 ? 'nido' : 'recoleccion'];
   kinds.forEach((kind, i) => {
     for (let tries = 0; tries < 60; tries++) {

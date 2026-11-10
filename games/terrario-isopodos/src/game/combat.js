@@ -109,7 +109,7 @@ function tickSwing(c, a, dt) {
     const hit = COMBO[a.combo];
     for (const e of enemies(c)) {
       if (dist(a, e) <= REACH + e.r && angleDiff(Math.atan2(e.y - a.y, e.x - a.x), a.facing) < 1.1) {
-        hurtEnemy(c, e, a.damage * hit.mul, 1);
+        hurtEnemy(c, e, a.damage * hit.mul, 1, a);
         a.atb = Math.min(ATB_MAX, a.atb + (a.id === c.main ? 0.2 : 0.12) * atbMul(c));
       }
     }
@@ -243,13 +243,22 @@ function holdGrab(c, e, dt) {
   if ((e.grabTick -= dt) <= 0) { e.grabTick = 0.25; hurtAlly(c, v, e.attack.damage * 0.5, e); }
 }
 
+// Retroceso: empuje que se suma al movimiento y se apaga solo (lo pesado se mueve menos).
+function knock(target, from, force) {
+  if (!from) return;
+  const d = Math.hypot(target.x - from.x, target.y - from.y) || 1;
+  target.kbx = (target.kbx ?? 0) + ((target.x - from.x) / d) * force;
+  target.kby = (target.kby ?? 0) + ((target.y - from.y) / d) * force;
+}
+
 function hurtAlly(c, a, amount, from) {
   if (a.invuln > 0) { emit(c, 'dodge', { id: a.id }); return { dodged: true }; }
   const absorbed = Math.min(a.shield, amount);
   a.shield -= absorbed;
   const dmg = Math.round(amount - absorbed);
   a.hp = Math.max(0, a.hp - dmg);
-  emit(c, 'hit', { id: a.id, amount: dmg, from: from?.id });
+  emit(c, 'hit', { id: a.id, amount: dmg, from: from?.id, heavy: dmg >= 15 });
+  knock(a, from, Math.min(9, 2 + dmg * 0.25));
   if (a.hp <= 0) {
     a.state = 'down'; a.vx = a.vy = 0; a.held = 0;
     emit(c, 'down', { id: a.id });
@@ -258,8 +267,9 @@ function hurtAlly(c, a, amount, from) {
   return { dodged: false };
 }
 
-function hurtEnemy(c, e, amount, staggerMul) {
+function hurtEnemy(c, e, amount, staggerMul, from) {
   const dmg = Math.round(amount * (e.staggered > 0 ? STAGGER_DAMAGE : 1));
+  knock(e, from, (amount * 0.35) / ABERRATIONS[e.kind].radius ** 2);
   e.hp = Math.max(0, e.hp - dmg);
   if (e.grabbed) e.hurtDuringGrab += dmg;
   emit(c, 'hit', { id: e.id, amount: dmg, staggered: e.staggered > 0 });
@@ -296,8 +306,8 @@ export function useItem(c, itemId) {
 function apply(c, a, ab) {
   const team = allies(c).filter(alive);
   switch (ab.kind) {
-    case 'strike': { const e = nearest(a, enemies(c).filter((x) => dist(a, x) <= ab.range + x.r)); if (e) hurtEnemy(c, e, ab.power, ab.staggerMul); break; }
-    case 'burst': for (const e of enemies(c)) if (dist(a, e) <= ab.range + e.r) hurtEnemy(c, e, ab.power, ab.staggerMul); break;
+    case 'strike': { const e = nearest(a, enemies(c).filter((x) => dist(a, x) <= ab.range + x.r)); if (e) hurtEnemy(c, e, ab.power, ab.staggerMul, a); break; }
+    case 'burst': for (const e of enemies(c)) if (dist(a, e) <= ab.range + e.r) hurtEnemy(c, e, ab.power, ab.staggerMul, a); break;
     case 'heal': for (const t of team) t.hp = Math.min(t.maxHp, t.hp + ab.power); break;
     case 'shield': for (const t of team) { t.shield = ab.power; t.shieldT = ab.time; } break;
     case 'taunt': a.taunt = ab.time; for (const e of enemies(c)) e.target = a; break;
@@ -308,7 +318,8 @@ function physics(c, dt) {
   const live = c.actors.filter((a) => alive(a) || a.side === 'ally');
   for (const a of live) {
     if (a.state === 'down') continue;
-    a.x += a.vx * dt; a.y += a.vy * dt;
+    a.x += (a.vx + (a.kbx ?? 0)) * dt; a.y += (a.vy + (a.kby ?? 0)) * dt;
+    if (a.kbx) { const k = Math.exp(-dt * 10); a.kbx *= k; a.kby *= k; if (Math.abs(a.kbx) + Math.abs(a.kby) < 0.05) a.kbx = a.kby = 0; }
     const d = Math.hypot(a.x, a.y), max = ARENA_R - a.r;
     if (d > max) { a.x *= max / d; a.y *= max / d; }
   }

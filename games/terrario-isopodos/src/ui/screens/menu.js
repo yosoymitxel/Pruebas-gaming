@@ -14,6 +14,9 @@ export function Menu({ s }) {
       <div class="actions">
         ${s.saved && html`<button class="btn primary" onClick=${() => s.continueGame()}>${t('menu.continue', 'Continuar')} · ${t('ui.day', 'día')} ${s.saved.day}</button>`}
         <button class=${`btn${s.saved ? '' : ' primary'}`} onClick=${start}>${confirm ? t('menu.confirmNew', '¿Borrar la partida y empezar?') : t('menu.new', 'Nueva partida')}</button>
+        <button class="btn ghost" onClick=${() => s.setSetting('tactical', (s.settings.tactical ?? 'pausa') === 'pausa' ? 'lento' : 'pausa')}>
+          ${t('menu.tactical', 'Pausa táctica')}: ${(s.settings.tactical ?? 'pausa') === 'pausa' ? t('menu.tacticalStop', 'detiene el tiempo') : t('menu.tacticalSlow', 'cámara lenta')}
+        </button>
         <button class="btn ghost" onClick=${() => s.setSetting('reduceMotion', !s.settings.reduceMotion)} aria-pressed=${!!s.settings.reduceMotion}>
           ${t('menu.motion', 'Movimiento reducido')}: ${s.settings.reduceMotion ? t('ui.on', 'sí') : t('ui.off', 'no')}
         </button>

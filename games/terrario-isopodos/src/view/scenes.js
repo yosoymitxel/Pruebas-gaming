@@ -5,6 +5,7 @@ import { islandFromGrid, arena } from './island.js';
 import { tank, jar, jarShine, substrateDisc, CHARCOAL } from './vessel.js';
 import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
+import { Vfx, Weather } from './vfx.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { PALETTES } from '../data/palettes.js';
@@ -15,8 +16,9 @@ const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
 
 class GridScene {
   // vessel: 'tank' (tanque rectangular) o 'jar' (frasco redondo).
-  constructor(stage, grid, seed, rim = 0, relief = 0.3, vessel = 'tank') {
+  constructor(stage, grid, seed, { rim = 0, relief = 0.3, vessel = 'tank', weather = 'claro' } = {}) {
     this.stage = stage;
+    this.weatherKind = weather;
     this.vessel = vessel;
     this.grid = grid;
     this.rim = rim;
@@ -25,6 +27,14 @@ class GridScene {
     this.seed = seed;
     this.rebuild();
     this.actors = new ActorLayer(this.group);
+    this.vfx = new Vfx(this.group);
+  }
+
+  burst(kind, x, y) { const w = this.toWorld(x, y); this.vfx.burst(kind, w.x, w.y + 0.3, w.z); }
+
+  tick(dt) {
+    this.vfx.update(dt);
+    this.weather?.update(dt);
   }
 
   rebuild() {
@@ -44,6 +54,8 @@ class GridScene {
     }
     this.group.add(this.island.group);
     this.openCount = this.grid.open.reduce((s, v) => s + v, 0);
+    if (this.weather) this.group.remove(this.weather.mesh);
+    this.weather = new Weather(this.island.group, this.weatherKind, this.island.span * 0.85, 2.2);
   }
 
   toWorld(x, y) { return { x: x - this.grid.w / 2, z: y - this.grid.h / 2, y: this.island.heightAt(x, y) }; }
@@ -80,7 +92,7 @@ const key = (p) => `${p.type}:${p.x}:${p.y}:${p.rot}`;
 
 export class HomeView extends GridScene {
   constructor(stage, home) {
-    super(stage, home.grid, 17, 1);
+    super(stage, home.grid, 17, { rim: 1, weather: home.weather });
     this.home = home;
   }
 
@@ -100,7 +112,8 @@ export class HomeView extends GridScene {
     return ok;
   }
 
-  update(time) {
+  update(time, dt) {
+    this.tick(dt);
     if (this.grid.open.reduce((s, v) => s + v, 0) !== this.openCount) { this.rebuild(); this.stage.frame(this.camera.target, this.camera.distance, this.camera.fit); }
     this.syncProps();
     const list = this.home.isopods.map((iso) => {
@@ -119,15 +132,18 @@ export class HomeView extends GridScene {
 
 export class GatherView extends GridScene {
   constructor(stage, gather) {
-    super(stage, gather.grid, gather.island.seed, 0, 0.6, 'jar');
+    super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: 'jar', weather: gather.island.weather });
     this.g = gather;
     this.syncProps();
   }
 
   get camera() { const r = this.island.span + 0.6; return { target: [0, 0.4], distance: r * 2.2 + 6, fit: r * 2.3 }; }
 
-  update(time) {
+  update(time, dt) {
+    this.tick(dt);
     this.shine.rotation.y = this.stage.yaw;
+    for (const n of this.g.nodes) if (n.taken && !n.shown) { n.shown = true; this.burst('pickup', n.x, n.y); }
+    if (this.g.lost?.taken && !this.g.lost.shown) { this.g.lost.shown = true; this.burst('heal', this.g.lost.x, this.g.lost.y); }
     const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05;
     const list = [{ id: 'player', sprite: `iso:${this.g.shell ?? 'naranja'}`, ...this.toWorld(p.x, p.y), height: 0.9, flip: p.vx < 0, lift: moving ? bob(time, 1) : 0 }];
     for (const n of this.g.nodes) if (!n.taken) list.push({ id: `n${n.id}`, sprite: `res:${n.res}`, ...this.toWorld(n.x, n.y), height: 0.55, lift: 0.15 + Math.sin(time * 2.5 + n.id) * 0.06 });
@@ -138,7 +154,7 @@ export class GatherView extends GridScene {
 }
 
 export class CombatView {
-  constructor(stage, combat, seed) {
+  constructor(stage, combat, seed, weather = 'niebla') {
     this.stage = stage;
     this.c = combat;
     this.group = new THREE.Group();
@@ -146,7 +162,10 @@ export class CombatView {
     this.shine = jarShine(ARENA_R + 2.3, 1.8);
     this.group.add(this.shine);
     this.actors = new ActorLayer(this.group);
+    this.vfx = new Vfx(this.group);
+    this.weather = new Weather(this.group, weather, ARENA_R + 1.5, 3);
     this.tele = new Map();
+    this.rolling = new Set();
     this.flash = new Map();
   }
 
@@ -154,8 +173,19 @@ export class CombatView {
 
   hit(id) { this.flash.set(id, 1); }
 
+  burst(kind, id) {
+    const a = this.c.actors.find((x) => x.id === id);
+    if (a) this.vfx.burst(kind, a.x, a.side === 'enemy' ? ABERRATIONS[a.kind].height * 0.4 : 0.4, a.y);
+  }
+
   update(time, dt) {
     this.shine.rotation.y = this.stage.yaw;
+    this.vfx.update(dt);
+    this.weather.update(dt);
+    for (const a of this.c.actors) {
+      if (a.state === 'roll' && !this.rolling.has(a.id)) { this.rolling.add(a.id); this.vfx.burst('dust', a.x, 0.1, a.y); }
+      else if (a.state !== 'roll') this.rolling.delete(a.id);
+    }
     const list = [];
     for (const a of this.c.actors) {
       if (a.side === 'enemy' && a.hp <= 0) continue;
@@ -163,7 +193,8 @@ export class CombatView {
       this.flash.set(a.id, f);
       if (a.side === 'ally') {
         const down = a.hp <= 0, moving = Math.hypot(a.vx, a.vy) > 0.1;
-        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x, z: a.y, height: a.state === 'roll' ? 0.7 : 1.05, flip: Math.cos(a.facing) < 0,
+        const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
+        list.push({ id: a.id, sprite: `iso:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: a.state === 'roll' ? 0.7 : 1.05, flip: Math.cos(a.facing) < 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
       } else {
         const def = ABERRATIONS[a.kind], wind = a.state === 'windup';
