@@ -29,7 +29,7 @@ function CrossSection({ home }) {
 
 export function Composition({ s, say }) {
   const home = s.game.home, clim = climate(home), eff = homeEffects(home), h = humidity(home);
-  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? `${t('comp.weather', 'Clima')} (${WEATHERS[home.weather].name})` : BUILDINGS[src].name);
+  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? `${t('comp.weather', 'Clima')} (${WEATHERS[home.weather].name})` : src === 'rocio' ? t('comp.mist', 'Rociado') : BUILDINGS[src].name);
   const upgrade = (id) => { if (s.upgradeLayer(id)) say(`${LAYERS[id].name} ↑`); };
   return html`<section class="drawer composition" aria-label=${t('comp.title', 'Composición del terrario')}>
     <div class="comp-side">

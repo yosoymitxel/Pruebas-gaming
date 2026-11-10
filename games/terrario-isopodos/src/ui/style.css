@@ -388,7 +388,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
   h2 { font-size: 24px; }
   .resources { gap: 2px 8px; padding: 4px 8px; font-size: 13px; }
   .res-icon { width: 18px; height: 18px; }
-  .hud-bottom { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 44px; gap: 4px; width: auto; }
+  .hud-bottom { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) 44px; gap: 4px; width: auto; }
   .hud-bottom .btn span { text-align: center; line-height: 1.1; }
   .hud-bottom .long { display: none; }
   .hud-bottom .short { display: inline; }
@@ -570,3 +570,25 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 @media (prefers-reduced-motion: reduce) { .build-list .card-btn, .piece-card { animation: none; } }
 .gather-pad { grid-template-areas: 'attack'; grid-template-columns: auto; }
 .gather .hint.floating { bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 100px); max-width: min(80vw, 420px); }
+
+/* Galería y logros */
+.gallery .tabs { margin: 0 auto 10px; width: min(100%, 480px); }
+.gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; align-content: start; }
+.gal-card { display: grid; gap: 4px; padding: 12px; text-align: left; animation: lift 240ms var(--ease-out) both; }
+.gal-card img { width: 100%; height: 110px; object-fit: contain; }
+.gal-card h3 { margin: 0; font: 700 24px/1 var(--hand); }
+.gal-card p { margin: 0; font-size: 13px; }
+.gal-card.unseen img { filter: brightness(0) opacity(0.55); }
+.ach-group { grid-column: 1 / -1; }
+.ach { display: flex; gap: 10px; align-items: center; padding: 6px 0; opacity: 0.45; }
+.ach.got { opacity: 1; }
+.ach span:last-child { display: grid; } .ach small { opacity: 0.75; }
+.ach-ico { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); }
+.ach.got .ach-ico, .ach-toast .ach-ico { background: var(--amber); }
+.ach-toast { position: fixed; z-index: calc(var(--z-modal) + 1); top: max(12px, env(safe-area-inset-top)); left: 50%; translate: -50% 0; display: flex; gap: 10px; align-items: center;
+  padding: 8px 18px 8px 10px; background: var(--ink); color: var(--paper); border: 2px solid var(--amber); border-radius: 999px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
+  pointer-events: none; animation: toast 3.2s var(--ease-out) both; }
+.ach-toast span:last-child { display: grid; } .ach-toast small { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); }
+.ach-toast b { font: 700 22px/1 var(--hand); }
+@keyframes toast { 0% { opacity: 0; transform: translateY(-30px) scale(0.9); } 10% { opacity: 1; transform: none; } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-20px); } }
+@media (prefers-reduced-motion: reduce) { .ach-toast, .gal-card { animation: none; } }

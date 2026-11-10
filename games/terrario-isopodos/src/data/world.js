@@ -20,11 +20,12 @@ export const VESSEL_BY_KIND = { hogar: ['tanque'], recoleccion: ['frasco', 'dior
 
 // Biomas de isla: recursos que abundan y jefe que guarda el nido.
 export const BIOMES = localize('biomes', {
-  hojarasca: { name: 'Bosque de hojarasca', loot: ['hojarasca', 'hojarasca', 'musgo', 'cal'], boss: 'gemela', elite: 'bufon' },
-  pantano: { name: 'Pantano de esporas', loot: ['esporas', 'musgo', 'musgo', 'ambar'], boss: 'comensal', elite: 'segador' },
-  roca: { name: 'Roca de cal', loot: ['cal', 'cal', 'ambar', 'hojarasca'], boss: 'gemela', elite: 'segador' },
+  hojarasca: { name: 'Bosque de hojarasca', loot: ['hojarasca', 'hojarasca', 'musgo', 'cal'], boss: 'gemela', elite: 'bufon', foes: ['larva', 'acaro', 'cienpies', 'arana'] },
+  pantano: { name: 'Pantano de esporas', loot: ['esporas', 'musgo', 'musgo', 'ambar'], boss: 'comensal', elite: 'segador', foes: ['larva', 'mosca', 'moho', 'acaro'] },
+  roca: { name: 'Roca de cal', loot: ['cal', 'cal', 'ambar', 'hojarasca'], boss: 'gemela', elite: 'segador', foes: ['larva', 'cienpies', 'arana', 'moho'] },
 });
 
+// `foes`: fauna de las peleas comunes del bioma (ABERRATIONS).
 // `yield` multiplica lo que se recoge; `gloom` tiñe la escena hacia la paleta de terror (0–1).
 export const WEATHERS = localize('weathers', {
   claro: { name: 'Claro', yield: 1, gloom: 0 },

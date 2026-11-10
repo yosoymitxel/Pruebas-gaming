@@ -174,6 +174,11 @@ export class HomeView extends GridScene {
       return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
+      l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
+      const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
+      list.push({ id: l.id, sprite: 'res:hojarasca', ...w, height: 0.42, lift: (1 - l.t) * 3.2, spin: Math.sin(l.t * 7) * 0.6 * (1 - l.t) });
+    }
     for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3 }); }
     // Bocadillos de necesidad sobre la cabeza (como los seguidores de Cult of the Lamb): hambre.
     for (const iso of this.home.isopods) {

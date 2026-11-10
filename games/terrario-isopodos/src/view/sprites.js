@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { PALETTES } from '../data/palettes.js';
 import { drawIsopod, drawBall, drawMolt } from './isopod-art.js';
+import { FOE_SPRITES } from './foes-art.js';
 
 const INK = PALETTES.cozy.ink;
 
@@ -66,7 +67,7 @@ function alert(ctx, w, h) {
   ctx.fillText('!', w / 2, h * 0.44);
 }
 
-export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert }, muda: { w: 128, h: 80, draw: drawMolt } };
+export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert }, muda: { w: 128, h: 80, draw: drawMolt }, ...FOE_SPRITES };
 const SIZES = { iso: [256, 160], molt: [256, 160], ball: [160, 160], res: [128, 128] };
 // Isópodos por especie: de pie, en bolita o mudando.
 const ISO = { iso: (c, w, h, a) => drawIsopod(c, w, h, a), molt: (c, w, h, a) => drawIsopod(c, w, h, a, { molt: true }), ball: drawBall };
