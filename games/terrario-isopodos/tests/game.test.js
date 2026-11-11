@@ -120,21 +120,30 @@ test('combate: cada aberración es vencible y no es un paseo', () => {
   for (const r of selfcheck(20)) assert.ok(r.ok, `${r.id}: ${JSON.stringify(r)}`);
 });
 
-test('composición: la humedad sale de lo que hay dentro y cambia el clima y sus efectos', () => {
+test('composición: la humedad se mueve despacio hacia lo que hay dentro; la tapa la saca; el moho brota y los colémbolos lo limpian', async () => {
+  const { humidityTarget, setLid, gradient } = await import('../src/game/home.js');
   const { home } = newGame(21);
-  home.weather = 'claro';
+  home.weather = 'claro'; home.moist = humidityTarget(home);
   assert.equal(climate(home), 'seco', 'sin agua el terrario arranca seco');
   const dry = homeEffects(home);
   assert.ok(build(home, 'charca', 7, 12));
+  assert.ok(humidityTarget(home) > humidity(home), 'el agua sube el objetivo, no la humedad de golpe');
+  const rng = mulberry32(3);
+  for (let k = 0; k < 60 * 120; k++) tickHome(home, 1 / 60, rng);
   assert.equal(climate(home), 'ideal');
-  assert.ok(homeEffects(home).prodMul > dry.prodMul && homeEffects(home).hungerMul < dry.hungerMul);
+  assert.ok(homeEffects(home).prodMul > dry.prodMul);
+  assert.ok(gradient(home).ok, 'la charca moja su lado: hay rincón húmedo y rincón seco');
   home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
-  build(home, 'charca', 9, 12); home.weather = 'lluvia';
-  assert.equal(climate(home), 'moho', 'demasiada agua sin carbón');
+  build(home, 'charca', 9, 12); home.weather = 'lluvia'; setLid(home, 0);
+  for (let k = 0; k < 60 * 400; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(home.mold.length >= 3 && climate(home) === 'moho', 'cerrado y empapado brota moho');
   const calmMoho = calm(home);
-  assert.ok(upgradeLayer(home, 'carbon') && upgradeLayer(home, 'carbon'));
-  assert.equal(climate(home), 'humedo', 'el carbón contiene el moho');
-  assert.ok(calm(home) > calmMoho);
+  setLid(home, 2);
+  const t0 = humidityTarget(home);
+  assert.ok(t0 < humidityTarget({ ...home, lid: 0 }), 'abrir la tapa baja la humedad objetivo');
+  assert.ok(build(home, 'colembolos', 7, 7) || build(home, 'colembolos', 12, 7));
+  for (let k = 0; k < 60 * 400; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(home.mold.length < 3 && calm(home) > calmMoho, 'ventilado y con colémbolos el moho se va');
   assert.ok(humidity(home) <= 1);
 });
 
@@ -227,18 +236,21 @@ test('recolección con relieve: cada forma deja recursos alcanzables, el salto s
   assert.ok(ga.player.x > 0, 'y devuelve a tierra');
 });
 
-test('cuidados del terrario: rociar sube la humedad un rato y las hojas que caen se recogen', async () => {
-  const { mist, takeLeaf, humidity: hum } = await import('../src/game/home.js');
+test('cuidados del terrario: rociar sube la humedad poco a poco y se seca; no caen hojas al azar; las mudas se comen solas', async () => {
+  const { mist, humidity: hum, humidityTarget } = await import('../src/game/home.js');
   const { home } = newGame(8);
+  home.moist = humidityTarget(home);
   const h0 = hum(home);
   assert.ok(mist(home));
-  assert.ok(hum(home) > h0, 'rociar sube la humedad');
+  assert.ok(humidityTarget(home) > h0, 'rociar sube la humedad objetivo');
   assert.ok(!mist(home), 'con espera entre rociadas');
   const rng = mulberry32(2);
-  for (let k = 0; k < 60 * 200; k++) tickHome(home, 1 / 60, rng);
-  assert.ok(Math.abs(hum(home) - h0) < 1e-9, 'el rocío se seca');
-  assert.ok(home.leaves.length > 0, 'cayeron hojas');
-  const n = home.resources.hojarasca;
-  assert.ok(takeLeaf(home, home.leaves[0].id));
-  assert.equal(home.resources.hojarasca, n + 1);
+  for (let k = 0; k < 60 * 20; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(hum(home) > h0, 'el sustrato se moja');
+  for (let k = 0; k < 60 * 300; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(Math.abs(hum(home) - h0) < 0.02, 'el rocío se seca');
+  assert.equal(home.leaves.length, 0, 'sin hojas al azar');
+  home.molts = [{ id: 'm', x: 2, y: 2 }]; const cal = home.resources.cal;
+  for (let k = 0; k < 60 * 35; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(!home.molts.some((m) => m.id === 'm')); assert.ok(home.resources.cal >= cal + 1, 'la muda se la comen: cal');
 });

@@ -5,7 +5,7 @@ import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -211,6 +211,11 @@ export class Session {
       return at ? { piece: at } : null;
     }
     return this.collectPiece(piece);
+  }
+  // Tapa: cerrada → rejilla → abierta → cerrada. La humedad se mueve despacio hacia lo que pide.
+  lid(k) {
+    const home = this.game.home, n = setLid(home, k ?? ((home.lid ?? 1) + 1) % 3);
+    this.sfx(n === 2 ? 'open' : 'close'); this.persist(); this.emit();
   }
   mist() {
     const home = this.game.home;

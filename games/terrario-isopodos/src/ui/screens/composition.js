@@ -2,10 +2,10 @@
 // qué efecto tiene. Mejorar una capa se hace aquí.
 import { html } from '../lib.js';
 import { t } from '../../i18n/index.js';
-import { LAYERS, HUMIDITY, CLIMATES } from '../../data/substrate.js';
+import { LAYERS, HUMIDITY, CLIMATES, LID_NAMES } from '../../data/substrate.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { WEATHERS } from '../../data/world.js';
-import { layer, humidity, humidityParts, climate, homeEffects, calm, nextLayerCost, canAfford } from '../../game/home.js';
+import { layer, humidity, humidityTarget, gradient, humidityParts, climate, homeEffects, calm, nextLayerCost, canAfford } from '../../game/home.js';
 import { Cost, Bar } from './common.js';
 import { Icon } from '../icons.js';
 
@@ -16,7 +16,7 @@ const signed = (v) => `${v >= 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)} %
 
 export function Composition({ s, say }) {
   const home = s.game.home, clim = climate(home), eff = homeEffects(home), h = humidity(home), fix = CLIMATES[clim].fix;
-  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : src === 'rocio' ? t('comp.mist', 'Rociado') : BUILDINGS[src].name);
+  const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : src === 'rocio' ? t('comp.mist', 'Rociado') : src === 'tapa' ? t('comp.lid', 'Tapa') : BUILDINGS[src].name);
   const upgrade = (id) => { if (s.upgradeLayer(id)) say(`${LAYERS[id].name} ↑`); };
   const tone = (v, good) => (Math.abs(v - 1) < 0.01 ? '' : (v > 1) === good ? 'up' : 'down');
   return html`<section class=${`drawer composition clim-${clim}`} aria-label=${t('comp.title', 'Composición del terrario')}>
@@ -29,7 +29,11 @@ export function Composition({ s, say }) {
         <em style=${{ left: css(HUMIDITY.dry), width: css(HUMIDITY.wet - HUMIDITY.dry) }} title=${t('comp.ideal', 'ideal')}></em></span>
       <ul class="hum-parts">${humidityParts(home).filter((p) => p.amount).map((p) => html`<li class=${p.amount > 0 ? 'up' : 'down'}>${label(p.source)} ${signed(p.amount)}</li>`)}</ul>
     </div>
-    ${fix && html`<p class="fix"><${Icon} name="expand" size="16" />${fix.layer ? html`${t('comp.fixLayer', 'Sube')} <b>${LAYERS[fix.layer].name}</b>` : ''}
+    <div class="lid-row" role="radiogroup" aria-label=${t('comp.lid', 'Tapa')}><${Icon} name="lid" size="18" />
+      ${LID_NAMES.map((n, k) => html`<button class=${`btn small${(home.lid ?? 1) === k ? ' active' : ''}${fix?.lid === k ? ' fix-target' : ''}`} role="radio" aria-checked=${(home.lid ?? 1) === k} onClick=${() => s.lid(k)}>${t(`lid.${k}`, n)}</button>`)}
+      <span class="trend">${pct(h)} → ${pct(humidityTarget(home))}</span></div>
+    <p class=${`grad ${gradient(home).ok ? 'up' : 'down'}`}>${gradient(home).ok ? t('comp.gradOk', 'Hay rincón húmedo y rincón seco') : t('comp.gradNo', 'Todo igual de húmedo: aparta el agua a un lado')}</p>
+    ${fix && html`<p class="fix"><${Icon} name="expand" size="16" />${fix.lid != null ? html`${t('comp.fixLid', 'Tapa')} <b>${LID_NAMES[fix.lid]}</b> ` : ''}${fix.layer ? html`${t('comp.fixLayer', 'Sube')} <b>${LAYERS[fix.layer].name}</b>` : ''}
       ${fix.pieces ? html`${t('comp.fixAdd', 'Pon')} <b>${fix.pieces.map((id) => BUILDINGS[id].name).join(' / ')}</b>` : ''}
       ${fix.less ? html` · ${t('comp.fixLess', 'menos')} <b>${BUILDINGS[fix.less].name}</b>` : ''}</p>`}
     <dl class="stats3 comp-fx">

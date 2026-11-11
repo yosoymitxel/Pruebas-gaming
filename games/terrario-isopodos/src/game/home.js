@@ -7,7 +7,7 @@ import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
-import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN } from '../data/substrate.js';
+import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN } from '../data/substrate.js';
 
 const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
 const WALK = 1.1;
@@ -115,13 +115,38 @@ export function humidityParts(home) {
   const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: HUMIDITY.weather[home.weather] ?? 0 }];
   if (home.mist > 0) parts.push({ source: 'rocio', amount: HUMIDITY.mist * Math.min(1, home.mist / ZEN.mistTime) });
   for (const p of Object.values(home.grid.pieces)) if (HUMIDITY.pieces[p.type]) parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] });
+  parts.push({ source: 'tapa', amount: HUMIDITY.lid[home.lid ?? 1] });
   return parts;
 }
 
-export function humidity(home) {
+// Humedad a la que tiende el sustrato con lo que hay ahora (fuentes, clima y tapa).
+export function humidityTarget(home) {
   const raw = humidityParts(home).reduce((s, p) => s + p.amount, 0);
   return Math.max(0, Math.min(HUMIDITY.flood + layer(home, 'grava') * HUMIDITY.perGrava, raw));
 }
+// Humedad real del sustrato: se mueve despacio hacia el objetivo (tickHome). Partidas viejas: arranca en el objetivo.
+export const humidity = (home) => home.moist ?? humidityTarget(home);
+
+// Humedad en una celda: la general más lo que mojan (o secan) las piezas cercanas. Así se arma el gradiente.
+export function localHumidity(home, x, y) {
+  let h = humidity(home);
+  for (const p of Object.values(home.grid.pieces)) {
+    const L = HUMIDITY.local[p.type];
+    if (!L) continue;
+    const f = BUILDINGS[p.type].size, d = Math.hypot(x - (p.x + f.w / 2), y - (p.y + f.h / 2));
+    if (d < L[1]) h += L[0] * (1 - d / L[1]);
+  }
+  return Math.max(0, Math.min(1, h));
+}
+const inBand = (h, band) => h >= HUMIDITY.bands[band][0] && h <= HUMIDITY.bands[band][1];
+// ¿Tiene el terrario un rincón para cada gusto? Busca en la rejilla la celda más seca y la más húmeda.
+export function gradient(home) {
+  const g = home.grid; let lo = 1, hi = 0;
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.open[j * g.w + i]) { const h = localHumidity(home, i + 0.5, j + 0.5); lo = Math.min(lo, h); hi = Math.max(hi, h); }
+  return { lo, hi, ok: hi - lo >= 0.18 };
+}
+// Un isópodo está a gusto si está en una celda de la humedad que prefiere su especie.
+export const comfy = (home, iso) => inBand(localHumidity(home, iso.x, iso.y), speciesOf(iso.shell).humidity);
 
 // Multiplicadores que el terrario aplica ahora mismo (para la interfaz y tickHome).
 export function homeEffects(home) {
@@ -134,8 +159,7 @@ export function climate(home) {
   const h = humidity(home);
   if (h < HUMIDITY.dry) return 'seco';
   if (h <= HUMIDITY.wet) return 'ideal';
-  const springtails = Object.values(home.grid.pieces).some((p) => p.type === 'colembolos'); // se comen el moho
-  return springtails || h - HUMIDITY.wet <= layer(home, 'carbon') * 0.06 ? 'humedo' : 'moho';
+  return (home.mold?.length ?? 0) >= 3 ? 'moho' : 'humedo';
 }
 
 export const nextLayerCost = (home, id) => LAYERS[id].costs[layer(home, id)] ?? null;
@@ -152,7 +176,9 @@ export function calm(home) {
   const deco = Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].calm ?? 0) * lvl(p), 0);
   const crowd = Math.max(0, home.isopods.length - beds(home)) * 0.08;
   const litter = layer(home, 'hojarasca') * 0.05;
-  return Math.max(0, Math.min(1, 0.45 + deco + litter + CLIMATES[climate(home)].calm - crowd - home.fear));
+  const grad = gradient(home).ok ? 0.08 : 0, mold = (home.mold?.length ?? 0) * MOLD.calm;
+  const happy = home.isopods.length ? home.isopods.filter((i) => comfy(home, i)).length / home.isopods.length : 1;
+  return Math.max(0, Math.min(1, 0.4 + deco + litter + grad + happy * 0.1 + CLIMATES[climate(home)].calm - crowd - mold - home.fear));
 }
 
 // Lo que el estado del terrario aporta a la expedición.
@@ -175,7 +201,12 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   home.clockT = (home.clockT ?? 0) + dt;
   if (home.mist > 0) home.mist = Math.max(0, home.mist - dt);
   if (home.mistCd > 0) home.mistCd = Math.max(0, home.mistCd - dt);
-  dropLeaf(home, dt, rng);
+  home.moist = humidity(home) + Math.max(-HUMIDITY.drift * dt, Math.min(HUMIDITY.drift * dt, humidityTarget(home) - humidity(home)));
+  growMold(home, dt, rng);
+  for (const m of home.molts ?? []) m.t = (m.t ?? 0) + dt;
+  const eaten = (home.molts ?? []).filter((m) => m.t >= MOLT_EATEN);
+  if (eaten.length) { home.molts = home.molts.filter((m) => m.t < MOLT_EATEN); home.resources.cal = (home.resources.cal ?? 0) + eaten.length; }
+  home.leaves = [];
   home.fear = Math.min(1, Math.max(0, home.fear - dt / 600 + phase.fear * dt));
   const { hungerMul } = homeEffects(home), prodMul = homeEffects(home).prodMul * phase.prodMul;
   for (const p of Object.values(home.grid.pieces)) {
@@ -217,7 +248,7 @@ function breed(home, dt, rng) {
   const parents = adults(home), mom = parents[Math.floor(rng() * parents.length)];
   if (!mom || calm(home) < 0.55 || home.isopods.length >= beds(home) + 2) return;
   const s = speciesOf(mom.shell), cl = climate(home);
-  if (cl === 'moho' || rng() > 0.5 * s.breed * (cl === s.humidity ? 1.4 : 1)) return;
+  if (cl === 'moho' || rng() > 0.5 * s.breed * (comfy(home, mom) ? 1.4 : 0.6)) return;
   recruit(home, rng, undefined, mom.shell);
   const baby = home.isopods[home.isopods.length - 1];
   Object.assign(baby, { baby: BEHAVIOR.growTime, x: mom.x, y: mom.y + 0.3 });
@@ -230,6 +261,25 @@ export function mist(home) {
   home.mist = ZEN.mistTime; home.mistCd = ZEN.mistCooldown;
   return true;
 }
+// Moho: con el sustrato muy húmedo brota en las celdas más mojadas (antes junto a comida pudriéndose);
+// cada colonia de colémbolos se come una mancha cada tanto. El carbón frena que brote.
+function growMold(home, dt, rng) {
+  home.mold ??= [];
+  const springs = Object.values(home.grid.pieces).filter((p) => p.type === 'colembolos').length;
+  if (springs && home.mold.length && (home.moldEat = (home.moldEat ?? 0) + dt * springs) >= MOLD.eat) { home.moldEat = 0; home.mold.shift(); }
+  if ((home.moldT = (home.moldT ?? 0) + dt) < MOLD.every * (1 + layer(home, 'carbon'))) return;
+  home.moldT = 0;
+  if (home.mold.length >= MOLD.max) return;
+  const g = home.grid;
+  for (let k = 0; k < 20; k++) {
+    const i = Math.floor(rng() * g.w), j = Math.floor(rng() * g.h);
+    if (!g.open[j * g.w + i] || g.cells[j * g.w + i] !== null) continue;
+    if (localHumidity(home, i + 0.5, j + 0.5) < MOLD.at) continue;
+    home.mold.push({ id: `mo${Math.floor(home.clockT)}${k}`, x: i + 0.5, y: j + 0.5 });
+    return;
+  }
+}
+export function setLid(home, level) { home.lid = Math.max(0, Math.min(2, level)); return home.lid; }
 function dropLeaf(home, dt, rng) {
   if ((home.leafT = (home.leafT ?? 0) + dt) < ZEN.leafEvery) return;
   home.leafT = 0;
@@ -271,7 +321,7 @@ export function takeMolt(home, id) {
 // cuando están activos, exploran todo el terrario más rápido.
 function walk(home, iso, dt, rng, hungerMul, phase) {
   // Durmiendo en un refugio: quieto, gasta menos y calma a la colonia.
-  if (iso.rest > 0) { iso.rest -= dt; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
+  if (iso.rest > 0) { if ((iso.rest -= dt) <= 0) iso.bed = null; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
   iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt);
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
   const feeder = hungry && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds);
@@ -283,7 +333,7 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   const bed = !feeder && iso.order === 'dormir' && nearest(home, iso, (b) => b.beds);
   if (bed) {
     const f = BUILDINGS[bed.type].size, bx = bed.x + f.w / 2, by = bed.y + f.h + 0.3;
-    if (Math.hypot(iso.x - bx, iso.y - by) < 0.9 || (iso.stuck ?? 0) > 5) { iso.rest = BEHAVIOR.restTime; iso.order = null; iso.tx = null; return; }
+    if (Math.hypot(iso.x - bx, iso.y - by) < 0.9 || (iso.stuck ?? 0) > 5) { iso.rest = BEHAVIOR.restTime; iso.bed = bed.id; iso.order = null; iso.tx = null; return; }
     iso.tx = bx; iso.ty = by;
   } else if (iso.order === 'dormir' && !feeder) iso.order = null;
   if (iso.ate > 0) iso.ate -= dt;
@@ -292,7 +342,9 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     let tx = Math.floor(rng() * home.grid.w) + 0.5, ty = Math.floor(rng() * home.grid.h) + 0.5;
     const cover = Object.values(home.grid.pieces);
     if (!phase.night && cover.length && rng() < 0.7) { const p = cover[Math.floor(rng() * cover.length)]; tx = p.x - 0.5 + rng() * 3; ty = p.y + 2.2 + rng() * 0.6; }
-    if (!blocked(home.grid, Math.floor(tx), Math.floor(ty)) && Math.hypot(tx - iso.x, ty - iso.y) < 5) { iso.tx = tx; iso.ty = ty; iso.stuck = 0; }
+    // Buscan su humedad: si no están a gusto, prueban otro sitio hasta dar con uno de su banda.
+    if (!comfy(home, iso)) for (let k = 0; k < 6 && !inBand(localHumidity(home, tx, ty), speciesOf(iso.shell).humidity); k++) { tx = Math.floor(rng() * home.grid.w) + 0.5; ty = Math.floor(rng() * home.grid.h) + 0.5; }
+    if (!blocked(home.grid, Math.floor(tx), Math.floor(ty)) && Math.hypot(tx - iso.x, ty - iso.y) < (comfy(home, iso) ? 5 : 12)) { iso.tx = tx; iso.ty = ty; iso.stuck = 0; }
     return;
   }
   const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);

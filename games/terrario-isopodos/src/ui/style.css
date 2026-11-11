@@ -1041,3 +1041,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .fx-enemy, .fx-ally { animation: dmg-num 0.7s linear forwards !important; font-variant-numeric: tabular-nums; }
 @keyframes dmg-num { 0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; } 11% { transform: translate(-50%, -60%) scale(1.25); }
   25% { transform: translate(-50%, -75%) scale(1); } 60% { opacity: 1; } 100% { transform: translate(-50%, calc(-50% - 40px)) scale(1); opacity: 0; } }
+
+/* Tapa del terrario y gradiente de humedad (panel Terrario). */
+.lid-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lid-row .btn.active { background: #1d6e68 !important; color: #f4ecd8 !important; }
+.lid-row .btn.fix-target { outline: 2px dashed var(--rust); outline-offset: 2px; }
+.lid-row .trend { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.8; }
+.grad { margin: 4px 0 0; font-size: 13px; }
+.grad.up { color: var(--moss); } .grad.down { color: var(--rust); }
