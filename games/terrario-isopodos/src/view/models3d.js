@@ -9,6 +9,7 @@ import * as Aphid from '../vendor/polyfork/green-aphid-base.mjs';
 import * as Caterpillar from '../vendor/polyfork/swallowtail-caterpillar-base.mjs';
 import * as Slug from '../vendor/polyfork/leopard-slug-base.mjs';
 import * as Wasp from '../vendor/polyfork/common-wasp-base.mjs';
+import * as Stag from '../vendor/polyfork/stag-beetle-906c6e.mjs';
 import { SPECIES } from '../data/species.js';
 
 let renderer = null;
@@ -71,4 +72,14 @@ const FOES = {
   moho: () => Slug.createAsset({ body: '#c9bd6a', mantle: '#b8ab55', spots: '#4a3a5a', pale: '#ddd28a', sole: '#6a5f2a' }),
 };
 export const FOE_MODELS = Object.keys(FOES);
+
+// Modelo vivo para la escena (no foto) según la clave de sprite: 'iso|ball|molt:<especie>' o 'proc:<enemigo>'.
+export function liveModel(key) {
+  const [kind, arg] = key.split(':');
+  if (kind === 'iso' || kind === 'molt') return isopodModel(arg, { molt: kind === 'molt' });
+  if (kind === 'ball') return isopodModel(arg, { rolled: true });
+  if (kind === 'proc' && FOES[arg]) return FOES[arg]();
+  if (key === 'el-segador.webp') return Stag.createAsset({}); // élite: ciervo volante
+  return null;
+}
 export const drawFoe3D = (kind) => (c, w, h) => shoot(c, w, h, FOES[kind](), { yaw: Math.PI / 2 - 0.45 });
