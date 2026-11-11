@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "test": "node --test",
     "check": "node tools/check-registry.mjs && node tools/combat-selfcheck.mjs && node tools/exploits-selfcheck.mjs",
-    "smoke": "node tools/smoke.mjs && node tools/smoke.mjs --mobile"
+    "smoke": "node tools/smoke.mjs && node tools/smoke.mjs --mobile",
+    "itch": "vite build && rm -f terrario-isopodos-itch.zip && cd dist && zip -qr ../terrario-isopodos-itch.zip ."
   },
   "dependencies": {
+    "@fontsource/caveat": "^5.2.8",
     "htm": "3.1.1",
     "preact": "10.29.8",
     "three": "0.180.0"

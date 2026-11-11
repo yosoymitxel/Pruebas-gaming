@@ -10,6 +10,8 @@ import * as Caterpillar from '../vendor/polyfork/swallowtail-caterpillar-base.mj
 import * as Slug from '../vendor/polyfork/leopard-slug-base.mjs';
 import * as Wasp from '../vendor/polyfork/common-wasp-base.mjs';
 import * as Stag from '../vendor/polyfork/stag-beetle-906c6e.mjs';
+import * as Orb from '../vendor/polyfork/garden-orb-weaver-b32844.mjs';
+import * as Worm from '../vendor/polyfork/earthworm-4a0bde.mjs';
 import { SPECIES } from '../data/species.js';
 
 let renderer = null;
@@ -73,13 +75,25 @@ const FOES = {
 };
 export const FOE_MODELS = Object.keys(FOES);
 
+// Élites y jefes (antes ilustraciones planas): mismos modelos del kit, grandes y con color de pesadilla.
+const ELITES = {
+  'el-segador.webp': () => Stag.createAsset({ colorway: 'ebony', mandibles: 1.2 }),
+  'el-bufon.webp': () => Orb.createAsset({ abdomen: '#d9cfe0', folium: '#5a2e6a', marks: '#f2ebdf', carapace: '#c9b8d4', legs: '#8a7a96', bands: '#3a2440', tips: '#1a1020', size: 1.4 }),
+  'la-gemela.webp': () => Tarantula.createAsset({ body: '#d8d0c0', abdomen: '#e6dfd0', band: '#7a1f2a', tips: '#2a2420', size: 1.5 }),
+  'el-comensal.webp': () => Worm.createAsset({ skin: '#8a6f6a', saddle: '#b08a80', mouth: '#3a0f12', girth: 1.2, swell: 1, length: 1.25 }),
+};
+
 // Modelo vivo para la escena (no foto) según la clave de sprite: 'iso|ball|molt:<especie>' o 'proc:<enemigo>'.
 export function liveModel(key) {
   const [kind, arg] = key.split(':');
   if (kind === 'iso' || kind === 'molt') return isopodModel(arg, { molt: kind === 'molt' });
   if (kind === 'ball') return isopodModel(arg, { rolled: true });
   if (kind === 'proc' && FOES[arg]) return FOES[arg]();
-  if (key === 'el-segador.webp') return Stag.createAsset({}); // élite: ciervo volante
+  const elite = ELITES[key];
+  if (elite) return elite();
   return null;
 }
 export const drawFoe3D = (kind) => (c, w, h) => shoot(c, w, h, FOES[kind](), { yaw: Math.PI / 2 - 0.45 });
+
+// Foto de cualquier modelo vivo (retratos, pruebas).
+export const drawLive3D = (c, w, h, key) => shoot(c, w, h, liveModel(key), { yaw: Math.PI / 2 - 0.45 });
