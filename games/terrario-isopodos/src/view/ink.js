@@ -13,7 +13,7 @@ export function createInkPass() {
       tColor: { value: null }, tDepth: { value: null }, res: { value: new THREE.Vector2(1, 1) },
       dpr: { value: 1 }, paper: { value: new THREE.Color() }, ink: { value: new THREE.Color() },
       wash: { value: 0.6 }, gloom: { value: 0 }, near: { value: 0.1 }, far: { value: 100 }, time: { value: 0 },
-      fogNear: { value: 20 }, fogFar: { value: 40 }, look: { value: 0 }, tilt: { value: 1 }, night: { value: new THREE.Color() },
+      fogNear: { value: 20 }, fogFar: { value: 40 }, look: { value: 0 }, tilt: { value: 0 }, night: { value: new THREE.Color() },
     },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
     fragmentShader: /* glsl */`
@@ -57,7 +57,7 @@ export function createInkPass() {
         vec2 f = fract(cellPx) - .5;
         // Punteado solo en las sombras hondas; en la base casi nada (el color manda), en el nido más.
         float dotMask = step(length(f), .32) * step(h, pow(max(dark - .62, 0.), 1.2) * 2.6) * (1. - blur * .6) * mix(.35, .45, gloom);
-        float grain = hash(floor(gl_FragCoord.xy / dpr)) * .03;
+        float grain = hash(floor(gl_FragCoord.xy / dpr)) * .012;
         vec3 washed = mix(paper, col * mix(vec3(1.), paper * 1.08, .12), wash) - grain;
         vec3 outc = mix(washed, ink, max(edge, dotMask * .85));
         float fog = smoothstep(fogNear, fogFar, d) * step(d, far * .98);

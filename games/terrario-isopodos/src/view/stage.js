@@ -17,7 +17,7 @@ export class Stage {
     this.renderer.setClearColor(0x000000, 0);
     // Resolución adaptativa (web-performance): empieza en min(dpr, 1.5) y baja o sube según el tiempo de
     // fotograma medido; el pase de tinta es caro por píxel y en móvil manda la GPU.
-    this.maxRatio = Math.min(devicePixelRatio, 1.5);
+    this.maxRatio = Math.min(devicePixelRatio, 2); // nítido: antes 1,5 y bajaba a 0,75 (todo se veía borroso)
     this.renderer.setPixelRatio(this.maxRatio);
     this.frameMs = 16; this.frames = 0;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -137,7 +137,7 @@ export class Stage {
     if ((this.frames += dt) < 1) return;
     this.frames = 0;
     const r = this.renderer.getPixelRatio();
-    const next = this.frameMs > 24 ? Math.max(0.75, r * 0.8) : this.frameMs < 13 ? Math.min(this.maxRatio, r * 1.15) : r;
+    const next = this.frameMs > 24 ? Math.max(1, r * 0.85) : this.frameMs < 13 ? Math.min(this.maxRatio, r * 1.15) : r;
     if (Math.abs(next - r) > 0.01) { this.renderer.setPixelRatio(next); this.resize(); }
   }
 
