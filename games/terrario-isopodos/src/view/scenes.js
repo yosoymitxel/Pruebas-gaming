@@ -202,6 +202,18 @@ export class HomeView extends GridScene {
     return ok;
   }
 
+  // Manchas de moho: discos blanquecinos pegados al suelo donde brotó.
+  syncMold() {
+    this.moldMeshes ??= new Map();
+    const want = new Set((this.home.mold ?? []).map((m) => m.id));
+    for (const [id, mesh] of this.moldMeshes) if (!want.has(id)) { this.group.remove(mesh); this.moldMeshes.delete(id); }
+    for (const m of this.home.mold ?? []) {
+      if (this.moldMeshes.has(m.id)) continue;
+      const w = this.toWorld(m.x, m.y), mesh = new THREE.Mesh(new THREE.CircleGeometry(0.32 + Math.random() * 0.15, 9).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0xd9dcc4, transparent: true, opacity: 0.85 }));
+      mesh.position.set(w.x, w.y + 0.03, w.z); this.group.add(mesh); this.moldMeshes.set(m.id, mesh);
+    }
+  }
+
   update(time, dt) {
     this.tick(dt);
     if (this.grid.open.reduce((s, v) => s + v, 0) !== this.openCount) { this.rebuild(); this.stage.frame(this.camera.target, this.camera.distance, this.camera.fit); }
@@ -209,6 +221,11 @@ export class HomeView extends GridScene {
     this.animateProps(dt);
     if ((this.careT = (this.careT ?? 1) + dt) > 1) { this.careT = 0; this.showClimate(); }
     const list = this.home.isopods.map((iso) => {
+      const bed = iso.rest > 0 && this.grid.pieces[iso.bed];
+      if (bed) { // durmiendo dentro del refugio: metido en el centro (la pieza lo tapa), respirando hondo
+        const f = footprint(bed.type, bed.rot), w = this.toWorld(bed.x + f.w / 2, bed.y + f.h / 2);
+        return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, x: w.x + ((iso.id % 3) - 1) * 0.3, height: (iso.baby > 0 ? 0.42 : 0.8) * 0.9, squash: 0.85 + Math.sin(time * 1.3 + iso.id) * 0.05 };
+      }
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
       const size = iso.baby > 0 ? 0.42 : 0.8;
       if (iso.ball > 0) return { id: `i${iso.id}`, sprite: `ball:${iso.shell}`, ...w, height: size * 0.62, squash: 1 + Math.sin(time * 9) * 0.04 };
@@ -226,13 +243,16 @@ export class HomeView extends GridScene {
       if (iso.id === this.selIso) { const k = this.stage.camDist * 0.2; this.stage.follow(w.x + Math.sin(this.stage.yaw) * k, w.z + Math.cos(this.stage.yaw) * k, dt, 5); // queda por encima de la ficha
         list.push({ id: `s${iso.id}`, sprite: 'proc:sel', ...w, height: 0.55, lift: top + Math.abs(Math.sin(time * 4)) * 0.12 }); }
       if (iso.badge != null) list.push({ id: `f${iso.id}`, sprite: `badge:${iso.badge}`, ...w, x: w.x - 0.18, height: 0.42, lift: top - 0.1 });
-      if (iso.rest > 0) list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...w, height: 0.36, lift: top + Math.sin(time * 2 + iso.id) * 0.05 });
+      const bed = iso.rest > 0 && this.grid.pieces[iso.bed];
+      if (bed) { const f = footprint(bed.type, bed.rot), b = this.toWorld(bed.x + f.w / 2, bed.y + f.h / 2), u = (time * 0.4 + iso.id * 0.33) % 1; // «zzz» que sube del refugio y se apaga
+        list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...b, x: b.x + Math.sin(u * 6) * 0.15, height: 0.3 + u * 0.15, lift: 1.4 + u * 0.9, alpha: 1 - u }); }
     }
     // Marcadores (interfaz, no sprites): hambre sobre la cabeza, recurso listo sobre la pieza, comedero vacío.
     const marks = [];
     // Hojas caídas y mudas en el suelo: ficha pequeña sin piquito, que se toca para recoger.
-    for (const l of this.home.leaves ?? []) if (l.t >= 1) { const w = this.toWorld(l.x, l.y); marks.push({ id: `l${l.id}`, kind: 'pickup', icon: resourceIconURL('hojarasca'), x: w.x, y: w.y + 0.12, z: w.z, at: { x: l.x, y: l.y } }); }
-    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); marks.push({ id: `m${m.id}`, kind: 'pickup', icon: resourceIconURL('cal'), x: w.x, y: w.y + 0.12, z: w.z, at: { x: m.x, y: m.y } }); }
+    // Mudas: quedan en el suelo hasta que se las comen (sin ficha: no ensucian la interfaz). Moho: manchas en el suelo.
+    for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3, alpha: Math.max(0.3, 1 - (m.t ?? 0) / 40), flat: true }); }
+    this.syncMold();
     for (const iso of this.home.isopods) {
       if (iso.hunger >= 0.35 || iso.rest > 0 || iso.id === this.selIso) continue;
       const w = this.toWorld(iso.x, iso.y);

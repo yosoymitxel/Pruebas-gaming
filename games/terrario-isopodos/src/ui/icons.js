@@ -7,6 +7,7 @@ export const ICONS = {
   colony: 'M3 16a9 7 0 0 1 18 0z M7 16v-4 M11 16V9.5 M15 16v-5 M21 14l2-2.5',
   out: 'M8 3h8 M9 3v3 M15 3v3 M6 9a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z M6 14c4-2 8 2 12 0',
   menu: 'M4 7h16 M4 12h16 M4 17h16',
+  lid: 'M3 9h18 M5 9V6h14v3 M5 13h14v7H5z M9 16h1 M14 16h1',
   turnLeft: 'M5 12a7 7 0 1 0 2.5-5.4 M4 4v5h5',
   turnRight: 'M19 12a7 7 0 1 1-2.5-5.4 M20 4v5h-5',
   zoomIn: 'M12 5v14 M5 12h14',
