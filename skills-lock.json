@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "skills": {
+    "animated-sprites": {
+      "source": "elithrar/dotfiles",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/animated-sprites/SKILL.md",
+      "computedHash": "bcd3026f1b4a50d1a57419830113d0959007c9f4822dda78d4d63a3867c235db"
+    },
+    "animation-vocabulary": {
+      "source": "emilkowalski/skill",
+      "sourceType": "github",
+      "skillPath": "skills/animation-vocabulary/SKILL.md",
+      "computedHash": "1c50a737b755ff021f5216c7b89af3734ba0f9a908d0b540d3e9979f52fef3e2"
+    },
+    "userinterface-wiki": {
+      "source": "raphaelsalaja/userinterface-wiki",
+      "sourceType": "github",
+      "skillPath": "skills/SKILL.md",
+      "computedHash": "b0101af16d186e0775415bf1d95800f3622630c090ba11d383dc9fdb4be06695"
+    }
+  }
+}
