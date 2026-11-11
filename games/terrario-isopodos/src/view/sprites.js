@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { PALETTES, BADGES } from '../data/palettes.js';
 import { drawIsopod, drawBall, drawMolt } from './isopod-art.js';
 import { FOE_SPRITES } from './foes-art.js';
+import { drawIsopod3D, drawBall3D, drawFoe3D } from './models3d.js';
 import { CARE_SPRITES } from './care-art.js';
 
 const INK = PALETTES.cozy.ink;
@@ -84,11 +85,13 @@ function badge(ctx, w, h, k) {
   ctx.fillStyle = BADGES[k] ?? BADGES[0]; ctx.beginPath(); ctx.moveTo(w * 0.24, h * 0.08); ctx.lineTo(w * 0.9, h * 0.26); ctx.lineTo(w * 0.24, h * 0.46); ctx.closePath(); ctx.fill(); ctx.stroke();
 }
 
+// Modelos 3D (models3d.js) fotografiados; el dibujo a mano queda de respaldo si no hay WebGL.
+const safe = (fn3d, fn2d) => (c, w, h, a) => { try { fn3d(c, w, h, a); } catch { fn2d(c, w, h, a); } };
+const ISO = { iso: safe(drawIsopod3D, drawIsopod), molt: safe((c, w, h, a) => drawIsopod3D(c, w, h, a, { molt: true }), (c, w, h, a) => drawIsopod(c, w, h, a, { molt: true })), ball: safe(drawBall3D, drawBall) };
+const FOES3D = Object.fromEntries(Object.entries(FOE_SPRITES).map(([k, f]) => [k, { ...f, draw: safe(drawFoe3D(k), f.draw) }]));
 export const PROC_SPRITES = { larva: { w: 256, h: 160, draw: larva }, alert: { w: 96, h: 112, draw: alert }, muda: { w: 128, h: 80, draw: drawMolt },
-  sel: { w: 64, h: 64, draw: sel }, zzz: { w: 96, h: 96, draw: zzz }, ...FOE_SPRITES, ...CARE_SPRITES };
+  sel: { w: 64, h: 64, draw: sel }, zzz: { w: 96, h: 96, draw: zzz }, ...FOES3D, ...CARE_SPRITES };
 const SIZES = { iso: [256, 160], molt: [256, 160], ball: [160, 160], res: [128, 128], badge: [64, 96] };
-// Isópodos por especie: de pie, en bolita o mudando.
-const ISO = { iso: (c, w, h, a) => drawIsopod(c, w, h, a), molt: (c, w, h, a) => drawIsopod(c, w, h, a, { molt: true }), ball: drawBall };
 
 const cache = new Map();
 export const spriteURL = (file) => new URL(`../../assets/sprites/${file}`, import.meta.url).href;
