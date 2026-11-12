@@ -103,7 +103,7 @@ function tickAlly(c, a, dt, input) {
   a.vy = len ? (my / Math.max(1, len)) * a.speed : 0;
   if (len > 0.1) a.facing = Math.atan2(my, mx);
   if (intent.roll && a.rollCd <= 0 && !c.mods.noRoll) startRoll(a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
-  else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown }); emit(c, 'heavyStart', { id: a.id }); }
+  else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown * (c.mods.heavyCdMul ?? 1) }); emit(c, 'heavyStart', { id: a.id }); }
   else if (intent.attack) startSwing(c, a);
 }
 
@@ -127,7 +127,7 @@ function startSwing(c, a) {
 function tickSwing(c, a, dt) {
   if ((a.timer -= dt) > 0) return;
   if (a.phase === 'windup' && a.heavy) {
-    for (const e of enemies(c)) if (dist(a, e) <= HEAVY.radius + e.r) { hurtEnemy(c, e, a.damage * HEAVY.mul, HEAVY.stagger, a); a.atb = Math.min(ATB_MAX, a.atb + 0.3 * atbMul(c)); }
+    for (const e of enemies(c)) if (dist(a, e) <= HEAVY.radius * (c.mods.heavyRadiusMul ?? 1) + e.r) { hurtEnemy(c, e, a.damage * HEAVY.mul, HEAVY.stagger, a); a.atb = Math.min(ATB_MAX, a.atb + 0.3 * atbMul(c)); }
     emit(c, 'heavy', { id: a.id, x: a.x, y: a.y });
     Object.assign(a, { phase: 'recover', timer: HEAVY.recover });
     return;
@@ -135,11 +135,15 @@ function tickSwing(c, a, dt) {
   if (a.phase === 'windup') {
     const w = weaponOf(c), v = variantOf(c), hit = w.combo[a.combo % w.combo.length];
     const crit = v.crit && c.t - (a.critAt ?? -99) >= v.crit.every;
+    const last = a.combo % w.combo.length === w.combo.length - 1 && w.combo.length > 1;
     let landed = false;
     for (const e of enemies(c)) {
       if (dist(a, e) <= w.reach + e.r && angleDiff(Math.atan2(e.y - a.y, e.x - a.x), a.facing) < w.arc) {
         landed = true;
-        hurtEnemy(c, e, a.damage * hit.mul * (v.damageMul ?? 1) * killMul(c) * (crit ? v.crit.mul : 1), 1, a);
+        const luck = c.mods.critChance && c.rng() < c.mods.critChance;
+        hurtEnemy(c, e, a.damage * hit.mul * (v.damageMul ?? 1) * killMul(c) * (crit ? v.crit.mul : 1) * (luck ? 2 : 1) * (last ? c.mods.finisherMul ?? 1 : 1), 1, a);
+        if (luck) emit(c, 'crit', { id: e.id });
+        if (c.mods.poisonChance && c.rng() < c.mods.poisonChance) { e.poison = 3; e.poisonDps = 3; emit(c, 'poison', { id: e.id }); }
         if (crit) emit(c, 'crit', { id: e.id });
         if (v.poison && c.rng() < v.poison.chance) { e.poison = v.poison.time; e.poisonDps = v.poison.dps; emit(c, 'poison', { id: e.id }); }
         if (v.vamp && e.hp <= 0 && c.rng() < v.vamp.chance) for (const al of allies(c).filter(alive)) al.hp = Math.min(al.maxHp, al.hp + Math.ceil(al.maxHp * v.vamp.heal));
@@ -319,7 +323,7 @@ function hurtEnemy(c, e, amount, staggerMul, from) {
       emit(c, 'stagger', { id: e.id });
     }
   }
-  if (e.hp <= 0) { e.state = 'dead'; c.kills = (c.kills ?? 0) + 1; emit(c, 'death', { id: e.id }); }
+  if (e.hp <= 0) { e.state = 'dead'; c.kills = (c.kills ?? 0) + 1; emit(c, 'death', { id: e.id }); if (c.mods.vampKill) for (const al of allies(c).filter(alive)) al.hp = Math.min(al.maxHp, al.hp + Math.ceil(al.maxHp * c.mods.vampKill)); }
 }
 
 // Habilidad u objeto. Devuelve false si no se puede usar ahora.

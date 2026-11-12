@@ -16,3 +16,10 @@ Fuente: wiki de Cult of the Lamb (Faith, Followers, Loyalty, Devotion, Rituals).
 | Cruzada: tiendas | Mercaderes dentro de la mazmorra. | Sala **Tienda**: cambia botín por gota, hongo o curación. |
 | Cruzada: curarse | Corazones y salas de descanso. | Sala **Fuente**: +35 % de vida a todos. |
 | Morir | Vuelves a la base perdiendo parte de lo recogido. | Ya estaba: al caer se pierde la mitad del botín y los rescatados. |
+| Armas | Espada, hacha (×0,5 vel.), daga (×2, 5 golpes), guanteletes (3.º ×3), martillo (1 golpe ×4); variantes Bane, Vampiric, Merciless, Godly. | `src/data/weapons.js`: pinza, mandíbula, aguijón, garras, maza; venenosa, vampírica, despiadada, divina. Se elige entre 2 (3 con el armero) al entrar; pedestales para cambiar. |
+| Vellones | Golden (+5 % por muerte, daño ×2), Glass Cannon, Fates (4 cartas, sin más), Hobbled Heels (cura por sala, sin rodar), Berserker. | `src/data/robes.js`: dorado, cristal, destino, tozudo, berserker; se compran con ámbar y se eligen al partir. |
+| Rasgos | Obediente, Industrioso, Crédulo, Escéptico, Perezoso, Cínico… nacen con ellos. | `src/data/traits.js`: 12 rasgos con efectos en fe, lealtad, trabajo, hambre, vida y susto. |
+| Comerciantes y mejoras | Ratau y tiendas; Inspiración divina con devoción. | Mercader cada 3 días (`src/data/economy.js`) y 5 mejoras con ámbar. |
+| Altares malditos | Pactos con riesgo en la mazmorra. | Sala **Altar**: carta rara a cambio de un 25 % de vida. |
+| Tarot | Cartas que tocan armas, curas y críticos. | 6 cartas nuevas: furia, eco, savia, sangría, filo, remate. |
+| Tutoriales | Avisos la primera vez de cada cosa. | `src/data/tips.js`: 11 consejos de una vez, apagables en Ajustes. |

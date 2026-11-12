@@ -1096,3 +1096,29 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .robe.locked { opacity: 0.55; } .robe .lock { position: absolute; right: 2px; bottom: 2px; width: 8px; height: 8px; background: var(--ink); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 .robe-line { margin: 4px 0 0; font-size: 12px; line-height: 1.25; }
 .room-arma rect { fill: #c9b8a0; } .room-maldito rect { fill: #6a3a4a; }
+
+/* Rasgos: verde azulado los buenos, óxido los malos. */
+.traits { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+.trait { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 2px; }
+.trait.good { background: #1d6e6822; color: #1d6e68; } .trait.bad { background: color-mix(in srgb, var(--rust) 16%, transparent); color: var(--rust); }
+.trait-list { list-style: none; margin: 0 0 6px; padding: 0; font-size: 13px; display: grid; gap: 2px; }
+.trait-list .good b { color: #1d6e68; } .trait-list .bad b { color: var(--rust); }
+
+/* Mercader y mejoras. */
+.merchant h3, .upgrades h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font: 700 22px/1 var(--hand); }
+.merchant h3 small { font: 12px var(--font, sans-serif); opacity: 0.7; }
+.trades { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.trades li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.trades li .btn { margin-left: auto; }
+.up-txt { display: grid; } .up-txt small { font-size: 12px; opacity: 0.8; }
+.trades li.own { opacity: 0.6; }
+.marker.m-merchant { --mk: var(--amber); width: 40px; height: 40px; margin: -44px 0 0 -20px; }
+
+/* Consejo de primera vez: tira de papel que entra desde arriba con un tirón, y se va sola. */
+.tip-toast { position: fixed; z-index: var(--z-modal, 50); top: calc(env(safe-area-inset-top, 0px) + 74px); left: 50%; translate: -50% 0; width: min(92vw, 420px);
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--paper); color: var(--ink); border-left: 4px solid #1d6e68;
+  clip-path: polygon(0 0, 100% 4%, 98% 100%, 1% 96%); box-shadow: 0 6px 18px rgb(0 0 0 / 0.35); font-size: 14px; line-height: 1.3;
+  animation: tip-in 420ms cubic-bezier(.2,1.5,.4,1) both, tip-out 400ms ease-in 5.1s forwards; cursor: pointer; }
+@keyframes tip-in { from { opacity: 0; transform: translateY(-24px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes tip-out { to { opacity: 0; transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) { .tip-toast { animation: none; } }

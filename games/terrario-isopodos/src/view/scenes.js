@@ -269,6 +269,8 @@ export class HomeView extends GridScene {
     this.syncMold();
     for (const p of Object.values(this.grid.pieces)) if (p.site) { const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       marks.push({ id: `site${p.id}`, kind: 'site', icon: iconURL('build'), x: w.x, y: w.y + 1.4, z: w.z, piece: p.id, progress: Math.min(1, p.site.t / p.site.need) }); }
+    // Mercader de visita (cada tres días): espera en la esquina del terrario.
+    if (this.merchant) { const g = this.grid, w = this.toWorld(g.w / 2 + 3.5, g.h / 2 + 4.2); marks.push({ id: 'merchant', kind: 'merchant', icon: iconURL('hogar'), x: w.x, y: w.y + 0.6, z: w.z }); }
     // Peticiones: globito sobre la cabeza con lo que quiere (como los seguidores de Cult of the Lamb).
     for (const iso of this.home.isopods) {
       if (!iso.wish || iso.rest > 0) continue;

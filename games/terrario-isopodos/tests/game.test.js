@@ -341,3 +341,31 @@ test('roguelite: la misma isla da los mismos pisos aunque se juegue distinto; la
   const out = R.settleRun(g.home, a, mulberry32(1));
   assert.ok(out.depth >= 1 && out.cause[0] === 'larva' && out.lostLoot.musgo === 2, 'el resumen dice hasta dónde, quién y qué se perdió');
 });
+
+test('rasgos (CotL): nacen con 1–2 sin opuestos y cambian lealtad, hambre y trabajo', async () => {
+  const T = await import('../src/data/traits.js');
+  const H = await import('../src/game/home.js');
+  const rng = mulberry32(5);
+  for (let k = 0; k < 200; k++) { const tr = T.rollTraits(rng); assert.ok(tr.length >= 1 && tr.length <= 2 && !(tr.includes('trabajador') && tr.includes('perezoso'))); }
+  const { home } = newGame(3), a = home.isopods[0], b = home.isopods[1];
+  a.traits = ['credulo']; b.traits = ['cinico']; a.loyal = b.loyal = 0;
+  H.gainLoyalty(home, a, 20); H.gainLoyalty(home, b, 20);
+  assert.ok(a.loyal > 20 && b.loyal < 20, 'crédulo gana más lealtad, cínico menos');
+  assert.ok(T.traitMul({ traits: ['gloton'] }, 'hungerMul') > 1 && T.traitMul({ traits: ['trabajador'] }, 'workMul') > 1);
+});
+
+test('economía (CotL): el mercader viene cada tres días con ofertas fijas por día; las mejoras se pagan una vez y cambian la expedición', async () => {
+  const E = await import('../src/game/economy.js');
+  const R = await import('../src/game/run.js');
+  const g = newGame(12);
+  g.day = 1; assert.equal(E.merchant(g), null, 'el día 1 no hay mercader');
+  g.day = 2; const m = E.merchant(g); assert.ok(m && m.offers.length === 4);
+  assert.deepEqual(E.merchant(g).offers, m.offers, 'mismas ofertas en el mismo día');
+  g.home.resources = { hojarasca: 30, musgo: 30, esporas: 30, cal: 30, ambar: 30 };
+  assert.ok(E.trade(g, 0) && !E.trade(g, 0), 'cada oferta se cambia una vez');
+  g.day = 3; assert.equal(E.merchant(g), null);
+  assert.ok(E.buyUpgrade(g, 'armero') && !E.buyUpgrade(g, 'armero'));
+  const isl = g.islands.find((i) => i.kind === 'nido'), ids = g.home.isopods.slice(0, 3).map((i) => i.id);
+  assert.equal(R.newRun(g.home, isl, ids, 0, { upgrades: g.upgrades }).weaponOffer.length, 3, 'con el armero se elige entre tres');
+  assert.equal(R.newRun(g.home, isl, ids, 0, { robe: 'destino' }).cards.length, 4, 'el manto del destino da cuatro cartas');
+});

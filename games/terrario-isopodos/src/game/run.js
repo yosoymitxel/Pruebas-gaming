@@ -7,6 +7,7 @@ import { CARDS } from '../data/cards.js';
 import { BIOMES } from '../data/world.js';
 import { ROBES } from '../data/robes.js';
 import { rollWeapon } from '../data/weapons.js';
+import { traitMul } from '../data/traits.js';
 import { genDungeon, nextNodes, enemiesFor, enemyHpMul } from './dungeon.js';
 import { partyBonus, recruit, isoStats } from './home.js';
 import { mulberry32, pickFrom } from '../core/rng.js';
@@ -20,7 +21,7 @@ export function newRun(home, island, partyIds, heat = 0, opts = {}) {
   const rng = mulberry32(island.seed + 7), robe = ROBES[opts.robe] ? opts.robe : 'comun', ups = opts.upgrades ?? [], hpRobe = ROBES[robe].mods.hpMul ?? 1;
   const party = partyIds.map((id) => {
     const iso = home.isopods.find((x) => x.id === id);
-    const st = isoStats(iso), maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul * st.hpMul * hpRobe * (ups.includes('quitina') ? 1.1 : 1));
+    const st = isoStats(iso), maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul * st.hpMul * hpRobe * (ups.includes('quitina') ? 1.1 : 1) * traitMul(iso, 'hpMul'));
     return { id, name: iso.name, cls: iso.cls, shell: iso.shell, hp: maxHp, maxHp, damageAdd: st.damageAdd, speedMul: st.speedMul, abilities: st.abilities };
   });
   const run = {
