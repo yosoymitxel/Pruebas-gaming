@@ -7,6 +7,8 @@ import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
+import { mulberry32 } from '../core/rng.js';
+import { TRAITS, rollTraits, traitMul, traitSum } from '../data/traits.js';
 import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS } from '../data/cult.js';
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN, MOLT_CAL } from '../data/substrate.js';
 
@@ -24,6 +26,7 @@ function newIsopod(rng, id, cls, taken = [], species) {
     id, name, cls: cls ?? classes[Math.floor(rng() * classes.length)],
     shell: species ?? Object.keys(SPECIES)[Math.floor(rng() * Object.keys(SPECIES).length)], hunger: 1, x: 0, y: 0, vx: 0, vy: 0, tx: null, ty: null, wait: 0,
     ball: 0, molting: 0, moltT: BEHAVIOR.moltEvery[0] + rng() * (BEHAVIOR.moltEvery[1] - BEHAVIOR.moltEvery[0]), baby: 0,
+    traits: rollTraits(rng),
   };
 }
 
@@ -52,6 +55,8 @@ function addIsopod(home, iso, rng) {
     if (!blocked(home.grid, Math.floor(x), Math.floor(y))) { Object.assign(iso, { x, y }); break; }
   }
   home.isopods.push(iso);
+  const join = traitSum(iso, 'faithJoin');
+  if (join) addFaith(home, join > 0 ? 'obediente' : 'esceptico');
 }
 
 export const nextExpansion = (home) => EXPANSIONS[home.expansion + 1] ?? null;
@@ -91,7 +96,7 @@ function tickSites(home, dt) {
   for (const p of Object.values(home.grid.pieces)) {
     if (!p.site) continue;
     const f = BUILDINGS[p.type].size, cx = p.x + f.w / 2, cy = p.y + f.h / 2;
-    const n = home.isopods.filter((i) => i.order === 'construir' && i.siteId === p.id && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.2).length;
+    const n = home.isopods.filter((i) => i.order === 'construir' && i.siteId === p.id && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.2).reduce((sum, i) => sum + traitMul(i, 'workMul'), 0);
     if ((p.site.t += dt * (SITE.alone + SITE.perWorker * n)) < p.site.need) continue;
     delete p.site;
     addFaith(home, BUILDINGS[p.type].calm ? 'deco' : 'pieza'); (home.builtNow ??= []).push(p.id);
@@ -101,20 +106,21 @@ function tickSites(home, dt) {
 // Trabajo (como asignar un seguidor al aserradero): se queda junto a una pieza que produce y la acelera.
 export function workers(home, p) {
   const f = BUILDINGS[p.type].size, cx = p.x + f.w / 2, cy = p.y + f.h / 2;
-  return home.isopods.filter((i) => i.job === p.id && !(i.rest > 0) && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.5).length;
+  return home.isopods.filter((i) => i.job === p.id && !(i.rest > 0) && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.5).reduce((sum, i) => sum + traitMul(i, 'workMul'), 0);
 }
 
 // ——— La colonia como un culto (src/data/cult.js) ———
 // Fe: cada evento suma o resta su cifra (y queda en faithLog para que la interfaz lo enseñe al momento).
 export function addFaith(home, key) {
   const ev = FAITH.events[key]; if (!ev) return;
+  home.faith ??= FAITH.start;
   home.faith = Math.max(FAITH.min, Math.min(FAITH.max, (home.faith ?? FAITH.start) + ev.delta));
   (home.faithLog ??= []).push({ key, delta: ev.delta });
   if (home.faithLog.length > 20) home.faithLog.shift();
 }
 // Lealtad: al llenar la barra sube de nivel, deja su recompensa y algo de fe.
 export function gainLoyalty(home, iso, n) {
-  iso.loyal = (iso.loyal ?? 0) + n;
+  iso.loyal = (iso.loyal ?? 0) + n * traitMul(iso, 'loyalMul');
   while (iso.loyal >= LOYALTY.max) {
     iso.loyal -= LOYALTY.max; iso.lv = (iso.lv ?? 0) + 1;
     for (const [r, k] of Object.entries(LOYALTY.reward)) home.resources[r] = (home.resources[r] ?? 0) + k;
@@ -126,17 +132,18 @@ export function bless(home, iso, day) {
   if (iso.blessDay === day) return false;
   iso.blessDay = day; iso.ball = 0; iso.wait = 1.2;
   gainLoyalty(home, iso, LOYALTY.mimo); addFaith(home, 'mimo');
+  if (traitSum(iso, 'blessFaith')) addFaith(home, 'devoto');
   if (iso.wish?.kind === 'mimo') fulfil(home, iso);
   return true;
 }
 export const canBless = (iso, day) => iso.blessDay !== day;
 // Reunión diaria (el sermón): la colonia se junta en círculo alrededor del altar (o del refugio).
-export function sermon(home, day) {
+export function sermon(home, day, loyMul = 1) {
   if (home.sermonDay === day) return false;
   const spot = Object.values(home.grid.pieces).find((p) => p.type === 'altar') ?? Object.values(home.grid.pieces).find((p) => BUILDINGS[p.type].beds);
   const f = spot ? BUILDINGS[spot.type].size : { w: 0, h: 0 }, c = home.grid.w / 2;
   home.sermonDay = day;
-  home.sermon = { t: SERMON.time, x: spot ? spot.x + f.w / 2 : c, y: spot ? spot.y + f.h + 1 : c };
+  home.sermon = { t: SERMON.time, x: spot ? spot.x + f.w / 2 : c, y: spot ? spot.y + f.h + 1 : c, mul: loyMul };
   const who = adults(home);
   who.forEach((iso, k) => { const a = (k / who.length) * Math.PI * 2; Object.assign(iso, { order: 'reunir', rest: 0, ball: 0, wait: 0, stuck: 0, tx: home.sermon.x + Math.cos(a) * SERMON.ring, ty: home.sermon.y + Math.sin(a) * SERMON.ring }); });
   return true;
@@ -150,7 +157,7 @@ function tickCult(home, dt, rng, phase) {
   if (home.faith) home.faith -= Math.sign(home.faith) * Math.min(Math.abs(home.faith), FAITH.decay * dt);
   // reunión en curso
   if (home.sermon && (home.sermon.t -= dt) <= 0) {
-    for (const iso of home.isopods) if (iso.order === 'reunir') { iso.order = null; iso.tx = null; gainLoyalty(home, iso, LOYALTY.reunion); }
+    for (const iso of home.isopods) if (iso.order === 'reunir') { iso.order = null; iso.tx = null; gainLoyalty(home, iso, LOYALTY.reunion * (home.sermon.mul ?? 1)); }
     addFaith(home, 'reunion'); home.sermon = null; home.sermonDone = true;
   }
   // anochecer y amanecer
@@ -305,6 +312,7 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   home.moist = humidity(home) + Math.max(-HUMIDITY.drift * dt, Math.min(HUMIDITY.drift * dt, humidityTarget(home) - humidity(home)));
   growMold(home, dt, rng);
   tickCult(home, dt, rng, phase);
+  for (const iso of home.isopods) iso.traits ??= rollTraits(mulberry32(iso.id * 977 + 13)); // partidas viejas
   for (const m of home.molts ?? []) m.t = (m.t ?? 0) + dt;
   const eaten = (home.molts ?? []).filter((m) => m.t >= MOLT_EATEN);
   if (eaten.length) { home.molts = home.molts.filter((m) => m.t < MOLT_EATEN); home.calBits = (home.calBits ?? 0) + eaten.length * MOLT_CAL; const n = Math.floor(home.calBits); home.calBits -= n; home.resources.cal = (home.resources.cal ?? 0) + n; }
@@ -411,7 +419,7 @@ export function poke(home, iso, from) {
   if (iso.rest > 0) { iso.rest = 0; iso.nightSleep = false; iso.bed = null; addFaith(home, 'despertar'); return 'woke'; }
   if (speciesOf(iso.shell).rolls) { iso.ball = BEHAVIOR.ballTime; iso.tx = null; return 'ball'; }
   const dx = iso.x - from.x, dy = iso.y - from.y, d = Math.hypot(dx, dy) || 1;
-  iso.tx = iso.x + (dx / d) * 3; iso.ty = iso.y + (dy / d) * 3; iso.stuck = 0; iso.dash = 1.2;
+  iso.tx = iso.x + (dx / d) * 3; iso.ty = iso.y + (dy / d) * 3; iso.stuck = 0; iso.dash = 1.2 * traitMul(iso, 'fearMul');
   return 'run';
 }
 
@@ -428,8 +436,8 @@ export function takeMolt(home, id) {
 // cuando están activos, exploran todo el terrario más rápido.
 function walk(home, iso, dt, rng, hungerMul, phase) {
   // Durmiendo en un refugio: quieto, gasta menos y calma a la colonia.
-  if (iso.rest > 0) { if ((iso.rest -= dt) <= 0) iso.bed = null; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
-  iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt);
+  if (iso.rest > 0) { if ((iso.rest -= dt) <= 0) iso.bed = null; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * traitMul(iso, 'hungerMul') * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
+  iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * traitMul(iso, 'hungerMul') * dt);
   if (iso.order === 'reunir') { // de pie en el círculo de la reunión, mirando al centro
     if (Math.hypot(iso.tx - iso.x, iso.ty - iso.y) < 0.25 || (iso.stuck = (iso.stuck ?? 0) + dt) > 10) { iso.vx = iso.vy = 0; return; }
     stepTo(home, iso, iso.tx, iso.ty, WALK * 1.4, dt); return;

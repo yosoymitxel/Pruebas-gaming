@@ -77,12 +77,14 @@ test('mapa interior: capas conectadas, sin cruces, jefe al final', () => {
   }
 });
 
-test('expedición completa con el piloto: se gana o se pierde y el botín vuelve', () => {
+test('expedición completa con el piloto: se gana o se pierde y el botín vuelve', async () => {
+  const R0 = await import('../src/game/run.js');
   const g = newGame(11);
   const nest = g.islands.find((i) => i.kind === 'nido');
   const run = newRun(g.home, nest, g.home.isopods.slice(0, 3).map((i) => i.id));
   const rng = mulberry32(9);
   while (run.state !== 'won' && run.state !== 'lost') {
+    if (run.state === 'weapon') { R0.pickWeapon(run, 0); continue; }
     if (run.state === 'card') { pickCard(run, run.offer[0]); continue; }
     if (run.state === 'combat') {
       const c = createCombat(combatSetup(run));
@@ -326,16 +328,44 @@ test('roguelite: la misma isla da los mismos pisos aunque se juegue distinto; la
   const { nextNodes } = await import('../src/game/dungeon.js');
   const g = newGame(9), isl = g.islands.find((i) => i.kind === 'nido'), ids = g.home.isopods.slice(0, 3).map((i) => i.id);
   const hash = (heat, firstPick) => {
-    const run = R.newRun(g.home, isl, ids, heat), opts = nextNodes(run.dungeon);
+    const run = R.newRun(g.home, isl, ids, heat); R.pickWeapon(run, firstPick % 2); const opts = nextNodes(run.dungeon);
     R.enterNode(run, opts[firstPick % opts.length].id);
     return JSON.stringify({ map: run.dungeon.nodes.map((n) => [n.type, n.layer]), floor: run.floor?.rooms.map((r) => [r.type, r.x, r.y]) ?? null, foes: run.encounter?.enemies });
   };
   assert.equal(hash(0, 0), hash(0, 0), 'misma semilla, mismo piso');
-  const a = R.newRun(g.home, isl, ids, 0), b = R.newRun(g.home, isl, ids, 3);
+  const a = R.newRun(g.home, isl, ids, 0), b = R.newRun(g.home, isl, ids, 3); R.pickWeapon(a, 0); R.pickWeapon(b, 0);
   assert.equal(JSON.stringify(a.dungeon), JSON.stringify(b.dungeon), 'la plaga no cambia el mapa');
   R.enterNode(a, nextNodes(a.dungeon)[0].id); R.enterNode(b, nextNodes(b.dungeon)[0].id);
   assert.ok(R.combatSetup(b).enemyHpMul > R.combatSetup(a).enemyHpMul && R.combatSetup(b).heatDmg > 1, 'con plaga las aberraciones aguantan y pegan más');
   a.state = 'lost'; a.cause = ['larva']; a.loot = { musgo: 4 };
   const out = R.settleRun(g.home, a, mulberry32(1));
   assert.ok(out.depth >= 1 && out.cause[0] === 'larva' && out.lostLoot.musgo === 2, 'el resumen dice hasta dónde, quién y qué se perdió');
+});
+
+test('rasgos (CotL): nacen con 1–2 sin opuestos y cambian lealtad, hambre y trabajo', async () => {
+  const T = await import('../src/data/traits.js');
+  const H = await import('../src/game/home.js');
+  const rng = mulberry32(5);
+  for (let k = 0; k < 200; k++) { const tr = T.rollTraits(rng); assert.ok(tr.length >= 1 && tr.length <= 2 && !(tr.includes('trabajador') && tr.includes('perezoso'))); }
+  const { home } = newGame(3), a = home.isopods[0], b = home.isopods[1];
+  a.traits = ['credulo']; b.traits = ['cinico']; a.loyal = b.loyal = 0;
+  H.gainLoyalty(home, a, 20); H.gainLoyalty(home, b, 20);
+  assert.ok(a.loyal > 20 && b.loyal < 20, 'crédulo gana más lealtad, cínico menos');
+  assert.ok(T.traitMul({ traits: ['gloton'] }, 'hungerMul') > 1 && T.traitMul({ traits: ['trabajador'] }, 'workMul') > 1);
+});
+
+test('economía (CotL): el mercader viene cada tres días con ofertas fijas por día; las mejoras se pagan una vez y cambian la expedición', async () => {
+  const E = await import('../src/game/economy.js');
+  const R = await import('../src/game/run.js');
+  const g = newGame(12);
+  g.day = 1; assert.equal(E.merchant(g), null, 'el día 1 no hay mercader');
+  g.day = 2; const m = E.merchant(g); assert.ok(m && m.offers.length === 4);
+  assert.deepEqual(E.merchant(g).offers, m.offers, 'mismas ofertas en el mismo día');
+  g.home.resources = { hojarasca: 30, musgo: 30, esporas: 30, cal: 30, ambar: 30 };
+  assert.ok(E.trade(g, 0) && !E.trade(g, 0), 'cada oferta se cambia una vez');
+  g.day = 3; assert.equal(E.merchant(g), null);
+  assert.ok(E.buyUpgrade(g, 'armero') && !E.buyUpgrade(g, 'armero'));
+  const isl = g.islands.find((i) => i.kind === 'nido'), ids = g.home.isopods.slice(0, 3).map((i) => i.id);
+  assert.equal(R.newRun(g.home, isl, ids, 0, { upgrades: g.upgrades }).weaponOffer.length, 3, 'con el armero se elige entre tres');
+  assert.equal(R.newRun(g.home, isl, ids, 0, { robe: 'destino' }).cards.length, 4, 'el manto del destino da cuatro cartas');
 });

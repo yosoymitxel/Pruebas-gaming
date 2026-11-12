@@ -66,6 +66,7 @@ export function Settings({ s }) {
         <${Toggle} on=${st.fx !== false} onChange=${set('fx')} label=${t('settings.fx', 'Efectos extra (clima, luciérnagas…)')} hint=${t('settings.fxHint', 'Lluvia, niebla y motas sobre el diorama')} />
         <${FullscreenToggle} />
         <${Toggle} on=${st.shake !== false} onChange=${set('shake')} label=${t('settings.shake', 'Temblor de cámara')} hint=${t('settings.shakeHint', 'Golpes fuertes y aturdimientos sacuden la escena')} />
+        <${Toggle} on=${st.tips !== false} onChange=${set('tips')} label=${t('settings.tips', 'Consejos')} hint=${t('settings.tipsHint', 'Avisos cortos la primera vez que pasa algo')} />
         <${Toggle} on=${!!st.reduceMotion} onChange=${set('reduceMotion')} label=${t('settings.motion', 'Movimiento reducido')} hint=${t('settings.motionHint', 'Sin pausas de impacto ni animaciones de interfaz')} />
       </section>
       <section class="panel set-card">

@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "check": "node tools/syntax-check.mjs && node tools/check-registry.mjs && node tools/combat-selfcheck.mjs && node tools/exploits-selfcheck.mjs && node tools/run-selfcheck.mjs 20 0.7",
+    "check": "node tools/syntax-check.mjs && node tools/check-registry.mjs && node tools/combat-selfcheck.mjs && node tools/exploits-selfcheck.mjs && node tools/run-selfcheck.mjs 20 0.7 && node tools/run-selfcheck.mjs opciones",
     "smoke": "node tools/smoke.mjs && node tools/smoke.mjs --mobile",
     "itch": "vite build && rm -f terrario-isopodos-itch.zip && cd dist && zip -qr ../terrario-isopodos-itch.zip ."
   },

@@ -1,7 +1,7 @@
 // Piloto automático del isópodo principal: lo usan el selfcheck (¿cada aberración es vencible?) y la
 // demo del menú. Juega como un jugador prudente: esquiva lo que lo alcanzaría, pega, y gasta ATB
 // en curar cuando el equipo flojea y en golpes fuertes cuando el enemigo está aturdido o presionado.
-import { mainActor, enemies, allies, threatens, useAbility, useItem } from './combat.js';
+import { mainActor, enemies, allies, threatens, useAbility, useItem, weaponOf } from './combat.js';
 import { ABILITIES } from '../data/abilities.js';
 import { CLASSES } from '../data/isopods.js';
 
@@ -31,6 +31,6 @@ export function autopilot(c, skill = 1) {
   const close = foes.filter((e) => Math.hypot(e.x - me.x, e.y - me.y) < 2 + e.r).length;
   if (close >= 2 && !(me.heavyCd > 0) && c.rng() < skill * 0.1) return { heavy: true }; // varios encima: golpe fuerte en círculo
   const d = Math.hypot(target.x - me.x, target.y - me.y);
-  if (d > target.r + 1.1) return { move: { x: (target.x - me.x) / d, y: (target.y - me.y) / d } };
+  if (d > target.r + weaponOf(c).reach * 0.85) return { move: { x: (target.x - me.x) / d, y: (target.y - me.y) / d } };
   return { attack: true };
 }

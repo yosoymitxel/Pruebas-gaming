@@ -6,12 +6,15 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
-import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT } from '../game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
+import { ROBES } from '../data/robes.js';
+import { TIPS } from '../data/tips.js';
+import { merchantToday, trade, buyUpgrade, hasUpgrade } from '../game/economy.js';
 import { footprint, move } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
@@ -80,7 +83,7 @@ export class Session {
     if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
-    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else { this.selPiece = m.piece; this.emit(); } } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
+    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else { this.selPiece = m.piece; this.emit(); } } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -246,6 +249,19 @@ export class Session {
     else this.stage.frame(this.view.camera.target, this.view.camera.distance, this.view.camera.fit);
     this.sfx('click'); this.emit();
   }
+  // Consejos de primera vez (src/data/tips.js): uno cada vez, 5 s en pantalla; se guardan para no repetirlos.
+  tips() {
+    if (this.settings.tips === false || (this.tip && this.time - this.tip.at < 6)) return;
+    const seen = (this.meta.tips ??= []);
+    for (const [id, tp] of Object.entries(TIPS)) {
+      if (seen.includes(id)) continue;
+      let hit = false; try { hit = tp.when(this); } catch {}
+      if (!hit) continue;
+      seen.push(id); saveMeta(this.meta);
+      this.tip = { id, at: this.time, icon: tp.icon, text: tp.text }; this.sfx('open', 1.4); this.emit();
+      return;
+    }
+  }
   // Fe y lealtad a la vista: cada evento sale como número sobre la colonia (como el +5 de fe de Cult of the Lamb).
   cultFx() {
     const home = this.game.home, log = home.faithLog ?? [], c = this.view.toWorld(home.grid.w / 2, home.grid.h / 2);
@@ -271,7 +287,7 @@ export class Session {
   }
   sermon() {
     const home = this.game.home;
-    if (!sermon(home, this.game.day)) { this.sfx('hurt', 1.6); return false; }
+    if (!sermon(home, this.game.day, hasUpgrade(this.game, 'coro') ? 2 : 1)) { this.sfx('hurt', 1.6); return false; }
     this.selectIso(null); this.sfx('boss', 1.6); this.emit(); return true;
   }
   orderIso(id, what) {
@@ -343,8 +359,20 @@ export class Session {
   }
 
   // ——— Expedición ———
+  // Mercader (cada tres días) y mejoras permanentes (src/game/economy.js).
+  trade(k) { if (trade(this.game, k, this.rng)) { this.sfx('pickup'); this.persist(); this.emit(); } else this.sfx('hurt', 1.6); }
+  buyUpgrade(id) { if (buyUpgrade(this.game, id)) { this.sfx('win'); this.persist(); this.emit(); } else this.sfx('hurt', 1.6); }
+  setRobe(id) { this.game.robe = id; this.sfx('click'); this.persist(); this.emit(); }
+  buyRobe(id) {
+    const r = ROBES[id], home = this.game.home;
+    if (!r?.cost || !pay(home, r.cost)) { this.sfx('hurt', 1.6); return false; }
+    (this.game.robes ??= []).push(id); this.game.robe = id; this.sfx('win'); this.persist(); this.emit(); return true;
+  }
+  pickWeapon(k) { if (pickWeapon(this.run, k)) { this.sfx('build', 0.8); this.persist(); this.emit(); } }
+  swapWeapon() { if (swapWeapon(this.run)) { this.sfx('build', 0.8); this.emit(); } }
+  acceptPact() { if (acceptPact(this.run)) { this.sfx('boss', 1.4); this.shake(0.3); this.emit(); } }
   startRun(island, partyIds) {
-    this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0);
+    this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0, { robe: this.game.robe, upgrades: this.game.upgrades ?? [] });
     visit(this.game, island.id);
     this.persist();
     this.setMode('dungeon', null, 0.75, this.run.island.weather);
@@ -434,7 +462,7 @@ export class Session {
     if (this.mode === 'home' && this.settings.autoSpin !== false && !this.settings.reduceMotion && this.selIso == null && !this.build && !this.paused && this.time - (this.touched ?? -9) > 4) this.stage.rotate(dt * 0.07);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
-    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
+    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.view.merchant = merchantToday(this.game); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;
       tickGather(g, dt, input.move, input.roll, input.held?.roll);
@@ -449,6 +477,7 @@ export class Session {
     if (this.fx.length) this.fx = this.fx.filter((f) => this.time - f.at < 0.9);
     this.stage.render(this.time, dt);
     this.view?.markers?.place();
+    if ((this.tipT = (this.tipT ?? 0) + dt) > 1) { this.tipT = 0; this.tips(); }
     this.hudTimer = (this.hudTimer ?? 0) + dt;
     if (this.toastAch && this.time - this.toastAch.at < 3.4) this.hudTimer += 0.1; // que el cartel se vaya a tiempo
     if (this.hudTimer > 0.08 && (this.toastAch || this.mode === 'combat' || this.mode === 'gather' || this.mode === 'home' || this.mode === 'islands')) { this.hudTimer = 0; this.emit(); }

@@ -7,6 +7,7 @@ import { BADGES } from '../../data/palettes.js';
 import { speciesOf } from '../../data/species.js';
 import { beds, isoStatus, isoStats, canLearn, canAfford, partyBonus, canBless, canSermon } from '../../game/home.js';
 import { WISHES, LOYALTY } from '../../data/cult.js';
+import { TRAITS } from '../../data/traits.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { SKILLS } from '../../data/skills.js';
 import { ABILITIES } from '../../data/abilities.js';
@@ -25,6 +26,7 @@ export function ColonyList({ s }) {
   return html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
       ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
+      <button class="btn small ghost" onClick=${() => { s.wantPanel = 'upgrades'; s.emit(); }}><${Icon} name="expand" size="16" />${t('upgrades.title', 'Mejoras')}</button>
       <button class="btn small" disabled=${!canSermon(home, s.game.day) || !!home.sermon} onClick=${() => s.sermon()}><${Icon} name="colony" size="16" />${t('colony.sermon', 'Reunir')}</button></p>
     ${home.isopods.map((iso) => html`<button class="iso-row" onClick=${() => s.selectIso(iso.id)}>
       <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
@@ -61,6 +63,7 @@ function Care({ s, iso, st, sp }) {
 function Sheet({ s, iso, sp }) {
   const cls = CLASSES[iso.cls], x = isoStats(iso), hp = Math.round(cls.hp * sp.hp * partyBonus(s.game.home, iso).hpMul * x.hpMul);
   return html`<div class="sheet">
+    <ul class="trait-list">${(iso.traits ?? []).map((id) => html`<li class=${TRAITS[id].good ? 'good' : 'bad'}><b>${TRAITS[id].name}</b> · ${TRAITS[id].desc}</li>`)}</ul>
     <p class="sp-line"><i>${sp.latin}</i> · ${sp.rolls ? t('species.rolls', 'se hace bolita') : t('species.runs', 'corre')} · <${Icon} name="items" size="13" />${CLIMATES[sp.humidity].name}</p>
     <dl class="stats3">
       <div><dt><${Icon} name="shield" size="16" />${t('party.hp', 'Vida')}</dt><dd>${hp}</dd></div>
@@ -107,6 +110,7 @@ export function IsoHub({ s }) {
           : html`<button class="name-btn" onClick=${() => setEdit(true)} aria-label=${t('colony.rename', 'Cambiar nombre')}><b>${iso.name}</b><${Icon} name="build" size="14" /></button>`}
         <small class="cls-line"><${Icon} name=${CLASS_ICON[iso.cls]} size="14" />${CLASSES[iso.cls].name} · ${sp.name}</small>
         <${Status} k=${st} />
+        <span class="traits">${(iso.traits ?? []).map((id) => html`<span class=${`trait ${TRAITS[id].good ? 'good' : 'bad'}`} title=${TRAITS[id].desc}>${TRAITS[id].name}</span>`)}</span>
       </div>
       <button class="btn ghost icon" onClick=${() => s.selectIso(null)} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="back" /></button>
     </div>

@@ -69,10 +69,11 @@ await shot('04-colocar');
 await page.getByRole('button', { name: 'Listo' }).click();
 
 // Pausa (Esc): congela el reloj y ofrece las salidas.
-const clock0 = await s(() => window.__terrario.game.clock);
 await page.keyboard.press('Escape');
-await wait(600);
+await wait(300);
 check(await page.getByRole('dialog', { name: 'Pausa' }).isVisible(), 'abrir la pausa con Esc');
+const clock0 = await s(() => window.__terrario.game.clock); // medido ya en pausa (la tecla entra al fotograma siguiente)
+await wait(600);
 check(await s(() => window.__terrario.game.clock) === clock0, 'la pausa detiene el reloj del día');
 await shot('04b-pausa');
 await page.getByRole('button', { name: 'Seguir jugando' }).click();
@@ -101,7 +102,11 @@ await page.locator('.isle-nido:not(.done) button').first().dispatchEvent('click'
 await page.getByRole('button', { name: 'Auto' }).click();
 await shot('07b-equipo');
 await page.getByRole('button', { name: 'Partir' }).click();
-await wait(600);
+await wait(900);
+await shot('08a-arma');
+check(await page.locator('.weapon-card').count() >= 2, 'al entrar al nido se elige arma');
+await page.locator('.weapon-card').first().click();
+await wait(400);
 await shot('08-nido');
 await page.locator('.node.reach').first().click({ force: true });
 await wait(300);

@@ -18,8 +18,11 @@ const STAGGER_TIME = 4, STAGGER_DAMAGE = 1.6, PRESSURE_STAGGER = 2.5;
 const ROLL = { time: 0.32, invuln: 0.3, speed: 9, cooldown: 0.5 };
 const DASH = { time: 0.26, invuln: 0.2, speed: 12.5, cooldown: 0.4 };
 const BALL = { time: 0.42, invuln: 0.42, speed: 7.5, cooldown: 0.55 };
-const COMBO = [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }];
 const REACH = 1.25;
+import { WEAPONS, VARIANTS } from '../data/weapons.js';
+// Arma de la expedición (c.mods.weapon = { type, variant }); sin arma, la pinza común.
+export const weaponOf = (c) => WEAPONS[c.mods.weapon?.type] ?? WEAPONS.pinza;
+const variantOf = (c) => VARIANTS[c.mods.weapon?.variant] ?? VARIANTS.comun;
 // Ataque fuerte (como el de Cult of the Lamb): mantener y soltar. Golpe en círculo que empuja y aturde, con espera.
 export const HEAVY = { windup: 0.3, recover: 0.42, mul: 2.4, radius: 1.9, stagger: 2.2, cooldown: 2.2, charge: 0.45 };
 
@@ -72,6 +75,7 @@ export function step(c, dt, input = {}) {
   for (const a of c.actors) if (alive(a)) a.side === 'ally' ? tickAlly(c, a, dt, a === main ? input : null) : tickEnemy(c, a, dt);
   physics(c, dt);
   hazards(c, dt);
+  for (const e of enemies(c)) if (e.poison > 0) { e.poison -= dt; e.poisonAcc = (e.poisonAcc ?? 0) + e.poisonDps * dt; if (e.poisonAcc >= 1) { const n = Math.floor(e.poisonAcc); e.poisonAcc -= n; e.hp = Math.max(0, e.hp - n); if (e.hp <= 0) { e.state = 'dead'; emit(c, 'death', { id: e.id }); } } }
   if (!enemies(c).length) finish(c, 'win');
   else if (!allies(c).some(alive)) finish(c, 'lose');
 }
@@ -98,12 +102,14 @@ function tickAlly(c, a, dt, input) {
   a.vx = len ? (mx / Math.max(1, len)) * a.speed : 0;
   a.vy = len ? (my / Math.max(1, len)) * a.speed : 0;
   if (len > 0.1) a.facing = Math.atan2(my, mx);
-  if (intent.roll && a.rollCd <= 0) startRoll(a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
-  else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown }); emit(c, 'heavyStart', { id: a.id }); }
+  if (intent.roll && a.rollCd <= 0 && !c.mods.noRoll) startRoll(a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
+  else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown * (c.mods.heavyCdMul ?? 1) }); emit(c, 'heavyStart', { id: a.id }); }
   else if (intent.attack) startSwing(c, a);
 }
 
 const atbMul = (c) => c.mods.atbMul ?? 1;
+// Manto dorado: cada muerte suma daño hasta que te pegan.
+const killMul = (c) => 1 + (c.mods.killStack ?? 0) * (c.kills ?? 0);
 
 function startRoll(a, dx, dy) {
   const r = a.dodge ?? ROLL;
@@ -113,26 +119,38 @@ function startRoll(a, dx, dy) {
 function startSwing(c, a) {
   const target = nearest(a, enemies(c));
   if (target && dist(a, target) < REACH + target.r + 1.5) a.facing = Math.atan2(target.y - a.y, target.x - a.x);
-  a.combo = a.comboWindow > 0 ? (a.combo + 1) % COMBO.length : 0;
-  Object.assign(a, { state: 'attack', phase: 'windup', timer: COMBO[a.combo].windup, vx: 0, vy: 0 });
+  const combo = weaponOf(c).combo;
+  a.combo = a.comboWindow > 0 ? (a.combo + 1) % combo.length : 0;
+  Object.assign(a, { state: 'attack', phase: 'windup', timer: combo[a.combo].windup, vx: 0, vy: 0 });
 }
 
 function tickSwing(c, a, dt) {
   if ((a.timer -= dt) > 0) return;
   if (a.phase === 'windup' && a.heavy) {
-    for (const e of enemies(c)) if (dist(a, e) <= HEAVY.radius + e.r) { hurtEnemy(c, e, a.damage * HEAVY.mul, HEAVY.stagger, a); a.atb = Math.min(ATB_MAX, a.atb + 0.3 * atbMul(c)); }
+    for (const e of enemies(c)) if (dist(a, e) <= HEAVY.radius * (c.mods.heavyRadiusMul ?? 1) + e.r) { hurtEnemy(c, e, a.damage * HEAVY.mul, HEAVY.stagger, a); a.atb = Math.min(ATB_MAX, a.atb + 0.3 * atbMul(c)); }
     emit(c, 'heavy', { id: a.id, x: a.x, y: a.y });
     Object.assign(a, { phase: 'recover', timer: HEAVY.recover });
     return;
   }
   if (a.phase === 'windup') {
-    const hit = COMBO[a.combo];
+    const w = weaponOf(c), v = variantOf(c), hit = w.combo[a.combo % w.combo.length];
+    const crit = v.crit && c.t - (a.critAt ?? -99) >= v.crit.every;
+    const last = a.combo % w.combo.length === w.combo.length - 1 && w.combo.length > 1;
+    let landed = false;
     for (const e of enemies(c)) {
-      if (dist(a, e) <= REACH + e.r && angleDiff(Math.atan2(e.y - a.y, e.x - a.x), a.facing) < 1.1) {
-        hurtEnemy(c, e, a.damage * hit.mul, 1, a);
-        a.atb = Math.min(ATB_MAX, a.atb + (a.id === c.main ? 0.2 : 0.12) * atbMul(c));
+      if (dist(a, e) <= w.reach + e.r && angleDiff(Math.atan2(e.y - a.y, e.x - a.x), a.facing) < w.arc) {
+        landed = true;
+        const luck = c.mods.critChance && c.rng() < c.mods.critChance;
+        hurtEnemy(c, e, a.damage * hit.mul * (v.damageMul ?? 1) * killMul(c) * (crit ? v.crit.mul : 1) * (luck ? 2 : 1) * (last ? c.mods.finisherMul ?? 1 : 1), 1, a);
+        if (luck) emit(c, 'crit', { id: e.id });
+        if (c.mods.poisonChance && c.rng() < c.mods.poisonChance) { e.poison = 3; e.poisonDps = 3; emit(c, 'poison', { id: e.id }); }
+        if (crit) emit(c, 'crit', { id: e.id });
+        if (v.poison && c.rng() < v.poison.chance) { e.poison = v.poison.time; e.poisonDps = v.poison.dps; emit(c, 'poison', { id: e.id }); }
+        if (v.vamp && e.hp <= 0 && c.rng() < v.vamp.chance) for (const al of allies(c).filter(alive)) al.hp = Math.min(al.maxHp, al.hp + Math.ceil(al.maxHp * v.vamp.heal));
+        a.atb = Math.min(ATB_MAX, a.atb + (a.id === c.main ? 0.26 : 0.16) * Math.min(1.5, hit.mul) * atbMul(c));
       }
     }
+    if (crit && landed) a.critAt = c.t;
     Object.assign(a, { phase: 'recover', timer: hit.recover });
   } else {
     Object.assign(a, { state: 'idle', comboWindow: a.heavy ? 0 : 0.45, heavy: false });
@@ -149,7 +167,7 @@ function autoAlly(c, a) {
     const away = Math.atan2(a.y - threat.y, a.x - threat.x) + (c.rng() - 0.5);
     return { move: { x: Math.cos(away), y: Math.sin(away) }, roll: true };
   }
-  const d = dist(a, e), want = REACH + e.r - 0.2;
+  const d = dist(a, e), want = weaponOf(c).reach + e.r - 0.2;
   if (d > want) return { move: { x: (e.x - a.x) / d, y: (e.y - a.y) / d } };
   return { attack: c.rng() < 0.03 };
 }
@@ -276,7 +294,8 @@ function knock(target, from, force) {
 
 function hurtAlly(c, a, amount, from) {
   if (a.invuln > 0) { emit(c, 'dodge', { id: a.id }); return { dodged: true }; }
-  amount *= c.mods.enemyDamageMul ?? 1;
+  amount *= (c.mods.enemyDamageMul ?? 1) * (c.mods.incomingMul ?? 1);
+  if (c.mods.killStack) c.kills = 0;
   const absorbed = Math.min(a.shield, amount);
   a.shield -= absorbed;
   const dmg = Math.round(amount - absorbed);
@@ -304,15 +323,16 @@ function hurtEnemy(c, e, amount, staggerMul, from) {
       emit(c, 'stagger', { id: e.id });
     }
   }
-  if (e.hp <= 0) { e.state = 'dead'; emit(c, 'death', { id: e.id }); }
+  if (e.hp <= 0) { e.state = 'dead'; c.kills = (c.kills ?? 0) + 1; emit(c, 'death', { id: e.id }); if (c.mods.vampKill) for (const al of allies(c).filter(alive)) al.hp = Math.min(al.maxHp, al.hp + Math.ceil(al.maxHp * c.mods.vampKill)); }
 }
 
 // Habilidad u objeto. Devuelve false si no se puede usar ahora.
 export function useAbility(c, actorId, abilityId) {
   const a = c.actors.find((x) => x.id === actorId);
   const ab = ABILITIES[abilityId];
-  if (!a || !alive(a) || a.held > 0 || !ab || !(a.abilities ?? CLASSES[a.cls].abilities).includes(abilityId) || a.atb < ab.atb) return false;
-  a.atb -= ab.atb;
+  const cost = ab.atb * (c.mods.atbCostMul ?? 1);
+  if (!a || !alive(a) || a.held > 0 || !ab || !(a.abilities ?? CLASSES[a.cls].abilities).includes(abilityId) || a.atb < cost) return false;
+  a.atb -= cost;
   apply(c, a, ab);
   emit(c, 'ability', { id: a.id, ability: abilityId });
   return true;
@@ -327,8 +347,8 @@ export function useItem(c, itemId) {
   return true;
 }
 
-function apply(c, a, ab) {
-  const team = allies(c).filter(alive);
+function apply(c, a, ab0) {
+  const team = allies(c).filter(alive), ab = { ...ab0, power: ab0.power * (c.mods.abilityMul ?? 1) };
   switch (ab.kind) {
     case 'strike': { const e = nearest(a, enemies(c).filter((x) => dist(a, x) <= ab.range + x.r)); if (e) hurtEnemy(c, e, ab.power, ab.staggerMul, a); break; }
     case 'burst': for (const e of enemies(c)) if (dist(a, e) <= ab.range + e.r) hurtEnemy(c, e, ab.power, ab.staggerMul, a); break;

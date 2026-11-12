@@ -25,6 +25,9 @@ export const FAITH = {
     camas: { name: 'Faltan camas', delta: -20 },
     hambre: { name: 'Pasan hambre', delta: -10 },
     nivel: { name: 'Subió de nivel', delta: 5 },
+    obediente: { name: 'Llegó alguien obediente', delta: 10 },
+    esceptico: { name: 'Llegó alguien escéptico', delta: -10 },
+    devoto: { name: 'Mimo a un devoto', delta: 3 },
   }),
 };
 

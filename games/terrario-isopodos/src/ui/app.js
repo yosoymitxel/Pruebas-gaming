@@ -1,5 +1,6 @@
 import { html, render, useState, useEffect } from './lib.js';
 import { t } from '../i18n/index.js';
+import { Icon } from './icons.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { PALETTES, SEMANTIC } from '../data/palettes.js';
 import { Stage } from '../view/stage.js';
@@ -46,7 +47,7 @@ function App({ s }) {
   useEffect(() => s.on(() => force((n) => n + 1)), []);
   const Screen = SCREENS[s.mode];
   // Al cambiar de pantalla, una mancha de tinta barre la vista (se omite con movimiento reducido).
-  return html`<${Screen} s=${s} /><${AchievementToast} s=${s} />${s.paused && html`<${Pause} s=${s} />`}${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}${s.dayWipe && s.time - s.dayWipe.at < 1.5 && html`<div class="day-wipe" key=${s.dayWipe.at} aria-hidden="true"><span><small>${t('ui.day', 'Día')}</small><b>${s.dayWipe.day}</b></span></div>`}`;
+  return html`<${Screen} s=${s} /><${AchievementToast} s=${s} />${s.tip && s.time - s.tip.at < 5.5 && html`<div class="tip-toast" role="status" key=${s.tip.id} onClick=${() => { s.tip = null; s.emit(); }}><${Icon} name=${s.tip.icon} size="20" /><span>${s.tip.text}</span></div>`}${s.paused && html`<${Pause} s=${s} />`}${!s.settings.reduceMotion && html`<div class="wipe" key=${s.mode} aria-hidden="true"></div>`}${s.dayWipe && s.time - s.dayWipe.at < 1.5 && html`<div class="day-wipe" key=${s.dayWipe.at} aria-hidden="true"><span><small>${t('ui.day', 'Día')}</small><b>${s.dayWipe.day}</b></span></div>`}`;
 }
 
 export function start() {

@@ -12,6 +12,19 @@ import { portraitURL } from '../../view/sprites.js';
 import { Bar, Loot, ResIcon, PauseButton, Cost } from './common.js';
 import { Icon, IconAt } from '../icons.js';
 import { CardPick, CardFace } from './cards.js';
+import { WEAPONS, VARIANTS, weaponName } from '../../data/weapons.js';
+
+// Elegir arma al entrar en el nido (como el arma de la sala de entrada de Cult of the Lamb): cartas que se
+// voltean una tras otra.
+function WeaponPick({ s, offer }) {
+  return html`<section class="overlay pick weapon-pick" aria-label=${t('weapon.title', 'Elige arma')}>
+    <div class="pick-body"><h2>${t('weapon.title', 'Elige arma')}</h2>
+      <div class="weapon-row">${offer.map((w, k) => html`<button class=${`weapon-card v-${w.variant}`} style=${{ '--k': k }} onClick=${() => s.pickWeapon(k)}>
+        <${Icon} name=${WEAPONS[w.type].icon} size="44" /><b>${weaponName(w)}</b><small>${WEAPONS[w.type].desc}</small>
+        ${VARIANTS[w.variant].desc && html`<small class="variant">${VARIANTS[w.variant].desc}</small>`}
+        <span class="w-combo" aria-label=${`${WEAPONS[w.type].combo.length} golpes`}>${WEAPONS[w.type].combo.map((h) => html`<i style=${{ '--m': h.mul }}></i>`)}</span></button>`)}</div>
+    </div></section>`;
+}
 
 const X = (n) => 10 + n.x * 80, Y = (n) => 93 - (n.layer / (LAYERS - 1)) * 84;
 // Rombo de lado `r` (como el selector de niveles de Cult of the Lamb) y runas rojas sueltas por la página.
@@ -44,8 +57,8 @@ function Preview({ node, biome, onEnter, onClose }) {
 
 // Piso del nivel (como el minimapa de salas de Cult of the Lamb): casillas unidas por pasillos, la actual con
 // estandarte; se va por las puertas de la sala actual (tocar una sala vecina o su botón).
-const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf' };
-const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente') };
+const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
+const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente'), arma: () => t('room.weapon', 'Arma'), maldito: () => t('room.cursed', 'Altar') };
 const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
 
 function FloorMap({ s }) {
@@ -73,6 +86,11 @@ function FloorMap({ s }) {
       <span class="dir">${DIR(cur, r)}</span><${Icon} name=${icon(r)} size="18" />${r.final ? NODE_TYPES[run.node.type].name : ROOM_NAME[r.type]()}${r.done ? ` · ${t('floor.visited', 'vista')}` : ''}</button>`)}</div>
     ${run.last?.type === 'reliquia' && run.last.card && html`<p class="note">${t('floor.relic', 'Reliquia')}: <b>${CARDS[run.last.card].name}</b> — ${CARDS[run.last.card].desc}</p>`}
     ${run.last?.type === 'rescate' && html`<p class="note"><${Icon} name="colony" size="16" />${t('floor.rescued', 'Un isópodo cautivo se une a la colonia al volver')}</p>`}
+    ${run.last?.type === 'arma' && (() => { const room = f.rooms[run.last.room], w = room.weapon; return html`<div class="note shop"><p>${t('floor.pedestal', 'Un arma en el pedestal:')} <b>${weaponName(w)}</b></p>
+      <small>${WEAPONS[w.type].desc} ${VARIANTS[w.variant].desc}</small>
+      <button class="btn small" disabled=${room.taken} onClick=${() => s.swapWeapon()}>${room.taken ? t('floor.swapped', 'Cambiada ✓') : `${t('floor.swap', 'Cambiar por')} ${weaponName(run.weapon)}`}</button></div>`; })()}
+    ${run.last?.type === 'maldito' && (() => { const room = f.rooms[run.last.room]; return html`<div class="note shop pact"><p>${t('floor.pact', 'Altar maldito: una carta rara a cambio de un cuarto de vuestra vida.')}</p>
+      <button class="btn small" disabled=${room.taken} onClick=${() => s.acceptPact()}>${room.taken ? t('floor.pactDone', 'Pacto sellado') : t('floor.pactOk', 'Aceptar el pacto')}</button></div>`; })()}
     ${run.last?.type === 'fuente' && html`<p class="note"><${Icon} name="leaf" size="16" />${t('floor.spring', 'Bebéis: +35 % de vida')}</p>`}
     ${run.last?.type === 'tienda' && html`<div class="note shop"><p>${t('floor.shopTitle', 'El mercader cambia botín:')}</p>
       ${f.rooms[run.last.room].offers.map((o, k) => html`<button class="btn small" disabled=${o.sold || Object.entries(o.cost).some(([r, n]) => (run.loot[r] ?? 0) < n)} onClick=${() => s.buy(k)}>
@@ -120,9 +138,11 @@ export function Dungeon({ s }) {
       <span class="chips">${Object.entries(run.items).map(([id, n]) => html`<span class="chip"><${Icon} name="items" size="16" />${ITEMS[id].name} ×${n}</span>`)}</span>
       ${run.cards.length > 0 && html`<span class="hand">${run.cards.map((id) => html`<span class="hand-card" title=${`${CARDS[id].name}: ${CARDS[id].desc}`}><${CardFace} id=${id} mini /></span>`)}</span>`}
       <span class="chips">${Object.entries(run.loot).map(([r, n]) => html`<span class="chip"><${ResIcon} res=${r} />×${n}</span>`)}</span>
+      ${run.weapon && html`<span class="chip weapon-chip" title=${WEAPONS[run.weapon.type].desc}><${Icon} name=${WEAPONS[run.weapon.type].icon} size="16" />${weaponName(run.weapon)}</span>`}
       <button class="btn ghost" onClick=${() => s.retreat()}>${t('dungeon.retreat', 'Retirarse con el botín')}</button>
     </footer>
 
+    ${run.state === 'weapon' && html`<${WeaponPick} s=${s} offer=${run.weaponOffer} />`}
     ${run.state === 'card' && html`<${CardPick} title=${t('dungeon.pickCard', 'Elige una carta')} cards=${run.offer} onConfirm=${(id) => s.chooseCard(id)} />`}
   </main>`;
 }

@@ -7,6 +7,8 @@ import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, ResIcon, CamControls, FxLayer, DayClock } from './common.js';
 import { Icon } from '../icons.js';
 import { Composition } from './composition.js';
+import { merchant, hasUpgrade } from '../../game/economy.js';
+import { TRADES, UPGRADES } from '../../data/economy.js';
 import { ColonyList, IsoHub } from './colony.js';
 import { pieceThumb } from '../../view/thumbs.js';
 import { CLIMATES, ZEN } from '../../data/substrate.js';
@@ -30,12 +32,36 @@ function StatusChip({ home, onClick }) {
   </button>`;
 }
 
+// Mercader de visita: cambia recursos por ámbar y al revés, y a veces vende un isópodo.
+function Merchant({ s }) {
+  const m = merchant(s.game), home = s.game.home;
+  if (!m) return html`<section class="drawer merchant"><p>${t('merchant.gone', 'El mercader ya se fue. Vuelve cada tres días.')}</p></section>`;
+  const label = (bag) => Object.entries(bag).map(([r, n]) => (r === 'isopodo' ? html`<span class="chip"><${Icon} name="colony" size="14" />${n}</span>` : html`<span class="chip"><${ResIcon} res=${r} />${n}</span>`));
+  return html`<section class="drawer merchant" aria-label=${t('merchant.title', 'Mercader')}>
+    <h3><${Icon} name="hogar" size="18" />${t('merchant.title', 'Mercader')} <small>${t('merchant.sub', 'hasta mañana')}</small></h3>
+    <ul class="trades">${m.offers.map((i, k) => { const o = TRADES[i], sold = m.sold.includes(k); return html`<li>
+      ${label(o.give)}<span aria-hidden="true">→</span>${label(o.get)}
+      <button class="btn small" disabled=${sold || !canAfford(home, o.give)} onClick=${() => s.trade(k)}>${sold ? '✓' : t('merchant.buy', 'Cambiar')}</button></li>`; })}</ul>
+  </section>`;
+}
+// Mejoras permanentes (la Inspiración de Cult of the Lamb) pagadas con ámbar.
+function Upgrades({ s }) {
+  const home = s.game.home;
+  return html`<section class="drawer upgrades" aria-label=${t('upgrades.title', 'Mejoras')}>
+    <h3><${Icon} name="expand" size="18" />${t('upgrades.title', 'Mejoras')}</h3>
+    <ul class="trades">${Object.entries(UPGRADES).map(([id, u]) => { const own = hasUpgrade(s.game, id); return html`<li class=${own ? 'own' : ''}>
+      <${Icon} name=${u.icon} size="18" /><span class="up-txt"><b>${u.name}</b><small>${u.desc}</small></span>
+      ${own ? html`<small class="maxed-s">✓</small>` : html`<button class="btn small" disabled=${!canAfford(home, u.cost)} onClick=${() => s.buyUpgrade(id)}><${Cost} cost=${u.cost} have=${home.resources} /></button>`}</li>`; })}</ul>
+  </section>`;
+}
+
 export function Home({ s }) {
   const home = s.game.home;
   const [panel, setPanel] = useState(null);
   const [toast, setToast] = useState(null);
   const say = (msg) => { setToast(msg); clearTimeout(say.t); say.t = setTimeout(() => setToast(null), 1600); };
   const toggle = (p) => { if (s.build) s.cancelBuild(); if (s.selIso != null) s.selectIso(null); setPanel(panel === p ? null : p); };
+  if (s.wantPanel) { const p = s.wantPanel; s.wantPanel = null; if (s.selIso != null) s.selectIso(null); setTimeout(() => setPanel(p)); }
 
   // Arrastrar gira la cámara; tocar sin arrastrar coloca o recoge.
   // Dos dedos: pellizcar acerca o aleja (como una foto); mientras hay dos dedos no se gira ni se toca.
@@ -113,6 +139,8 @@ export function Home({ s }) {
     </section>`}
 
     ${panel === 'comp' && html`<${Composition} s=${s} say=${say} />`}
+    ${panel === 'merchant' && html`<${Merchant} s=${s} />`}
+    ${panel === 'upgrades' && html`<${Upgrades} s=${s} />`}
 
     ${s.selIso != null ? html`<${IsoHub} s=${s} />` : panel === 'colony' && html`<${ColonyList} s=${s} />`}
 
