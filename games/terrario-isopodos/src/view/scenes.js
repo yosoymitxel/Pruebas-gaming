@@ -409,6 +409,25 @@ export class CombatView {
   // Destello blanco del golpe (game-feel-prompts, Hit Combos 3): silueta blanca entera 0,1 s y se apaga hasta 0,18 s.
   hit(id) { this.flash.set(id, this.now ?? 0); }
 
+  // Aro rojo bajo cada aberración viva (en el nido el pase de tinta apaga el color y se confundían con el
+  // suelo): late despacio y se apaga al morir.
+  enemyRings() {
+    this.rings ??= new Map();
+    const live = new Set();
+    for (const e of this.c.actors) {
+      if (e.side !== 'enemy' || e.hp <= 0) continue;
+      live.add(e.id);
+      let m = this.rings.get(e.id);
+      if (!m) {
+        m = new THREE.Mesh(new THREE.RingGeometry(0.7, 1, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xd0402f, transparent: true, opacity: 0.95, depthWrite: false }));
+        this.group.add(m); this.rings.set(e.id, m);
+      }
+      const r = (ABERRATIONS[e.kind].radius ?? 0.4) + 0.25;
+      m.scale.setScalar(r * (1 + Math.sin(this.now * 3 + e.id) * 0.04)); m.position.set(e.x, 0.035, e.y);
+    }
+    for (const [id, m] of this.rings) if (!live.has(id)) { this.group.remove(m); this.rings.delete(id); }
+  }
+
   // Tajo: arco de tinta delante del isópodo que golpea (el combo 3 lo hace más grande).
   slash(a) {
     const big = a.combo === 2, arc = big ? 2.4 : 1.6;
@@ -484,7 +503,7 @@ export class CombatView {
         const def = ABERRATIONS[a.kind], wind = a.state === 'windup';
         const sway = a.staggered > 0 ? Math.sin(time * 20) * 0.08 : wind ? Math.sin(time * 30) * 0.05 : 0;
         const squash = wind ? 0.9 + Math.sin(time * 30) * 0.02 : a.state === 'recover' ? 1.06 : breathe * (1 - f * 0.12);
-        list.push({ id: a.id, sprite: def.sprite, x: a.x + sway, z: a.y, height: def.height, squash, flip: Math.cos(a.facing) < 0, face: a.facing,
+        list.push({ id: a.id, sprite: def.sprite, x: a.x + sway, z: a.y, height: def.height, squash, flip: Math.cos(a.facing) < 0, face: a.facing, tint: [0.16, 0.02, 0.02],
           flash: Math.max(f, a.staggered > 0 ? 0.35 : 0) });
       }
     }
@@ -492,6 +511,7 @@ export class CombatView {
     for (const g of this.ghosts) list.push({ ...g, alpha: 0.45 * (1 - g.t / 0.25) });
     this.actors.sync(list, this.stage.yaw);
     this.telegraphs();
+    this.enemyRings();
   }
 
   telegraphs() {
