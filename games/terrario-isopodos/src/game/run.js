@@ -11,7 +11,9 @@ import { mulberry32, pickFrom } from '../core/rng.js';
 import { genFloor } from './floor.js';
 import { speciesOf } from '../data/species.js';
 
-export function newRun(home, island, partyIds) {
+// `heat`: escalón de dificultad tras ganar una guardiana (como la Ascensión de Slay the Spire o el Calor de Hades).
+export const HEAT = { hp: 0.12, dmg: 0.1, max: 10 };
+export function newRun(home, island, partyIds, heat = 0) {
   const rng = mulberry32(island.seed + 7);
   const party = partyIds.map((id) => {
     const iso = home.isopods.find((x) => x.id === id);
@@ -21,7 +23,7 @@ export function newRun(home, island, partyIds) {
   return {
     island, dungeon: genDungeon(island.seed), party, items: { gota: 2, hongo: 1 }, cards: [],
     loot: {}, rescued: 0, state: 'map', offer: null, node: null, seed: Math.floor(rng() * 1e9),
-    atbMul: partyBonus(home, home.isopods.find((x) => x.id === partyIds[0])).atbMul,
+    atbMul: partyBonus(home, home.isopods.find((x) => x.id === partyIds[0])).atbMul, heat, depth: 0,
   };
 }
 
@@ -42,6 +44,7 @@ export function enterNode(run, nodeId) {
   if (!node) return false;
   run.dungeon.at = node.id;
   node.done = true;
+  run.depth = Math.max(run.depth ?? 0, node.layer + 1);
   run.last = null;
   run.node = node;
   const rng = mulberry32(run.seed + node.id * 31);
@@ -147,7 +150,7 @@ export function pickCard(run, cardId) {
 export function combatSetup(run) {
   return {
     party: run.party.map((p) => ({ ...p, hp: Math.max(1, p.hp) })), enemies: run.encounter.enemies,
-    enemyHpMul: run.encounter.enemyHpMul, items: run.items, mods: runMods(run), seed: run.encounter.seed, arena: run.encounter.arena,
+    enemyHpMul: run.encounter.enemyHpMul * (1 + HEAT.hp * (run.heat ?? 0)), heatDmg: 1 + HEAT.dmg * (run.heat ?? 0), items: run.items, mods: runMods(run), seed: run.encounter.seed, arena: run.encounter.arena,
   };
 }
 
@@ -157,7 +160,7 @@ export function finishCombat(run, combat) {
     p.hp = a.hp;
   }
   run.items = { ...combat.items };
-  if (combat.result === 'lose') { run.state = 'lost'; return; }
+  if (combat.result === 'lose') { run.state = 'lost'; run.cause = run.encounter?.enemies ?? null; return; }
   const heal = runMods(run).winHeal ?? 0;
   for (const p of run.party) p.hp = Math.min(p.maxHp, Math.max(1, p.hp) + Math.ceil(p.maxHp * heal));
   const final = !run.room || run.room.final, rescue = run.room?.type === 'rescate';
@@ -183,5 +186,5 @@ export function settleRun(home, run, rng) {
   const rescued = lost ? 0 : run.rescued;
   for (let k = 0; k < rescued; k++) recruit(home, rng);
   home.fear = Math.min(0.4, home.fear + (lost ? 0.3 : run.state === 'won' ? 0 : 0.1));
-  return { outcome: run.state, loot, rescued };
+  return { outcome: run.state, loot, rescued, depth: run.depth ?? 0, cause: run.cause ?? null, lostLoot: lost ? Object.fromEntries(Object.entries(run.loot).map(([r, n]) => [r, n - loot[r]]).filter(([, n]) => n)) : null, heat: run.heat ?? 0 };
 }

@@ -1,5 +1,6 @@
 import { html, render, useState, useEffect } from './lib.js';
 import { t } from '../i18n/index.js';
+import { ABERRATIONS } from '../data/aberrations.js';
 import { PALETTES, SEMANTIC } from '../data/palettes.js';
 import { Stage } from '../view/stage.js';
 import { Session } from './session.js';
@@ -30,6 +31,10 @@ function Result({ s }) {
     <h3>${OUTCOME[r.outcome]()}</h3>
     <${Loot} loot=${r.loot} big />
     ${r.rescued > 0 && html`<p>${t('result.rescued', 'Isópodos rescatados')}: <b>${r.rescued}</b></p>`}
+    ${r.kind === 'run' && html`<p class="run-sum">${t('result.depth', 'Capa')} <b>${r.depth}/7</b>${r.heat ? html` · ${t('result.heat', 'Plaga')} <b>${r.heat}</b>` : ''}</p>`}
+    ${r.cause && html`<p class="run-sum">${t('result.cause', 'Os venció')}: <b>${[...new Set(r.cause)].map((k) => ABERRATIONS[k]?.name ?? k).join(' y ')}</b></p>`}
+    ${r.lostLoot && Object.keys(r.lostLoot).length > 0 && html`<p class="run-sum">${t('result.lost', 'Perdido al caer')}:</p><${Loot} loot=${r.lostLoot} />`}
+    ${r.heatUp && html`<p class="run-sum heat-up">${t('result.heatUp', 'El nido despierta: Plaga')} <b>${r.heatUp}</b> · ${t('result.heatDesc', 'aberraciones más duras')}</p>`}
     <button class="btn primary" onClick=${() => s.goHome()}>${t('islands.home', 'Volver al terrario')}</button>
   </section></main>`;
 }

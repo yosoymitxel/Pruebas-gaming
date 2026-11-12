@@ -1071,3 +1071,5 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* Golpe fuerte cargando: el botón se llena en anillo y vibra al estar listo. */
 .pad.attack.charging { background: conic-gradient(var(--amber) calc(var(--charge) * 360deg), #1d1a16 0) !important; }
+
+.run-sum { margin: 4px 0; font-size: 15px; } .heat-up { color: var(--rust); }

@@ -320,3 +320,22 @@ test('golpe fuerte: mantener y soltar pega en círculo a todos los cercanos, atu
   C.step(c, 1 / 60, { heavy: true });
   assert.equal(c.events.filter((e) => e.type === 'heavyStart').length, n, 'con espera entre golpes fuertes');
 });
+
+test('roguelite: la misma isla da los mismos pisos aunque se juegue distinto; la plaga endurece; caer resume capa y causa', async () => {
+  const R = await import('../src/game/run.js');
+  const { nextNodes } = await import('../src/game/dungeon.js');
+  const g = newGame(9), isl = g.islands.find((i) => i.kind === 'nido'), ids = g.home.isopods.slice(0, 3).map((i) => i.id);
+  const hash = (heat, firstPick) => {
+    const run = R.newRun(g.home, isl, ids, heat), opts = nextNodes(run.dungeon);
+    R.enterNode(run, opts[firstPick % opts.length].id);
+    return JSON.stringify({ map: run.dungeon.nodes.map((n) => [n.type, n.layer]), floor: run.floor?.rooms.map((r) => [r.type, r.x, r.y]) ?? null, foes: run.encounter?.enemies });
+  };
+  assert.equal(hash(0, 0), hash(0, 0), 'misma semilla, mismo piso');
+  const a = R.newRun(g.home, isl, ids, 0), b = R.newRun(g.home, isl, ids, 3);
+  assert.equal(JSON.stringify(a.dungeon), JSON.stringify(b.dungeon), 'la plaga no cambia el mapa');
+  R.enterNode(a, nextNodes(a.dungeon)[0].id); R.enterNode(b, nextNodes(b.dungeon)[0].id);
+  assert.ok(R.combatSetup(b).enemyHpMul > R.combatSetup(a).enemyHpMul && R.combatSetup(b).heatDmg > 1, 'con plaga las aberraciones aguantan y pegan más');
+  a.state = 'lost'; a.cause = ['larva']; a.loot = { musgo: 4 };
+  const out = R.settleRun(g.home, a, mulberry32(1));
+  assert.ok(out.depth >= 1 && out.cause[0] === 'larva' && out.lostLoot.musgo === 2, 'el resumen dice hasta dónde, quién y qué se perdió');
+});

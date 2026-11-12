@@ -89,7 +89,7 @@ export function Dungeon({ s }) {
   const pick = (n) => reach.has(n.id) && setSel(n.id);
   return html`<main class="screen dungeon">
     <header class="hud-top">
-      <div class="title-block"><span class="kicker">${t('dungeon.kicker', 'Nido')} · ${t('dungeon.layer', 'capa')} ${(d.at === null ? 0 : d.nodes[d.at].layer + 1)}/${LAYERS}</span><h2>${BIOMES[run.island.biome].name}</h2></div>
+      <div class="title-block"><span class="kicker">${t('dungeon.kicker', 'Nido')} · ${t('dungeon.layer', 'capa')} ${(d.at === null ? 0 : d.nodes[d.at].layer + 1)}/${LAYERS}${run.heat ? ` · ${t('result.heat', 'Plaga')} ${run.heat}` : ''}</span><h2>${BIOMES[run.island.biome].name}</h2></div>
       <${PauseButton} s=${s} />
     </header>
     <div class="party-mini">${run.party.map((p, k) => html`<div class=${k === 0 ? 'lead' : ''}>

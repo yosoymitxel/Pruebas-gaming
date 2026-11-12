@@ -8,7 +8,7 @@ import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
 import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
-import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy } from '../game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
@@ -344,7 +344,7 @@ export class Session {
 
   // ——— Expedición ———
   startRun(island, partyIds) {
-    this.run = newRun(this.game.home, island, partyIds);
+    this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0);
     visit(this.game, island.id);
     this.persist();
     this.setMode('dungeon', null, 0.75, this.run.island.weather);
@@ -369,7 +369,7 @@ export class Session {
       saveMeta(this.meta);
       const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
       this.combo = null; this.cleared = null; this.hurtAt = null; this.slowmo = 0;
-      this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg } });
+      this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg * (setup.heatDmg ?? 1) } });
       this.tactical = false;
       const bossRoom = this.run.node.type === 'jefe' && this.run.room?.final;
       this.sfx(bossRoom ? 'boss' : 'open');
@@ -383,6 +383,7 @@ export class Session {
   settle() {
     const out = settleRun(this.game.home, this.run, this.rng);
     addFaith(this.game.home, out.outcome === 'lost' ? 'derrota' : 'expedicion');
+    if (out.outcome === 'won') { this.game.heat = Math.min(HEAT.max, (this.game.heat ?? 0) + 1); out.heatUp = this.game.heat; }
     this.sfx(out.outcome === 'lost' ? 'lose' : 'win');
     this.result = { kind: 'run', ...out };
     this.run = null;
