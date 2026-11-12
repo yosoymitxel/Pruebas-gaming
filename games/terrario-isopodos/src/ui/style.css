@@ -1049,3 +1049,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .lid-row .trend { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.8; }
 .grad { margin: 4px 0 0; font-size: 13px; }
 .grad.up { color: var(--moss); } .grad.down { color: var(--rust); }
+
+/* Petición de un isópodo: globito de pensamiento (redondo, con burbujas), teal. */
+.marker.m-wish { --mk: #1d6e68; border-radius: 50%; border-color: #1d6e68; background: #f6efdd; }
+.marker.m-wish::after { clip-path: none; border-radius: 50%; width: 7px; height: 7px; bottom: -9px; }
+.marker.m-wish img { animation-duration: 1s; }
+/* Lealtad: barra de corazón y nivel. */
+.loyal { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.loyal .bar { flex: 1; }
+.wish-line { display: flex; align-items: center; gap: 6px; margin: 6px 0; padding: 6px 8px; background: #1d6e6814; border-left: 3px solid #1d6e68; font-size: 14px; }
+.wish-line small { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.7; }
+.colony-head .btn { margin-left: auto; }

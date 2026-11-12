@@ -254,3 +254,29 @@ test('cuidados del terrario: rociar sube la humedad poco a poco y se seca; no ca
   for (let k = 0; k < 60 * 35; k++) tickHome(home, 1 / 60, rng);
   assert.ok(!home.molts.some((m) => m.id === 'm')); assert.ok(home.resources.cal >= cal + 1, 'la muda se la comen: cal');
 });
+
+test('culto (Cult of the Lamb): mimo diario, nivel de lealtad, reunión, peticiones y dormir de noche', async () => {
+  const H = await import('../src/game/home.js');
+  const { DAY_PHASES } = await import('../src/data/world.js');
+  const { home } = newGame(31), rng = mulberry32(4), iso = home.isopods[0];
+  assert.ok(H.bless(home, iso, 1) && !H.bless(home, iso, 1), 'un mimo por día');
+  assert.ok(home.faith > 0 && iso.loyal === 25);
+  const amber = home.resources.ambar;
+  H.gainLoyalty(home, iso, 80);
+  assert.equal(iso.lv, 1); assert.equal(home.resources.ambar, amber + 1, 'subir de nivel da ámbar');
+  assert.ok(H.sermon(home, 1) && !H.sermon(home, 1), 'una reunión por día');
+  const before = home.isopods.map((i) => i.loyal ?? 0);
+  for (let k = 0; k < 60 * 9; k++) H.tickHome(home, 1 / 60, rng, DAY_PHASES.dia);
+  assert.ok(!home.sermon && home.isopods.every((i, k) => (i.loyal ?? 0) > before[k] || i.lv), 'la reunión da lealtad');
+  home.isopods.forEach((i) => { i.hunger = 1; i.wish = null; });
+  for (let k = 0; k < 60 * 20; k++) H.tickHome(home, 1 / 60, rng, DAY_PHASES.noche);
+  assert.ok(home.isopods.filter((i) => !(i.baby > 0)).every((i) => i.rest > 0 || i.order === 'dormir'), 'de noche se van a dormir solos');
+  for (let k = 0; k < 60; k++) H.tickHome(home, 1 / 60, rng, DAY_PHASES.dia);
+  assert.ok(home.isopods.every((i) => !i.nightSleep), 'al amanecer despiertan');
+  home.wishT = 1e9; H.tickHome(home, 1 / 60, rng, DAY_PHASES.dia);
+  const wisher = home.isopods.find((i) => i.wish);
+  assert.ok(wisher, 'cada tanto alguien pide algo');
+  const f = home.faith; wisher.wish.t = 0.001;
+  H.tickHome(home, 1 / 60, rng, DAY_PHASES.dia);
+  assert.ok(home.faith < f, 'olvidar una petición baja la fe');
+});

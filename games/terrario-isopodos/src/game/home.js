@@ -7,6 +7,7 @@ import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
+import { FAITH, LOYALTY, WISHES, SERMON } from '../data/cult.js';
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN } from '../data/substrate.js';
 
 const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
@@ -71,7 +72,80 @@ export function pay(home, cost) {
 export function build(home, type, x, y, rot = 0) {
   if (!canPlace(home.grid, type, x, y, rot) || !canAfford(home, BUILDINGS[type].cost)) return null;
   pay(home, BUILDINGS[type].cost);
-  return place(home.grid, type, x, y, rot);
+  const id = place(home.grid, type, x, y, rot);
+  addFaith(home, BUILDINGS[type].calm ? 'deco' : 'pieza');
+  return id;
+}
+
+// ——— La colonia como un culto (src/data/cult.js) ———
+// Fe: cada evento suma o resta su cifra (y queda en faithLog para que la interfaz lo enseñe al momento).
+export function addFaith(home, key) {
+  const ev = FAITH.events[key]; if (!ev) return;
+  home.faith = Math.max(FAITH.min, Math.min(FAITH.max, (home.faith ?? FAITH.start) + ev.delta));
+  (home.faithLog ??= []).push({ key, delta: ev.delta });
+  if (home.faithLog.length > 20) home.faithLog.shift();
+}
+// Lealtad: al llenar la barra sube de nivel, deja su recompensa y algo de fe.
+export function gainLoyalty(home, iso, n) {
+  iso.loyal = (iso.loyal ?? 0) + n;
+  while (iso.loyal >= LOYALTY.max) {
+    iso.loyal -= LOYALTY.max; iso.lv = (iso.lv ?? 0) + 1;
+    for (const [r, k] of Object.entries(LOYALTY.reward)) home.resources[r] = (home.resources[r] ?? 0) + k;
+    addFaith(home, 'nivel'); (home.levelUps ??= []).push(iso.id);
+  }
+}
+// Mimo (el «bendecir» de CotL): uno por isópodo y por día.
+export function bless(home, iso, day) {
+  if (iso.blessDay === day) return false;
+  iso.blessDay = day; iso.ball = 0; iso.wait = 1.2;
+  gainLoyalty(home, iso, LOYALTY.mimo); addFaith(home, 'mimo');
+  if (iso.wish?.kind === 'mimo') fulfil(home, iso);
+  return true;
+}
+export const canBless = (iso, day) => iso.blessDay !== day;
+// Reunión diaria (el sermón): la colonia se junta en círculo alrededor del altar (o del refugio).
+export function sermon(home, day) {
+  if (home.sermonDay === day) return false;
+  const spot = Object.values(home.grid.pieces).find((p) => p.type === 'altar') ?? Object.values(home.grid.pieces).find((p) => BUILDINGS[p.type].beds);
+  const f = spot ? BUILDINGS[spot.type].size : { w: 0, h: 0 }, c = home.grid.w / 2;
+  home.sermonDay = day;
+  home.sermon = { t: SERMON.time, x: spot ? spot.x + f.w / 2 : c, y: spot ? spot.y + f.h + 1 : c };
+  const who = adults(home);
+  who.forEach((iso, k) => { const a = (k / who.length) * Math.PI * 2; Object.assign(iso, { order: 'reunir', rest: 0, ball: 0, wait: 0, stuck: 0, tx: home.sermon.x + Math.cos(a) * SERMON.ring, ty: home.sermon.y + Math.sin(a) * SERMON.ring }); });
+  return true;
+}
+export const canSermon = (home, day) => home.sermonDay !== day;
+function fulfil(home, iso) {
+  iso.wish = null; addFaith(home, 'peticion'); gainLoyalty(home, iso, LOYALTY.peticion);
+}
+function tickCult(home, dt, rng, phase) {
+  home.faith ??= FAITH.start; // se apaga sola hacia 0
+  if (home.faith) home.faith -= Math.sign(home.faith) * Math.min(Math.abs(home.faith), FAITH.decay * dt);
+  // reunión en curso
+  if (home.sermon && (home.sermon.t -= dt) <= 0) {
+    for (const iso of home.isopods) if (iso.order === 'reunir') { iso.order = null; iso.tx = null; gainLoyalty(home, iso, LOYALTY.reunion); }
+    addFaith(home, 'reunion'); home.sermon = null; home.sermonDone = true;
+  }
+  // anochecer y amanecer
+  const night = !!phase.night;
+  if (night && !home.wasNight && home.isopods.length > beds(home)) addFaith(home, 'camas');
+  if (!night && home.wasNight) { if (home.isopods.some((i) => i.hunger < 0.35)) addFaith(home, 'hambre'); for (const i of home.isopods) if (i.nightSleep) { i.rest = 0; i.nightSleep = false; i.bed = null; } }
+  home.wasNight = night;
+  // peticiones
+  for (const iso of home.isopods) {
+    const w = iso.wish; if (!w) continue;
+    if ((w.t -= dt) <= 0) { iso.wish = null; addFaith(home, 'fallo'); continue; }
+    if ((w.kind === 'pieza' && Object.values(home.grid.pieces).some((p) => p.type === w.piece)) || (w.kind === 'humedad' && comfy(home, iso))) fulfil(home, iso);
+  }
+  if ((home.wishT = (home.wishT ?? 0) + dt) < WISHES.every) return;
+  home.wishT = 0;
+  if (home.isopods.filter((i) => i.wish).length >= WISHES.max) return;
+  const free = adults(home).filter((i) => !i.wish), iso = free[Math.floor(rng() * free.length)];
+  if (!iso) return;
+  const missing = WISHES.kinds.pieza.pieces.filter((t) => !Object.values(home.grid.pieces).some((p) => p.type === t));
+  const opts = [...(missing.length ? ['pieza'] : []), ...(comfy(home, iso) ? [] : ['humedad']), 'comer', 'mimo'];
+  const kind = opts[Math.floor(rng() * opts.length)];
+  iso.wish = { kind, t: WISHES.time, piece: kind === 'pieza' ? missing[Math.floor(rng() * missing.length)] : undefined };
 }
 
 export const lvl = (p) => p.level ?? 1;
@@ -178,12 +252,12 @@ export function calm(home) {
   const litter = layer(home, 'hojarasca') * 0.05;
   const grad = gradient(home).ok ? 0.08 : 0, mold = (home.mold?.length ?? 0) * MOLD.calm;
   const happy = home.isopods.length ? home.isopods.filter((i) => comfy(home, i)).length / home.isopods.length : 1;
-  return Math.max(0, Math.min(1, 0.4 + deco + litter + grad + happy * 0.1 + CLIMATES[climate(home)].calm - crowd - mold - home.fear));
+  return Math.max(0, Math.min(1, 0.4 + deco + litter + grad + happy * 0.1 + (home.faith ?? 0) / 250 + CLIMATES[climate(home)].calm - crowd - mold - home.fear));
 }
 
 // Lo que el estado del terrario aporta a la expedición.
 export function partyBonus(home, iso) {
-  return { hpMul: 0.75 + 0.25 * iso.hunger, atbMul: 0.8 + 0.4 * calm(home) };
+  return { hpMul: (0.75 + 0.25 * iso.hunger) * (1 + (iso.lv ?? 0) * LOYALTY.hpPerLevel), atbMul: 0.8 + 0.4 * calm(home) };
 }
 
 export function collect(home, pieceId) {
@@ -203,6 +277,7 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   if (home.mistCd > 0) home.mistCd = Math.max(0, home.mistCd - dt);
   home.moist = humidity(home) + Math.max(-HUMIDITY.drift * dt, Math.min(HUMIDITY.drift * dt, humidityTarget(home) - humidity(home)));
   growMold(home, dt, rng);
+  tickCult(home, dt, rng, phase);
   for (const m of home.molts ?? []) m.t = (m.t ?? 0) + dt;
   const eaten = (home.molts ?? []).filter((m) => m.t >= MOLT_EATEN);
   if (eaten.length) { home.molts = home.molts.filter((m) => m.t < MOLT_EATEN); home.resources.cal = (home.resources.cal ?? 0) + eaten.length; }
@@ -252,6 +327,7 @@ function breed(home, dt, rng) {
   recruit(home, rng, undefined, mom.shell);
   const baby = home.isopods[home.isopods.length - 1];
   Object.assign(baby, { baby: BEHAVIOR.growTime, x: mom.x, y: mom.y + 0.3 });
+  addFaith(home, 'miembro');
 }
 
 // Como el jardín zen de KureiChaosChess: gestos de cuidado. Rociar sube la humedad un rato (con espera) y
@@ -302,6 +378,7 @@ export function takeLeaf(home, id) {
 // Tocar un isópodo: los que pueden se hacen bolita; los demás salen corriendo.
 export function poke(home, iso, from) {
   if (iso.molting > 0) return 'molting';
+  if (iso.rest > 0) { iso.rest = 0; iso.nightSleep = false; iso.bed = null; addFaith(home, 'despertar'); return 'woke'; }
   if (speciesOf(iso.shell).rolls) { iso.ball = BEHAVIOR.ballTime; iso.tx = null; return 'ball'; }
   const dx = iso.x - from.x, dy = iso.y - from.y, d = Math.hypot(dx, dy) || 1;
   iso.tx = iso.x + (dx / d) * 3; iso.ty = iso.y + (dy / d) * 3; iso.stuck = 0; iso.dash = 1.2;
@@ -323,17 +400,28 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   // Durmiendo en un refugio: quieto, gasta menos y calma a la colonia.
   if (iso.rest > 0) { if ((iso.rest -= dt) <= 0) iso.bed = null; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
   iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt);
+  if (iso.order === 'reunir') { // de pie en el círculo de la reunión, mirando al centro
+    const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
+    if (d < 0.25 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
+    const v = WALK * 1.4; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return;
+  }
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
+  // De noche se van a dormir solos: a una cama libre o, si no hay, se hacen un ovillo donde estén.
+  if (phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
+    const bed = nearest(home, iso, (b, p) => b.beds && home.isopods.filter((o) => o.bed === p.id || o.goBed === p.id).length < b.beds * lvl(p));
+    if (bed) { iso.order = 'dormir'; iso.goBed = bed.id; iso.night = true; }
+    else { iso.rest = 1e9; iso.nightSleep = true; iso.vx = iso.vy = 0; return; }
+  }
   const feeder = hungry && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds);
   if (feeder) {
     const fx = feeder.x + 0.5, fy = feeder.y + 0.5;
-    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.1) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; }
+    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.1) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
     else { iso.tx = fx; iso.ty = fy; }
   } else if (iso.order === 'comer') iso.order = null; // sin comida o sin comedero: la orden no se puede cumplir
-  const bed = !feeder && iso.order === 'dormir' && nearest(home, iso, (b) => b.beds);
+  const bed = !feeder && iso.order === 'dormir' && ((iso.goBed != null && home.grid.pieces[iso.goBed]) || nearest(home, iso, (b) => b.beds));
   if (bed) {
     const f = BUILDINGS[bed.type].size, bx = bed.x + f.w / 2, by = bed.y + f.h + 0.3;
-    if (Math.hypot(iso.x - bx, iso.y - by) < 0.9 || (iso.stuck ?? 0) > 5) { iso.rest = BEHAVIOR.restTime; iso.bed = bed.id; iso.order = null; iso.tx = null; return; }
+    if (Math.hypot(iso.x - bx, iso.y - by) < 0.9 || (iso.stuck ?? 0) > 5) { iso.rest = iso.night ? 1e9 : BEHAVIOR.restTime; iso.nightSleep = !!iso.night; iso.night = false; iso.goBed = null; iso.bed = bed.id; iso.order = null; iso.tx = null; return; }
     iso.tx = bx; iso.ty = by;
   } else if (iso.order === 'dormir' && !feeder) iso.order = null;
   if (iso.ate > 0) iso.ate -= dt;
@@ -359,7 +447,7 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
 // Pieza más cercana que cumple `test(building)`.
 function nearest(home, iso, test) {
   let best = null, bd = Infinity;
-  for (const p of Object.values(home.grid.pieces)) { if (!test(BUILDINGS[p.type])) continue; const d = Math.hypot(p.x - iso.x, p.y - iso.y); if (d < bd) { bd = d; best = p; } }
+  for (const p of Object.values(home.grid.pieces)) { if (!test(BUILDINGS[p.type], p)) continue; const d = Math.hypot(p.x - iso.x, p.y - iso.y); if (d < bd) { bd = d; best = p; } }
   return best;
 }
 
@@ -368,6 +456,7 @@ export function isoStatus(home, iso) {
   if (iso.ball > 0) return 'bolita';
   if (iso.molting > 0) return 'muda';
   if (iso.rest > 0) return 'duerme';
+  if (iso.order === 'reunir') return 'reunion';
   if (iso.ate > 0) return 'come';
   if (iso.order === 'dormir') return 'dormir';
   if (iso.order === 'comer' || (iso.hunger < 0.5 && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return 'comer';

@@ -5,7 +5,9 @@ import { t } from '../../i18n/index.js';
 import { CLASSES, STATUS, MAX_NAME } from '../../data/isopods.js';
 import { BADGES } from '../../data/palettes.js';
 import { speciesOf } from '../../data/species.js';
-import { beds, isoStatus, isoStats, canLearn, canAfford, partyBonus } from '../../game/home.js';
+import { beds, isoStatus, isoStats, canLearn, canAfford, partyBonus, canBless, canSermon } from '../../game/home.js';
+import { WISHES, LOYALTY } from '../../data/cult.js';
+import { BUILDINGS } from '../../data/buildings.js';
 import { SKILLS } from '../../data/skills.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { CLIMATES } from '../../data/substrate.js';
@@ -22,10 +24,11 @@ export function ColonyList({ s }) {
   const home = s.game.home;
   return html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
-      ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}</p>
+      ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
+      <button class="btn small" disabled=${!canSermon(home, s.game.day) || !!home.sermon} onClick=${() => s.sermon()}><${Icon} name="colony" size="16" />${t('colony.sermon', 'Reunir')}</button></p>
     ${home.isopods.map((iso) => html`<button class="iso-row" onClick=${() => s.selectIso(iso.id)}>
       <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
-      <span class="who"><b><${Dot} k=${iso.badge} />${iso.name}</b><${Status} k=${isoStatus(home, iso)} /></span>
+      <span class="who"><b><${Dot} k=${iso.badge} />${iso.name}${iso.lv ? html` <small class="lv">${iso.lv}</small>` : ''}${iso.wish ? html` <${Icon} name="heart" size="13" />` : ''}</b><${Status} k=${isoStatus(home, iso)} /></span>
       <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
     </button>`)}
   </section>`;
@@ -35,8 +38,14 @@ const ABIL_DESC = { strike: (a) => `${t('abil.strike', 'Golpe')} ${a.power}`, bu
   shield: (a) => `${t('abil.shield', 'Escudo')} ${a.power}`, heal: (a) => `${t('abil.heal', 'Cura')} ${a.power}`, taunt: () => t('abil.taunt', 'Atrae enemigos') };
 const KIND_ICON = { strike: 'attack', burst: 'roll', shield: 'shield', heal: 'leaf', taunt: 'eye' };
 
+const WISH_ICON = { pieza: 'build', humedad: 'items', comer: 'leaf', mimo: 'heart' };
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 function Care({ s, iso, st, sp }) {
-  return html`<div class="hub-actions">
+  const w = iso.wish, day = s.game.day;
+  return html`
+    ${w && html`<p class="wish-line"><${Icon} name=${WISH_ICON[w.kind]} size="16" />${WISHES.kinds[w.kind].name}${w.piece ? html` <b>${BUILDINGS[w.piece].name}</b>` : ''}<small>${mmss(w.t)}</small></p>`}
+    <div class="hub-actions">
+      <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => s.bless(iso.id)}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'comer')}><${Icon} name="leaf" size="18" />${t('colony.eat', 'Comer')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'dormir')}><${Icon} name="refugio" size="18" />${t('colony.sleep', 'Dormir')}</button>
       ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'tocar')}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
@@ -101,6 +110,7 @@ export function IsoHub({ s }) {
       <button class="btn ghost icon" onClick=${() => s.selectIso(null)} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="back" /></button>
     </div>
     <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
+    <div class="loyal"><${Icon} name="heart" size="14" /><b>${t('loyal.level', 'Nivel')} ${iso.lv ?? 0}</b><${Bar} value=${iso.loyal ?? 0} max=${LOYALTY.max} kind="calm" label=${t('loyal.name', 'Lealtad')} /></div>
     <div class="tabs" role="tablist">${TABS.map(([k, label, icon]) => html`<button role="tab" aria-selected=${tab === k} class=${`tab${tab === k ? ' on' : ''}`} onClick=${() => setTab(k)}>
       <${Icon} name=${icon} size="16" />${label}${k === 'tree' && Object.keys(SKILLS).some((id) => canLearn(home, iso, id) && canAfford(home, SKILLS[id].cost)) ? html`<i class="dot" aria-hidden="true"></i>` : ''}</button>`)}</div>
     ${tab === 'care' ? html`<${Care} s=${s} iso=${iso} st=${st} sp=${sp} />` : tab === 'sheet' ? html`<${Sheet} s=${s} iso=${iso} sp=${sp} />` : html`<${Tree} s=${s} iso=${iso} />`}
