@@ -452,6 +452,25 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     if (Math.hypot(iso.x - cx, iso.y - cy) < 0.6) { iso.vx = iso.vy = 0; return; }
     iso.tx = cx + (rng() - 0.5) * 0.4; iso.ty = cy; iso.stuck = 0;
   }
+  // Obras: los que están libres se acercan a levantarla (dos por obra como mucho) y se quedan dándole.
+  if (!phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
+    const site = Object.values(home.grid.pieces).find((p) => p.site && home.isopods.filter((o) => o.siteId === p.id).length < SITE.maxWorkers);
+    if (site) { const f = BUILDINGS[site.type].size; Object.assign(iso, { order: 'construir', siteId: site.id, tx: site.x + rng() * f.w, ty: site.y + f.h + 0.4, stuck: 0 }); }
+  }
+  if (iso.order === 'construir') {
+    if (!home.grid.pieces[iso.siteId]?.site || phase.night) { iso.order = null; iso.siteId = null; iso.tx = null; }
+    else { const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
+      if (d < 0.3 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
+      const v = WALK * 1.2; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return; }
+  }
+  // Trabajo asignado: de día vuelve a su pieza y se queda ahí (sale a comer y a dormir como todos).
+  const job = iso.job != null && home.grid.pieces[iso.job];
+  if (iso.job != null && !job) iso.job = null;
+  if (job && !phase.night && !iso.order && iso.hunger >= 0.5) {
+    const f = BUILDINGS[job.type].size, cx = job.x + f.w / 2, cy = job.y + f.h + 0.4;
+    if (Math.hypot(iso.x - cx, iso.y - cy) < 0.6) { iso.vx = iso.vy = 0; return; }
+    iso.tx = cx + (rng() - 0.5) * 0.4; iso.ty = cy; iso.stuck = 0;
+  }
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
   // De noche se van a dormir solos: a una cama libre o, si no hay, se hacen un ovillo donde estén.
   if (phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
