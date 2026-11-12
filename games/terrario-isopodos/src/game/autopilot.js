@@ -28,6 +28,8 @@ export function autopilot(c, skill = 1) {
     const ang = Math.atan2(me.y - threat.y, me.x - threat.x) + Math.PI / 2;
     return { move: { x: Math.cos(ang), y: Math.sin(ang) }, roll: true };
   }
+  const close = foes.filter((e) => Math.hypot(e.x - me.x, e.y - me.y) < 2 + e.r).length;
+  if (close >= 2 && !(me.heavyCd > 0) && c.rng() < skill * 0.1) return { heavy: true }; // varios encima: golpe fuerte en círculo
   const d = Math.hypot(target.x - me.x, target.y - me.y);
   if (d > target.r + 1.1) return { move: { x: (target.x - me.x) / d, y: (target.y - me.y) / d } };
   return { attack: true };

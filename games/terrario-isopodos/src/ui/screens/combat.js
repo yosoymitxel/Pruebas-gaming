@@ -8,7 +8,7 @@ import { ARENAS } from '../../data/arenas.js';
 import { ABILITIES, ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
-import { press } from '../input.js';
+import { press , hold as holdKey } from '../input.js';
 import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
@@ -22,7 +22,8 @@ export function Combat({ s }) {
   const team = allies(c), foes = enemies(c);
   const boss = foes.find((e) => ABERRATIONS[e.kind].role !== 'normal');
   const shown = boss ? [boss] : foes;
-  const hold = (action) => (e) => { e.preventDefault(); press(action); };
+  const hold = (action) => (e) => { e.preventDefault(); press(action); holdKey(action, true); };
+  const release = (action) => () => holdKey(action, false);
 
   const seen = useRef({}), hitAt = useRef({}), koAt = useRef(null);
   const me = team.find((a) => a.id === c.main);
@@ -62,7 +63,7 @@ export function Combat({ s }) {
 
     <section class="actions-pad">
       <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="roll" size="26" /></button>
-      <button class="pad attack" onPointerDown=${hold('attack')} aria-label=${t('combat.attack', 'Atacar (J)')}><${Icon} name="attack" size="34" /></button>
+      <button class=${`pad attack${s.charge > 0 ? ' charging' : ''}`} style=${{ '--charge': s.charge ?? 0 }} onPointerDown=${hold('attack')} onPointerUp=${release('attack')} onPointerCancel=${release('attack')} onPointerLeave=${release('attack')} aria-label=${t('combat.attack', 'Atacar (J) · mantén para golpe fuerte')}><${Icon} name="attack" size="34" /></button>
       <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="tactical" size="28" /></button>
     </section>
 
