@@ -32,6 +32,7 @@ export class Markers {
         it = { b }; this.items.set(m.id, it);
       }
       it.m = m;
+      if (m.progress != null) it.b.style.setProperty('--p', m.progress.toFixed(3));
     }
     for (const [id, it] of this.items) if (!seen.has(id)) { it.b.remove(); this.items.delete(id); }
   }

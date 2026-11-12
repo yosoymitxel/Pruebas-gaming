@@ -4,8 +4,10 @@
 // las puertas eligen la sala. Coordenadas de rejilla para el minimapa: el camino va hacia la derecha.
 import { mulberry32 } from '../core/rng.js';
 
-export const ROOM_TYPES = ['pelea', 'botin', 'carta', 'reliquia'];
-const SIDE_ODDS = [['pelea', 0.55], ['botin', 0.2], ['carta', 0.13], ['reliquia', 0.12]];
+// Como en las cruzadas de Cult of the Lamb: además de peleas y botín hay seguidores que rescatar (pelea y se
+// une a la colonia), tiendas donde cambiar botín y fuentes que curan.
+export const ROOM_TYPES = ['pelea', 'botin', 'carta', 'reliquia', 'rescate', 'tienda', 'fuente'];
+const SIDE_ODDS = [['pelea', 0.38], ['botin', 0.15], ['carta', 0.1], ['reliquia', 0.08], ['rescate', 0.12], ['tienda', 0.09], ['fuente', 0.08]];
 const MAIN = { combate: 2, elite: 3, jefe: 2 };
 
 export function genFloor(nodeType, seed) {

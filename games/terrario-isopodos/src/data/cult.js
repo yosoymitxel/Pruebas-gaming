@@ -46,3 +46,8 @@ export const WISHES = {
 };
 
 export const SERMON = { time: 7, ring: 1.6 };
+
+// Obras (como en CotL, los seguidores levantan lo que pones): segundos por celda; ritmo solo y por ayudante.
+export const SITE = { perCell: 6, alone: 0.35, perWorker: 1, maxWorkers: 2 };
+// Trabajos: cada isópodo asignado a una pieza que produce la acelera (hasta dos).
+export const JOBS = { boost: 0.75, max: 2 };

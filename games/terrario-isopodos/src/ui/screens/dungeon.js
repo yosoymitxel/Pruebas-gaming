@@ -9,7 +9,7 @@ import { CLASSES } from '../../data/isopods.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
 import { nextNodes, enemiesFor, LAYERS } from '../../game/dungeon.js';
 import { portraitURL } from '../../view/sprites.js';
-import { Bar, Loot, ResIcon, PauseButton } from './common.js';
+import { Bar, Loot, ResIcon, PauseButton, Cost } from './common.js';
 import { Icon, IconAt } from '../icons.js';
 import { CardPick, CardFace } from './cards.js';
 
@@ -44,8 +44,8 @@ function Preview({ node, biome, onEnter, onClose }) {
 
 // Piso del nivel (como el minimapa de salas de Cult of the Lamb): casillas unidas por pasillos, la actual con
 // estandarte; se va por las puertas de la sala actual (tocar una sala vecina o su botón).
-const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items' };
-const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia') };
+const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf' };
+const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente') };
 const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
 
 function FloorMap({ s }) {
@@ -72,6 +72,11 @@ function FloorMap({ s }) {
     <div class="doors">${cur.links.map((id) => f.rooms[id]).map((r) => html`<button class=${`btn door${r.done ? ' ghost' : ''}`} onClick=${() => s.enterRoom(r.id)}>
       <span class="dir">${DIR(cur, r)}</span><${Icon} name=${icon(r)} size="18" />${r.final ? NODE_TYPES[run.node.type].name : ROOM_NAME[r.type]()}${r.done ? ` · ${t('floor.visited', 'vista')}` : ''}</button>`)}</div>
     ${run.last?.type === 'reliquia' && run.last.card && html`<p class="note">${t('floor.relic', 'Reliquia')}: <b>${CARDS[run.last.card].name}</b> — ${CARDS[run.last.card].desc}</p>`}
+    ${run.last?.type === 'rescate' && html`<p class="note"><${Icon} name="colony" size="16" />${t('floor.rescued', 'Un isópodo cautivo se une a la colonia al volver')}</p>`}
+    ${run.last?.type === 'fuente' && html`<p class="note"><${Icon} name="leaf" size="16" />${t('floor.spring', 'Bebéis: +35 % de vida')}</p>`}
+    ${run.last?.type === 'tienda' && html`<div class="note shop"><p>${t('floor.shopTitle', 'El mercader cambia botín:')}</p>
+      ${f.rooms[run.last.room].offers.map((o, k) => html`<button class="btn small" disabled=${o.sold || Object.entries(o.cost).some(([r, n]) => (run.loot[r] ?? 0) < n)} onClick=${() => s.buy(k)}>
+        ${o.get === 'cura' ? t('floor.heal', 'Curar 30 %') : ITEMS[o.get].name} · <${Cost} cost=${o.cost} have=${run.loot} />${o.sold ? ' ✓' : ''}</button>`)}</div>`}
     ${run.last?.type === 'botin' && html`<div class="note"><p>${t('dungeon.found', 'Encontráis:')}</p><${Loot} loot=${run.last.found} /></div>`}
   </section>`;
 }

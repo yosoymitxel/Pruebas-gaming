@@ -10,3 +10,9 @@ Fuente: wiki de Cult of the Lamb (Faith, Followers, Loyalty, Devotion, Rituals).
 | Sermón | Una vez por día; la colonia se reúne en el templo. | **Reunir** en Colonia: se juntan en círculo junto al altar (o refugio), botan mirando al centro y ganan lealtad. |
 | Peticiones | Globo de pensamiento con lo que quiere; plazo; cumplir +20, fallar −25/−45. | Globito teal sobre la cabeza (pieza, humedad, comer, mimo) con plazo de 5 min. |
 | Noche | Los seguidores duermen en sus refugios; sin cama bajan la fe. | De noche van solos a una cama libre; sin cama se hacen un ovillo y la fe baja al anochecer. |
+| Construcción | Lo que pones queda como obra; los seguidores la levantan. | Las piezas nuevas son obras que no funcionan hasta acabar; hasta 2 isópodos libres van y martillean (×3 de ritmo). |
+| Asignar seguidor | Aserradero o cantera con un seguidor trabajando. | **Trabajar** en la ficha: se queda junto a la pieza que produce más cerca, +75 % por trabajador (máx. 2). |
+| Cruzada: rescate | Seguidores cautivos que se salvan peleando. | Sala **Rescate**: pelea y el cautivo se une al volver (se pierde si caéis). |
+| Cruzada: tiendas | Mercaderes dentro de la mazmorra. | Sala **Tienda**: cambia botín por gota, hongo o curación. |
+| Cruzada: curarse | Corazones y salas de descanso. | Sala **Fuente**: +35 % de vida a todos. |
+| Morir | Vuelves a la base perdiendo parte de lo recogido. | Ya estaba: al caer se pierde la mitad del botín y los rescatados. |

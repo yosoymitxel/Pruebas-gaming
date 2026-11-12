@@ -22,6 +22,8 @@ export const STATUS = localize('isoStatus', {
   dormir: { name: 'Va a dormir', icon: 'refugio' },
   duerme: { name: 'Duerme', icon: 'refugio' },
   reunion: { name: 'En la reunión', icon: 'colony' },
+  construye: { name: 'Construye', icon: 'build' },
+  trabaja: { name: 'Trabaja', icon: 'recoleccion' },
   bolita: { name: 'Bolita', icon: 'roll' },
   muda: { name: 'Muda', icon: 'shield' },
   cria: { name: 'Cría', icon: 'colony' },
