@@ -123,9 +123,12 @@ export class Session {
   goHome() {
     this.build = null; this.selIso = null;
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
+    if (this.mode === 'islands' || this.mode === 'result') this.nexo('isla', t('nexo.home', 'Terrario'));
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
   }
-  goArchipelago() { this.setMode('islands', new ArchipelagoView(this.stage, this.game), 0.1); }
+  // Nexo: cortinilla entre secciones (isla: iris; nido: descenso; combate: golpe; sala: puerta).
+  nexo(kind, title, sub) { this.nexus = this.settings.reduceMotion ? null : { kind, title, sub, at: this.time }; }
+  goArchipelago() { this.nexo('isla', t('nexo.islands', 'Archipiélago'), t('nexo.islandsSub', 'Se levanta la tapa')); this.setMode('islands', new ArchipelagoView(this.stage, this.game), 0.1); }
   goMenu() {
     this.persist();
     this.saved = load();
@@ -375,6 +378,7 @@ export class Session {
     this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0, { robe: this.game.robe, upgrades: this.game.upgrades ?? [] });
     visit(this.game, island.id);
     this.persist();
+    this.nexo('nido', island.name, t('nexo.nest', 'Bajáis al nido'));
     this.setMode('dungeon', null, 0.75, this.run.island.weather);
   }
   enter(nodeId) {
@@ -389,6 +393,7 @@ export class Session {
     if (room && !room.main && room.visits !== true) { room.visits = true; this.achieve('side', 3); }
     if (this.run.last?.type === 'reliquia' && this.run.last.card) this.achieve('relic');
     this.sfx('open');
+    if (this.run.state !== 'combat') this.nexo('sala', null);
     this.afterRoom();
   }
   afterRoom() {
@@ -401,6 +406,7 @@ export class Session {
       this.tactical = false;
       const bossRoom = this.run.node.type === 'jefe' && this.run.room?.final;
       this.sfx(bossRoom ? 'boss' : 'open');
+      this.nexo('combate', bossRoom ? t('nexo.boss', '¡Jefe!') : t('nexo.fight', '¡Pelea!'), t('nexo.foes', '{n} aberraciones').replace('{n}', this.combat.actors.filter((a) => a.side === 'enemy').length));
       const bossFoe = bossRoom && this.combat.actors.find((a) => a.side === 'enemy');
       this.setMode('combat', new CombatView(this.stage, this.combat, this.run.encounter.seed, this.run.island.weather, this.run.island.vessel === 'diorama' ? 'diorama' : 'frasco'), 1, this.run.island.weather);
       if (bossFoe) this.stage.pixfx.spawn('boss', bossFoe.x, 0.05, bossFoe.y);
@@ -418,11 +424,13 @@ export class Session {
     this.persist();
     this.setMode('result', null, 0);
   }
-  endCombat() {
+  // door: sala siguiente elegida desde la victoria (como las puertas de Cult of the Lamb), sin pasar por el mapa.
+  endCombat(door) {
     finishCombat(this.run, this.combat);
     this.combat = null;
-    if (this.run.state === 'won' || this.run.state === 'lost') this.settle();
-    else this.setMode('dungeon', null, 0.75, this.run.island.weather);
+    if (this.run.state === 'won' || this.run.state === 'lost') return this.settle();
+    this.setMode('dungeon', null, 0.75, this.run.island.weather);
+    if (door != null && this.run.state === 'floor') this.enterRoom(door);
   }
   setTactical(on) { if (on !== this.tactical) this.sfx(on ? 'open' : 'close'); this.tactical = on; this.emit(); }
   ability(actorId, abilityId) { const ok = useAbility(this.combat, actorId, abilityId); if (ok) this.setTactical(false); return ok; }
