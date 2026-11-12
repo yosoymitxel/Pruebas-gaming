@@ -48,6 +48,7 @@ function Care({ s, iso, st, sp }) {
       <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => s.bless(iso.id)}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'comer')}><${Icon} name="leaf" size="18" />${t('colony.eat', 'Comer')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'dormir')}><${Icon} name="refugio" size="18" />${t('colony.sleep', 'Dormir')}</button>
+      <button class=${`btn${iso.job != null ? ' active' : ''}`} aria-pressed=${iso.job != null} onClick=${() => s.orderIso(iso.id, 'trabajar')}><${Icon} name="recoleccion" size="18" />${iso.job != null ? t('colony.unjob', 'Dejar trabajo') : t('colony.job', 'Trabajar')}</button>
       ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'tocar')}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
     </div>
     <div class="badges" role="group" aria-label=${t('colony.badge', 'Distintivo')}>

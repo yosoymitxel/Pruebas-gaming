@@ -280,3 +280,27 @@ test('culto (Cult of the Lamb): mimo diario, nivel de lealtad, reunión, peticio
   H.tickHome(home, 1 / 60, rng, DAY_PHASES.dia);
   assert.ok(home.faith < f, 'olvidar una petición baja la fe');
 });
+
+test('construir y trabajar (CotL): la obra la levantan los isópodos y no funciona hasta acabar; trabajar acelera la producción; salas de rescate, tienda y fuente', async () => {
+  const H = await import('../src/game/home.js');
+  const R = await import('../src/game/run.js');
+  const { DAY_PHASES } = await import('../src/data/world.js');
+  const { home } = newGame(41), rng = mulberry32(6);
+  home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
+  home.isopods.forEach((i) => { i.hunger = 1; });
+  const b0 = H.beds(home);
+  assert.ok(H.build(home, 'corcho', 7, 12, 0, true));
+  const p = Object.values(home.grid.pieces).find((q) => q.type === 'corcho');
+  assert.ok(p.site && H.beds(home) === b0, 'en obra no da camas');
+  let t = 0; while (p.site && t < 120) { H.tickHome(home, 1 / 30, rng, DAY_PHASES.dia); t += 1 / 30; }
+  assert.ok(!p.site && H.beds(home) > b0, 'terminada da camas');
+  assert.ok(t < 12 / 0.35, 'con ayudantes se termina antes que sola');
+  // trabajar
+  const a = H.build(home, 'sepia', 12, 12); const sep = Object.values(home.grid.pieces).find((q) => q.type === 'sepia');
+  const iso = home.isopods[0]; iso.x = sep.x + 0.5; iso.y = sep.y + 1.4;
+  assert.ok(H.orderIso(home, iso, 'trabajar') && iso.job === sep.id);
+  assert.equal(H.workers(home, sep), 1);
+  // mazmorra
+  const run = { floor: { at: 0, rooms: [{ id: 0, type: 'tienda', links: [], offers: [{ get: 'gota', cost: { musgo: 2 } }] }] }, loot: { musgo: 3 }, items: { gota: 0 }, party: [{ hp: 5, maxHp: 10 }] };
+  assert.ok(R.buy(run, 0) && run.items.gota === 1 && run.loot.musgo === 1 && !R.buy(run, 0), 'la tienda cobra en botín y vende una vez');
+});

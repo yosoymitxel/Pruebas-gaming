@@ -7,7 +7,7 @@ import { SKILLS } from '../data/skills.js';
 import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
-import { FAITH, LOYALTY, WISHES, SERMON } from '../data/cult.js';
+import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS } from '../data/cult.js';
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN } from '../data/substrate.js';
 
 const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
@@ -69,12 +69,35 @@ export function pay(home, cost) {
   return true;
 }
 
-export function build(home, type, x, y, rot = 0) {
+// `site`: se coloca como obra y la colonia la levanta (como en Cult of the Lamb); sin `site`, aparece hecha.
+export function build(home, type, x, y, rot = 0, site = false) {
   if (!canPlace(home.grid, type, x, y, rot) || !canAfford(home, BUILDINGS[type].cost)) return null;
   pay(home, BUILDINGS[type].cost);
   const id = place(home.grid, type, x, y, rot);
-  addFaith(home, BUILDINGS[type].calm ? 'deco' : 'pieza');
+  const f = BUILDINGS[type].size;
+  if (site) home.grid.pieces[home.grid.nextId - 1].site = { t: 0, need: SITE.perCell * f.w * f.h };
+  else addFaith(home, BUILDINGS[type].calm ? 'deco' : 'pieza');
   return id;
+}
+// Una pieza en obra no funciona todavía (ni cama, ni comida, ni humedad, ni producción, ni calma).
+export const live = (p) => !p.site;
+const livePieces = (home) => Object.values(home.grid.pieces).filter(live);
+// Obras: avanzan solas despacio y mucho más rápido con isópodos trabajando al lado.
+function tickSites(home, dt) {
+  for (const p of Object.values(home.grid.pieces)) {
+    if (!p.site) continue;
+    const f = BUILDINGS[p.type].size, cx = p.x + f.w / 2, cy = p.y + f.h / 2;
+    const n = home.isopods.filter((i) => i.order === 'construir' && i.siteId === p.id && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.2).length;
+    if ((p.site.t += dt * (SITE.alone + SITE.perWorker * n)) < p.site.need) continue;
+    delete p.site;
+    addFaith(home, BUILDINGS[p.type].calm ? 'deco' : 'pieza'); (home.builtNow ??= []).push(p.id);
+    for (const i of home.isopods) if (i.siteId === p.id) { i.order = null; i.siteId = null; i.tx = null; i.wait = 0.8; }
+  }
+}
+// Trabajo (como asignar un seguidor al aserradero): se queda junto a una pieza que produce y la acelera.
+export function workers(home, p) {
+  const f = BUILDINGS[p.type].size, cx = p.x + f.w / 2, cy = p.y + f.h / 2;
+  return home.isopods.filter((i) => i.job === p.id && !(i.rest > 0) && Math.hypot(i.x - cx, i.y - cy) < Math.max(f.w, f.h) / 2 + 1.5).length;
 }
 
 // ——— La colonia como un culto (src/data/cult.js) ———
@@ -135,7 +158,7 @@ function tickCult(home, dt, rng, phase) {
   for (const iso of home.isopods) {
     const w = iso.wish; if (!w) continue;
     if ((w.t -= dt) <= 0) { iso.wish = null; addFaith(home, 'fallo'); continue; }
-    if ((w.kind === 'pieza' && Object.values(home.grid.pieces).some((p) => p.type === w.piece)) || (w.kind === 'humedad' && comfy(home, iso))) fulfil(home, iso);
+    if ((w.kind === 'pieza' && livePieces(home).some((p) => p.type === w.piece)) || (w.kind === 'humedad' && comfy(home, iso))) fulfil(home, iso);
   }
   if ((home.wishT = (home.wishT ?? 0) + dt) < WISHES.every) return;
   home.wishT = 0;
@@ -149,7 +172,7 @@ function tickCult(home, dt, rng, phase) {
 }
 
 export const lvl = (p) => p.level ?? 1;
-export const beds = (home) => 4 + Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].beds ?? 0) * lvl(p), 0);
+export const beds = (home) => 4 + Object.values(home.grid.pieces).filter(live).reduce((s, p) => s + (BUILDINGS[p.type].beds ?? 0) * lvl(p), 0);
 
 // Mejorar una pieza: nivel 2 y 3 (ver `upgrade` en BUILDINGS).
 export const upgradeCost = (p) => BUILDINGS[p.type].upgrade?.[lvl(p) - 1] ?? null;
@@ -188,7 +211,7 @@ export const layer = (home, id) => home.layers?.[id] ?? START_LAYERS[id];
 export function humidityParts(home) {
   const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: HUMIDITY.weather[home.weather] ?? 0 }];
   if (home.mist > 0) parts.push({ source: 'rocio', amount: HUMIDITY.mist * Math.min(1, home.mist / ZEN.mistTime) });
-  for (const p of Object.values(home.grid.pieces)) if (HUMIDITY.pieces[p.type]) parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] });
+  for (const p of livePieces(home)) if (HUMIDITY.pieces[p.type]) parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] });
   parts.push({ source: 'tapa', amount: HUMIDITY.lid[home.lid ?? 1] });
   return parts;
 }
@@ -204,7 +227,7 @@ export const humidity = (home) => home.moist ?? humidityTarget(home);
 // Humedad en una celda: la general más lo que mojan (o secan) las piezas cercanas. Así se arma el gradiente.
 export function localHumidity(home, x, y) {
   let h = humidity(home);
-  for (const p of Object.values(home.grid.pieces)) {
+  for (const p of livePieces(home)) {
     const L = HUMIDITY.local[p.type];
     if (!L) continue;
     const f = BUILDINGS[p.type].size, d = Math.hypot(x - (p.x + f.w / 2), y - (p.y + f.h / 2));
@@ -247,7 +270,7 @@ export function upgradeLayer(home, id) {
 
 // Calma 0–1: decoración, hojarasca y clima suben; hacinamiento, mal clima y miedo de la última expedición bajan.
 export function calm(home) {
-  const deco = Object.values(home.grid.pieces).reduce((s, p) => s + (BUILDINGS[p.type].calm ?? 0) * lvl(p), 0);
+  const deco = livePieces(home).reduce((s, p) => s + (BUILDINGS[p.type].calm ?? 0) * lvl(p), 0);
   const crowd = Math.max(0, home.isopods.length - beds(home)) * 0.08;
   const litter = layer(home, 'hojarasca') * 0.05;
   const grad = gradient(home).ok ? 0.08 : 0, mold = (home.mold?.length ?? 0) * MOLD.calm;
@@ -284,12 +307,14 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   home.leaves = [];
   home.fear = Math.min(1, Math.max(0, home.fear - dt / 600 + phase.fear * dt));
   const { hungerMul } = homeEffects(home), prodMul = homeEffects(home).prodMul * phase.prodMul;
-  for (const p of Object.values(home.grid.pieces)) {
+  tickSites(home, dt);
+  for (const p of livePieces(home)) {
     const prod = BUILDINGS[p.type].produces;
     if (!prod) continue;
+    const boost = 1 + JOBS.boost * Math.min(JOBS.max, workers(home, p));
     const s = (home.stock[p.id] ??= { ready: 0, t: 0 });
     if (s.ready >= prod.cap + (lvl(p) - 1) * 2) continue;
-    if ((s.t += dt * prodMul * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
+    if ((s.t += dt * prodMul * boost * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
   }
   for (const iso of home.isopods) { if (!lifecycle(home, iso, dt, rng)) walk(home, iso, dt, rng, hungerMul, phase); }
   breed(home, dt, rng);
@@ -405,6 +430,25 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     if (d < 0.25 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
     const v = WALK * 1.4; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return;
   }
+  // Obras: los que están libres se acercan a levantarla (dos por obra como mucho) y se quedan dándole.
+  if (!phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
+    const site = Object.values(home.grid.pieces).find((p) => p.site && home.isopods.filter((o) => o.siteId === p.id).length < SITE.maxWorkers);
+    if (site) { const f = BUILDINGS[site.type].size; Object.assign(iso, { order: 'construir', siteId: site.id, tx: site.x + rng() * f.w, ty: site.y + f.h + 0.4, stuck: 0 }); }
+  }
+  if (iso.order === 'construir') {
+    if (!home.grid.pieces[iso.siteId]?.site || phase.night) { iso.order = null; iso.siteId = null; iso.tx = null; }
+    else { const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
+      if (d < 0.3 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
+      const v = WALK * 1.2; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return; }
+  }
+  // Trabajo asignado: de día vuelve a su pieza y se queda ahí (sale a comer y a dormir como todos).
+  const job = iso.job != null && home.grid.pieces[iso.job];
+  if (iso.job != null && !job) iso.job = null;
+  if (job && !phase.night && !iso.order && iso.hunger >= 0.5) {
+    const f = BUILDINGS[job.type].size, cx = job.x + f.w / 2, cy = job.y + f.h + 0.4;
+    if (Math.hypot(iso.x - cx, iso.y - cy) < 0.6) { iso.vx = iso.vy = 0; return; }
+    iso.tx = cx + (rng() - 0.5) * 0.4; iso.ty = cy; iso.stuck = 0;
+  }
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
   // De noche se van a dormir solos: a una cama libre o, si no hay, se hacen un ovillo donde estén.
   if (phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
@@ -447,7 +491,7 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
 // Pieza más cercana que cumple `test(building)`.
 function nearest(home, iso, test) {
   let best = null, bd = Infinity;
-  for (const p of Object.values(home.grid.pieces)) { if (!test(BUILDINGS[p.type], p)) continue; const d = Math.hypot(p.x - iso.x, p.y - iso.y); if (d < bd) { bd = d; best = p; } }
+  for (const p of Object.values(home.grid.pieces)) { if (p.site || !test(BUILDINGS[p.type], p)) continue; const d = Math.hypot(p.x - iso.x, p.y - iso.y); if (d < bd) { bd = d; best = p; } }
   return best;
 }
 
@@ -457,6 +501,8 @@ export function isoStatus(home, iso) {
   if (iso.molting > 0) return 'muda';
   if (iso.rest > 0) return 'duerme';
   if (iso.order === 'reunir') return 'reunion';
+  if (iso.order === 'construir') return 'construye';
+  if (iso.job != null && !(iso.hunger < 0.5)) return 'trabaja';
   if (iso.ate > 0) return 'come';
   if (iso.order === 'dormir') return 'dormir';
   if (iso.order === 'comer' || (iso.hunger < 0.5 && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return 'comer';
@@ -471,6 +517,7 @@ export function orderIso(home, iso, what) {
   if (iso.molting > 0) return false;
   if (what === 'comer' && !(home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return false;
   if (what === 'dormir' && !nearest(home, iso, (b) => b.beds)) return false;
+  if (what === 'trabajar') { if (iso.job != null) { iso.job = null; return true; } const p = nearest(home, iso, (b) => b.produces); if (!p) return false; iso.job = p.id; iso.tx = null; return true; }
   iso.order = what; iso.rest = 0; iso.ball = 0; iso.wait = 0; iso.tx = null; iso.stuck = 0;
   return true;
 }

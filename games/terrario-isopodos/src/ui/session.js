@@ -8,7 +8,7 @@ import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
 import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
-import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
@@ -153,7 +153,7 @@ export class Session {
       const f = footprint(b.type, b.rot); this.view.burst('build', b.i + f.w / 2, b.j + f.h / 2); this.sfx('build'); this.shake(0.06);
       this.persist(); this.cancelBuild(); return true;
     }
-    if (!build(this.game.home, b.type, b.i, b.j, b.rot)) { this.sfx('hurt', 1.6); return false; }
+    if (!build(this.game.home, b.type, b.i, b.j, b.rot, true)) { this.sfx('hurt', 1.6); return false; }
     this.sfx('build');
     this.achieve('build');
     {
@@ -260,6 +260,7 @@ export class Session {
       this.view.burst('heal', iso.x, iso.y); this.sfx('win');
       this.floatText(`${iso.name} · ${t('loyal.level', 'nivel')} ${iso.lv} · +1 ${t('res.ambar', 'ámbar')}`, w.x, w.z, 'gain', 1.6);
     }
+    for (const id of (home.builtNow ?? []).splice(0)) { const p = home.grid.pieces[id]; if (!p) continue; this.view.burst('pickup', p.x + 1, p.y + 1); this.sfx('build', 1.1); }
     if (home.sermonDone) { home.sermonDone = false; this.persist(); }
   }
   bless(id) {
@@ -277,7 +278,7 @@ export class Session {
     if (!iso) return false;
     const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what);
     const w = this.view.toWorld(iso.x, iso.y);
-    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!') }[what], w.x, w.z, 'note', 1); }
+    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa') }[what], w.x, w.z, 'note', 1); }
     else this.sfx('hurt', 1.6);
     this.emit();
     return ok;
@@ -351,6 +352,7 @@ export class Session {
     if (!enterNode(this.run, nodeId)) return;
     this.afterRoom();
   }
+  buy(k) { if (buy(this.run, k)) { this.sfx('pickup'); this.emit(); } else this.sfx('hurt', 1.6); }
   // Puerta del piso: otra sala (pelea, botín, carta o reliquia).
   enterRoom(id) {
     if (!enterRoom(this.run, id)) return;

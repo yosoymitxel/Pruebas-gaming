@@ -74,7 +74,7 @@ export function enterRoom(run, roomId) {
   run.last = null;
   if (room.done) return true;
   const rng = mulberry32(run.seed + run.node.id * 31 + roomId * 7);
-  if (room.type === 'pelea') {
+  if (room.type === 'pelea' || room.type === 'rescate') {
     const node = run.node, boss = room.final && node.type === 'jefe';
     const kinds = boss ? BOSS_ARENAS : node.layer === 0 && room.main ? ['claro', 'raices'] : Object.keys(ARENAS);
     const foes = room.final ? enemiesFor(node, run.island.biome) : enemiesFor({ type: 'combate', layer: node.layer + (room.main ? 0 : 1) }, run.island.biome, rng);
@@ -91,12 +91,31 @@ export function enterRoom(run, roomId) {
     run.last = { type: 'botin', found: Object.fromEntries(Object.entries(run.loot).map(([r, n]) => [r, n - (before[r] ?? 0)]).filter(([, n]) => n)) };
   } else if (room.type === 'carta') {
     offerCards(run, rng);
+  } else if (room.type === 'tienda') { // el mercader: cambia botín por objetos, una carta o curarse
+    const res = BIOMES[run.island.biome].loot;
+    room.offers = SHOP.map((o, k) => ({ ...o, cost: { [res[k % res.length]]: o.price } }));
+    run.last = { type: 'tienda', room: room.id };
+  } else if (room.type === 'fuente') { // agua quieta: cura a todo el grupo una vez
+    for (const p of run.party) p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp * 0.35));
+    run.last = { type: 'fuente' };
   } else if (room.type === 'reliquia') { // una carta rara sin elegir: el premio escondido
     const pool = Object.keys(CARDS).filter((id) => !run.cards.includes(id) && CARDS[id].rarity === 'rara');
     const id = pool[Math.floor(rng() * pool.length)];
     if (id) { run.offer = [id]; run.state = 'card'; pickCard(run, id); }
     run.last = { type: 'reliquia', card: id ?? null };
   }
+  return true;
+}
+
+const SHOP = [{ get: 'gota', price: 2 }, { get: 'hongo', price: 3 }, { get: 'cura', price: 2 }];
+// Comprar en la tienda de la sala actual: paga con el botín de la expedición.
+export function buy(run, k) {
+  const room = run.floor?.rooms[run.floor.at], o = room?.offers?.[k];
+  if (!o || o.sold || Object.entries(o.cost).some(([r, n]) => (run.loot[r] ?? 0) < n)) return false;
+  for (const [r, n] of Object.entries(o.cost)) run.loot[r] -= n;
+  if (o.get === 'cura') for (const p of run.party) p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp * 0.3));
+  else run.items[o.get] = (run.items[o.get] ?? 0) + 1;
+  o.sold = true;
   return true;
 }
 
@@ -141,12 +160,13 @@ export function finishCombat(run, combat) {
   if (combat.result === 'lose') { run.state = 'lost'; return; }
   const heal = runMods(run).winHeal ?? 0;
   for (const p of run.party) p.hp = Math.min(p.maxHp, Math.max(1, p.hp) + Math.ceil(p.maxHp * heal));
-  const final = !run.room || run.room.final;
+  const final = !run.room || run.room.final, rescue = run.room?.type === 'rescate';
   if (run.room) run.room.done = true;
+  if (rescue) run.rescued = (run.rescued ?? 0) + 1; // el isópodo cautivo se une al volver (si no se pierde)
   addLoot(run, mulberry32(run.encounter.seed), final && run.node.type !== 'combate' ? 4 : 1);
   if (final && run.node.type === 'elite') run.loot.ambar = (run.loot.ambar ?? 0) + 1;
   run.encounter = null; run.room = null;
-  if (!final) { run.state = 'floor'; return; }
+  if (!final) { run.state = 'floor'; if (rescue) run.last = { type: 'rescate' }; return; }
   run.floor = null;
   run.state = run.node.type === 'jefe' ? 'won' : 'map';
 }
