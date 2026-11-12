@@ -7,6 +7,7 @@ export const ICONS = {
   colony: 'M3 16a9 7 0 0 1 18 0z M7 16v-4 M11 16V9.5 M15 16v-5 M21 14l2-2.5',
   out: 'M8 3h8 M9 3v3 M15 3v3 M6 9a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z M6 14c4-2 8 2 12 0',
   menu: 'M4 7h16 M4 12h16 M4 17h16',
+  heart: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',
   lid: 'M3 9h18 M5 9V6h14v3 M5 13h14v7H5z M9 16h1 M14 16h1',
   turnLeft: 'M5 12a7 7 0 1 0 2.5-5.4 M4 4v5h5',
   turnRight: 'M19 12a7 7 0 1 1-2.5-5.4 M20 4v5h-5',
@@ -49,3 +50,6 @@ export const Icon = ({ name, size = 22, label }) => html`<svg class="icon" width
 // Para dibujar dentro de otro SVG (nodos del mapa): centrado en (x, y), de lado `size`.
 export const IconAt = ({ name, x, y, size }) => html`<svg x=${x - size / 2} y=${y - size / 2} width=${size} height=${size} viewBox="0 0 24 24" overflow="visible">
   <path class="icon-path" d=${ICONS[name]} transform=${at(name)} fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>`;
+
+// El mismo dibujo como imagen (para los marcadores del diorama).
+export const iconURL = (name, color = '#1d1a16') => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`)}`;

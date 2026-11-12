@@ -5,7 +5,8 @@ import { DAY_PHASES } from '../data/world.js';
 import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { FAITH } from '../data/cult.js';
+import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun } from '../game/run.js';
 import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
@@ -245,6 +246,32 @@ export class Session {
     else this.stage.frame(this.view.camera.target, this.view.camera.distance, this.view.camera.fit);
     this.sfx('click'); this.emit();
   }
+  // Fe y lealtad a la vista: cada evento sale como número sobre la colonia (como el +5 de fe de Cult of the Lamb).
+  cultFx() {
+    const home = this.game.home, log = home.faithLog ?? [], c = this.view.toWorld(home.grid.w / 2, home.grid.h / 2);
+    for (const e of log.splice(0)) {
+      if (Math.abs(e.delta) < 2) continue;
+      this.floatText(`${e.delta > 0 ? '+' : '−'}${Math.abs(e.delta)} ${FAITH.events[e.key].name}`, c.x, c.z, e.delta > 0 ? 'gain' : 'ally', 2.4);
+      if (e.delta >= 10) this.sfx('heal', 1.1); else if (e.delta <= -10) this.sfx('hurt', 0.8);
+    }
+    for (const id of (home.levelUps ?? []).splice(0)) {
+      const iso = home.isopods.find((i) => i.id === id); if (!iso) continue;
+      const w = this.view.toWorld(iso.x, iso.y);
+      this.view.burst('heal', iso.x, iso.y); this.sfx('win');
+      this.floatText(`${iso.name} · ${t('loyal.level', 'nivel')} ${iso.lv} · +1 ${t('res.ambar', 'ámbar')}`, w.x, w.z, 'gain', 1.6);
+    }
+    if (home.sermonDone) { home.sermonDone = false; this.persist(); }
+  }
+  bless(id) {
+    const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
+    if (!iso || !bless(home, iso, this.game.day)) { this.sfx('hurt', 1.6); return false; }
+    this.view.burst('heal', iso.x, iso.y); this.sfx('heal', 1.4); this.persist(); this.emit(); return true;
+  }
+  sermon() {
+    const home = this.game.home;
+    if (!sermon(home, this.game.day)) { this.sfx('hurt', 1.6); return false; }
+    this.selectIso(null); this.sfx('boss', 1.6); this.emit(); return true;
+  }
   orderIso(id, what) {
     const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
     if (!iso) return false;
@@ -352,6 +379,7 @@ export class Session {
   retreat() { runRetreat(this.run); this.settle(); }
   settle() {
     const out = settleRun(this.game.home, this.run, this.rng);
+    addFaith(this.game.home, out.outcome === 'lost' ? 'derrota' : 'expedicion');
     this.sfx(out.outcome === 'lost' ? 'lose' : 'win');
     this.result = { kind: 'run', ...out };
     this.run = null;
@@ -402,7 +430,7 @@ export class Session {
     if (this.mode === 'home' && this.settings.autoSpin !== false && !this.settings.reduceMotion && this.selIso == null && !this.build && !this.paused && this.time - (this.touched ?? -9) > 4) this.stage.rotate(dt * 0.07);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
-    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
+    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;
       tickGather(g, dt, input.move, input.roll, input.held?.roll);

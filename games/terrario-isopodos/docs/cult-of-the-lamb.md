@@ -1,0 +1,12 @@
+# Cult of the Lamb → terrario (investigación jugable)
+
+Fuente: wiki de Cult of the Lamb (Faith, Followers, Loyalty, Devotion, Rituals). Qué hace el juego y cómo quedó aquí.
+
+| Cult of the Lamb | Detalle del juego | Terrario |
+|---|---|---|
+| Fe del culto | Cada evento con su cifra: sermón +10, bendecir +5, inspirar +7, nuevo miembro +5, edificio +2, decoración +4, cruzada +10, morir en cruzada −10, faltan camas −20, hambrientos −10, despertar de noche −5, rechazar petición −25, cumplirla +20. Baja sola. | `home.faith` con las mismas cifras (`src/data/cult.js`), se suma a la calma y sale como número flotante. |
+| Lealtad | Barra 0–100 por seguidor; al llenarla sube de nivel y da recompensa (20 devoción + fragmento). | `iso.loyal`/`iso.lv`; al subir: +1 ámbar, +5 fe y más vida en la expedición. |
+| Bendecir | Una vez por día por seguidor. | **Mimo** en la ficha del isópodo. |
+| Sermón | Una vez por día; la colonia se reúne en el templo. | **Reunir** en Colonia: se juntan en círculo junto al altar (o refugio), botan mirando al centro y ganan lealtad. |
+| Peticiones | Globo de pensamiento con lo que quiere; plazo; cumplir +20, fallar −25/−45. | Globito teal sobre la cabeza (pieza, humedad, comer, mimo) con plazo de 5 min. |
+| Noche | Los seguidores duermen en sus refugios; sin cama bajan la fe. | De noche van solos a una cama libre; sin cama se hacen un ovillo y la fe baja al anochecer. |

@@ -14,6 +14,7 @@ import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
 import { Vfx, Weather } from './vfx.js';
 import { pickupMesh, animatePickup } from './pickups.js';
+import { iconURL } from '../ui/icons.js';
 import { DEFAULT_YAW } from './stage.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { ABERRATIONS } from '../data/aberrations.js';
@@ -228,6 +229,9 @@ export class HomeView extends GridScene {
       }
       const w = this.toWorld(iso.x, iso.y), moving = Math.hypot(iso.vx, iso.vy) > 0.05;
       const size = iso.baby > 0 ? 0.42 : 0.8;
+      if (iso.rest > 0) return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: size, squash: 0.8 + Math.sin(time * 1.3 + iso.id) * 0.05 }; // ovillo en el suelo
+      if (iso.order === 'reunir' && this.home.sermon) { const c = this.toWorld(this.home.sermon.x, this.home.sermon.y), hop = Math.abs(Math.sin(time * 5 + iso.id)) * 0.12; // en la reunión: botan mirando al centro
+        return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: size, lift: moving ? bob(time, iso.id) : hop, face: Math.atan2(c.z - w.z, c.x - w.x), squash: 1 + hop * 0.6 }; }
       if (iso.ball > 0) return { id: `i${iso.id}`, sprite: `ball:${iso.shell}`, ...w, height: size * 0.62, squash: 1 + Math.sin(time * 9) * 0.04 };
       return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
@@ -244,6 +248,7 @@ export class HomeView extends GridScene {
         list.push({ id: `s${iso.id}`, sprite: 'proc:sel', ...w, height: 0.55, lift: top + Math.abs(Math.sin(time * 4)) * 0.12 }); }
       if (iso.badge != null) list.push({ id: `f${iso.id}`, sprite: `badge:${iso.badge}`, ...w, x: w.x - 0.18, height: 0.42, lift: top - 0.1 });
       const bed = iso.rest > 0 && this.grid.pieces[iso.bed];
+      if (iso.rest > 0 && !bed) { const u = (time * 0.4 + iso.id * 0.33) % 1; list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...w, height: 0.24 + u * 0.1, lift: 0.5 + u * 0.6, alpha: 1 - u }); }
       if (bed) { const f = footprint(bed.type, bed.rot), b = this.toWorld(bed.x + f.w / 2, bed.y + f.h / 2), u = (time * 0.4 + iso.id * 0.33) % 1; // «zzz» que sube del refugio y se apaga
         list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...b, x: b.x + Math.sin(u * 6) * 0.15, height: 0.3 + u * 0.15, lift: 1.4 + u * 0.9, alpha: 1 - u }); }
     }
@@ -253,8 +258,14 @@ export class HomeView extends GridScene {
     // Mudas: quedan en el suelo hasta que se las comen (sin ficha: no ensucian la interfaz). Moho: manchas en el suelo.
     for (const m of this.home.molts ?? []) { const w = this.toWorld(m.x, m.y); list.push({ id: `m${m.id}`, sprite: 'proc:muda', ...w, height: 0.3, alpha: Math.max(0.3, 1 - (m.t ?? 0) / 40), flat: true }); }
     this.syncMold();
+    // Peticiones: globito sobre la cabeza con lo que quiere (como los seguidores de Cult of the Lamb).
     for (const iso of this.home.isopods) {
-      if (iso.hunger >= 0.35 || iso.rest > 0 || iso.id === this.selIso) continue;
+      if (!iso.wish || iso.rest > 0) continue;
+      const w = this.toWorld(iso.x, iso.y), ic = { pieza: 'build', humedad: 'items', comer: 'leaf', mimo: 'heart' }[iso.wish.kind];
+      marks.push({ id: `w${iso.id}`, kind: 'wish', icon: iconURL(ic), x: w.x, y: w.y + 0.9, z: w.z, iso: iso.id });
+    }
+    for (const iso of this.home.isopods) {
+      if (iso.hunger >= 0.35 || iso.rest > 0 || iso.wish || iso.id === this.selIso) continue;
       const w = this.toWorld(iso.x, iso.y);
       marks.push({ id: `b${iso.id}`, kind: 'hunger', icon: resourceIconURL('hojarasca'), x: w.x, y: w.y + 0.75, z: w.z, iso: iso.id });
     }
