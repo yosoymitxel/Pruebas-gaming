@@ -18,7 +18,7 @@ export const FAITH = {
     mimo: { name: 'Mimo', delta: 5 },
     reunion: { name: 'Reunión', delta: 10 },
     peticion: { name: 'Petición cumplida', delta: 20 },
-    fallo: { name: 'Petición olvidada', delta: -25 },
+    fallo: { name: 'Petición olvidada', delta: -10 },
     expedicion: { name: 'Expedición cumplida', delta: 10 },
     derrota: { name: 'Expedición perdida', delta: -10 },
     despertar: { name: 'Despertado de noche', delta: -5 },
@@ -36,7 +36,7 @@ export const LOYALTY = {
 
 // Peticiones (los «quests» de los seguidores). `every`: segundos entre peticiones; `time`: plazo.
 export const WISHES = {
-  every: 150, time: 300, max: 2,
+  every: 200, time: 300, max: 2,
   kinds: localize('wishes', {
     pieza: { name: 'Quiere', pieces: ['corcho', 'esfagno', 'piedra', 'seta', 'tronco', 'sepia', 'charca'] },
     humedad: { name: 'Quiere su humedad' },

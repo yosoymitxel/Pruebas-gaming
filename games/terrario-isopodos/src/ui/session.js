@@ -9,7 +9,7 @@ import { FAITH } from '../data/cult.js';
 import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy } from '../game/run.js';
-import { createCombat, step, useAbility, useItem, switchMain, allies } from '../game/combat.js';
+import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
 import { footprint, move } from '../game/grid.js';
@@ -260,6 +260,7 @@ export class Session {
       this.view.burst('heal', iso.x, iso.y); this.sfx('win');
       this.floatText(`${iso.name} · ${t('loyal.level', 'nivel')} ${iso.lv} · +1 ${t('res.ambar', 'ámbar')}`, w.x, w.z, 'gain', 1.6);
     }
+    for (const a of (home.autoGot ?? []).splice(0)) { const p = home.grid.pieces[a.id]; if (!p) continue; const w = this.view.toWorld(p.x + 1, p.y + 0.5); this.floatText(`+${a.n} ${RESOURCES[a.res]?.name ?? a.res}`, w.x, w.z, 'gain', 1.4); }
     for (const id of (home.builtNow ?? []).splice(0)) { const p = home.grid.pieces[id]; if (!p) continue; this.view.burst('pickup', p.x + 1, p.y + 1); this.sfx('build', 1.1); }
     if (home.sermonDone) { home.sermonDone = false; this.persist(); }
   }
@@ -461,9 +462,17 @@ export class Session {
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
     // Cámara lenta al matar (más larga con la última): el golpe final se saborea, como en Cult of the Lamb.
     if (this.slowmo > 0) { this.slowmo -= dt; dt *= 0.3; }
+    // Golpe fuerte: mantener atacar carga (anillo del botón) y soltar lo lanza.
+    if (!this.tactical) {
+      if (input.held?.attack) this.charge = (this.chargeT = (this.chargeT ?? 0) + dt) / HEAVY.charge;
+      else { if ((this.chargeT ?? 0) >= HEAVY.charge) input.heavy = true; this.chargeT = 0; this.charge = 0; }
+      if (this.view) this.view.charge = Math.min(1, this.charge);
+    }
     const from = c.events.length;
     step(c, dt * (this.tactical ? TACTICAL_SPEED[this.settings.tactical ?? 'pausa'] : 1), this.tactical ? {} : input);
     for (const ev of c.events.slice(from)) {
+      if (ev.type === 'heavy') { this.sfx('heavy'); this.shake(0.35); this.hitstop = Math.max(this.hitstop, 0.07); this.view.burst('heavy', ev.id); continue; }
+      if (ev.type === 'heavyStart') { this.sfx('swing', 0.7); continue; }
       if (ev.type === 'hit') {
         this.view.hit(ev.id);
         const a = c.actors.find((x) => x.id === ev.id);

@@ -48,3 +48,5 @@ export const ZEN = { mistTime: 120, mistCooldown: 40 };
 export const MOLD = { every: 30, max: 6, at: 0.78, calm: 0.04, eat: 25 };
 // Mudas: quedan en el suelo y los isópodos se las comen (recuperan calcio): se convierten solas en cal.
 export const MOLT_EATEN = 30;
+// Casi todo el calcio de la muda lo recupera el propio isópodo: solo una parte queda como cal para ti.
+export const MOLT_CAL = 0.34;

@@ -8,8 +8,9 @@ import { SPECIES, BEHAVIOR, speciesOf } from '../data/species.js';
 import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } from './grid.js';
 import { bump } from '../core/physics.js';
 import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS } from '../data/cult.js';
-import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN } from '../data/substrate.js';
+import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN, MOLT_CAL } from '../data/substrate.js';
 
+const BREED_FOOD = 3;
 const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
 const WALK = 1.1;
 const START_RES = { hojarasca: 8, musgo: 5, esporas: 2, cal: 1, ambar: 1 };
@@ -33,6 +34,9 @@ export function newHome(rng) {
   const c = GRID_SIDE / 2;
   place(grid, 'refugio', c - 3, c - 3);
   place(grid, 'comedero', c + 1, c - 2);
+  // Un terrario que funciona desde el primer minuto: agua a un lado (humedad y gradiente) y un tronco que da comida.
+  place(grid, 'charca', c + 2, c + 2);
+  place(grid, 'tronco', c - 4, c + 2);
   ['rodador', 'guardian', 'musgoso', null].forEach((cls) => recruit(home, rng, cls ?? undefined));
   return home;
 }
@@ -152,7 +156,7 @@ function tickCult(home, dt, rng, phase) {
   // anochecer y amanecer
   const night = !!phase.night;
   if (night && !home.wasNight && home.isopods.length > beds(home)) addFaith(home, 'camas');
-  if (!night && home.wasNight) { if (home.isopods.some((i) => i.hunger < 0.35)) addFaith(home, 'hambre'); for (const i of home.isopods) if (i.nightSleep) { i.rest = 0; i.nightSleep = false; i.bed = null; } }
+  if (!night && home.wasNight) { if (home.isopods.some((i) => i.hunger < 0.35)) addFaith(home, 'hambre'); for (const i of home.isopods) { if (i.nightSleep) { i.rest = 0; i.nightSleep = false; i.bed = null; } if (i.night) { i.night = false; i.goBed = null; if (i.order === 'dormir') i.order = null; } } }
   home.wasNight = night;
   // peticiones
   for (const iso of home.isopods) {
@@ -162,7 +166,7 @@ function tickCult(home, dt, rng, phase) {
   }
   if ((home.wishT = (home.wishT ?? 0) + dt) < WISHES.every) return;
   home.wishT = 0;
-  if (home.isopods.filter((i) => i.wish).length >= WISHES.max) return;
+  if (home.isopods.filter((i) => i.wish).length >= (home.isopods.length >= 6 ? WISHES.max : 1)) return;
   const free = adults(home).filter((i) => !i.wish), iso = free[Math.floor(rng() * free.length)];
   if (!iso) return;
   const missing = WISHES.kinds.pieza.pieces.filter((t) => !Object.values(home.grid.pieces).some((p) => p.type === t));
@@ -303,7 +307,7 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   tickCult(home, dt, rng, phase);
   for (const m of home.molts ?? []) m.t = (m.t ?? 0) + dt;
   const eaten = (home.molts ?? []).filter((m) => m.t >= MOLT_EATEN);
-  if (eaten.length) { home.molts = home.molts.filter((m) => m.t < MOLT_EATEN); home.resources.cal = (home.resources.cal ?? 0) + eaten.length; }
+  if (eaten.length) { home.molts = home.molts.filter((m) => m.t < MOLT_EATEN); home.calBits = (home.calBits ?? 0) + eaten.length * MOLT_CAL; const n = Math.floor(home.calBits); home.calBits -= n; home.resources.cal = (home.resources.cal ?? 0) + n; }
   home.leaves = [];
   home.fear = Math.min(1, Math.max(0, home.fear - dt / 600 + phase.fear * dt));
   const { hungerMul } = homeEffects(home), prodMul = homeEffects(home).prodMul * phase.prodMul;
@@ -313,8 +317,8 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
     if (!prod) continue;
     const boost = 1 + JOBS.boost * Math.min(JOBS.max, workers(home, p));
     const s = (home.stock[p.id] ??= { ready: 0, t: 0 });
-    if (s.ready >= prod.cap + (lvl(p) - 1) * 2) continue;
-    if ((s.t += dt * prodMul * boost * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
+    if (s.ready < prod.cap + (lvl(p) - 1) * 2 && (s.t += dt * prodMul * boost * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
+    if (s.ready && boost > 1) { home.resources[prod.res] = (home.resources[prod.res] ?? 0) + s.ready; (home.autoGot ??= []).push({ id: p.id, res: prod.res, n: s.ready }); s.ready = 0; } // el trabajador lo lleva al almacén
   }
   for (const iso of home.isopods) { if (!lifecycle(home, iso, dt, rng)) walk(home, iso, dt, rng, hungerMul, phase); }
   breed(home, dt, rng);
@@ -346,10 +350,11 @@ function breed(home, dt, rng) {
   if ((home.breedT = (home.breedT ?? 0) + dt) < BEHAVIOR.breedEvery) return;
   home.breedT = 0;
   const parents = adults(home), mom = parents[Math.floor(rng() * parents.length)];
-  if (!mom || calm(home) < 0.55 || home.isopods.length >= beds(home) + 2) return;
+  if (!mom || calm(home) < 0.55 || home.isopods.length >= beds(home) || (home.resources.hojarasca ?? 0) < BREED_FOOD) return; // criar pide cama libre y comida de sobra
   const s = speciesOf(mom.shell), cl = climate(home);
   if (cl === 'moho' || rng() > 0.5 * s.breed * (comfy(home, mom) ? 1.4 : 0.6)) return;
   recruit(home, rng, undefined, mom.shell);
+  home.resources.hojarasca -= BREED_FOOD;
   const baby = home.isopods[home.isopods.length - 1];
   Object.assign(baby, { baby: BEHAVIOR.growTime, x: mom.x, y: mom.y + 0.3 });
   addFaith(home, 'miembro');
@@ -426,9 +431,8 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   if (iso.rest > 0) { if ((iso.rest -= dt) <= 0) iso.bed = null; iso.vx = iso.vy = 0; iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt * 0.3); home.fear = Math.max(0, home.fear - dt * 0.002); return; }
   iso.hunger = Math.max(0, iso.hunger - HUNGER_DRAIN * hungerMul * dt);
   if (iso.order === 'reunir') { // de pie en el círculo de la reunión, mirando al centro
-    const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
-    if (d < 0.25 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
-    const v = WALK * 1.4; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return;
+    if (Math.hypot(iso.tx - iso.x, iso.ty - iso.y) < 0.25 || (iso.stuck = (iso.stuck ?? 0) + dt) > 10) { iso.vx = iso.vy = 0; return; }
+    stepTo(home, iso, iso.tx, iso.ty, WALK * 1.4, dt); return;
   }
   // Obras: los que están libres se acercan a levantarla (dos por obra como mucho) y se quedan dándole.
   if (!phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
@@ -437,9 +441,8 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   }
   if (iso.order === 'construir') {
     if (!home.grid.pieces[iso.siteId]?.site || phase.night) { iso.order = null; iso.siteId = null; iso.tx = null; }
-    else { const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
-      if (d < 0.3 || (iso.stuck = (iso.stuck ?? 0) + dt) > 6) { iso.vx = iso.vy = 0; return; }
-      const v = WALK * 1.2; iso.vx = (dx / d) * v; iso.vy = (dy / d) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt; return; }
+    else { if (Math.hypot(iso.tx - iso.x, iso.ty - iso.y) < 0.3) { iso.vx = iso.vy = 0; return; }
+      stepTo(home, iso, iso.tx, iso.ty, WALK * 1.2, dt); return; }
   }
   // Trabajo asignado: de día vuelve a su pieza y se queda ahí (sale a comer y a dormir como todos).
   const job = iso.job != null && home.grid.pieces[iso.job];
@@ -459,7 +462,7 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   const feeder = hungry && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds);
   if (feeder) {
     const fx = feeder.x + 0.5, fy = feeder.y + 0.5;
-    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.1) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
+    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.6) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
     else { iso.tx = fx; iso.ty = fy; }
   } else if (iso.order === 'comer') iso.order = null; // sin comida o sin comedero: la orden no se puede cumplir
   const bed = !feeder && iso.order === 'dormir' && ((iso.goBed != null && home.grid.pieces[iso.goBed]) || nearest(home, iso, (b) => b.beds));
@@ -479,13 +482,44 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     if (!blocked(home.grid, Math.floor(tx), Math.floor(ty)) && Math.hypot(tx - iso.x, ty - iso.y) < (comfy(home, iso) ? 5 : 12)) { iso.tx = tx; iso.ty = ty; iso.stuck = 0; }
     return;
   }
-  const dx = iso.tx - iso.x, dy = iso.ty - iso.y, d = Math.hypot(dx, dy);
+  const d = Math.hypot(iso.tx - iso.x, iso.ty - iso.y);
   iso.stuck = (iso.stuck ?? 0) + dt;
-  if (d < 0.2 || iso.stuck > 6) { iso.tx = null; iso.wait = 1 + rng() * 3; iso.vx = iso.vy = 0; return; }
+  if (d < 0.2 || iso.stuck > 10) { iso.tx = null; iso.wait = 1 + rng() * 3; iso.vx = iso.vy = 0; return; }
   const v = WALK * speciesOf(iso.shell).speed * (phase.night ? 1.25 : 0.85) * (iso.dash > 0 ? 2.6 : 1) * (iso.baby > 0 ? 0.6 : 1);
   if (iso.dash > 0) iso.dash -= dt;
-  iso.vx = (dx / d) * v; iso.vy = (dy / d) * v;
-  iso.x += iso.vx * dt; iso.y += iso.vy * dt;
+  stepTo(home, iso, iso.tx, iso.ty, v, dt);
+}
+
+// Camino por la rejilla (BFS en 4 direcciones) hasta la celda del objetivo o una vecina: así rodean las piezas
+// en vez de quedarse empujando contra ellas. Se recalcula solo al cambiar de celda o de objetivo.
+function waypoint(home, iso, tx, ty) {
+  const g = home.grid, fi = Math.floor(iso.x), fj = Math.floor(iso.y), gi = Math.floor(tx), gj = Math.floor(ty);
+  if (Math.abs(fi - gi) <= 1 && Math.abs(fj - gj) <= 1) return [tx, ty];
+  const key = `${fi},${fj}>${gi},${gj}`;
+  if (iso._wp?.key === key) return iso._wp.at;
+  const free = (i, j) => i >= 0 && j >= 0 && i < g.w && j < g.h && g.open[j * g.w + i] && g.cells[j * g.w + i] === null;
+  const prev = new Map([[fj * g.w + fi, -1]]), q = [fj * g.w + fi];
+  let end = -1;
+  for (let h = 0; h < q.length && end < 0; h++) {
+    const c = q[h], i = c % g.w, j = Math.floor(c / g.w);
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ni = i + di, nj = j + dj, n = nj * g.w + ni;
+      if (prev.has(n) || !free(ni, nj)) continue;
+      prev.set(n, c); q.push(n);
+      if (Math.abs(ni - gi) <= 1 && Math.abs(nj - gj) <= 1) { end = n; break; }
+    }
+  }
+  let at = [tx, ty];
+  if (end >= 0) { let c = end; while (prev.get(c) !== fj * g.w + fi && prev.get(c) !== -1) c = prev.get(c); at = [(c % g.w) + 0.5, Math.floor(c / g.w) + 0.5]; }
+  iso._wp = { key, at };
+  return at;
+}
+// Da un paso hacia (tx, ty) siguiendo el camino. Devuelve la distancia que queda al objetivo final.
+function stepTo(home, iso, tx, ty, v, dt) {
+  const d = Math.hypot(tx - iso.x, ty - iso.y);
+  const [wx, wy] = waypoint(home, iso, tx, ty), dx = wx - iso.x, dy = wy - iso.y, w = Math.hypot(dx, dy) || 1;
+  iso.vx = (dx / w) * v; iso.vy = (dy / w) * v; iso.x += iso.vx * dt; iso.y += iso.vy * dt;
+  return d;
 }
 
 // Pieza más cercana que cumple `test(building)`.

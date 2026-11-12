@@ -25,7 +25,7 @@ test('el terrario arranca con colonia, piezas y zona abierta', () => {
 test('construir cobra y ampliar abre celdas', () => {
   const { home } = newGame(1);
   const before = home.resources.musgo;
-  assert.ok(build(home, 'charca', 7, 12));
+  assert.ok(build(home, 'charca', 7, 5));
   assert.equal(home.resources.musgo, before - 3);
   assert.equal(build(home, 'charca', 0, 0), null, 'zona cerrada');
   home.resources.ambar = 5; home.resources.musgo = 9; home.resources.cal = 9;
@@ -35,7 +35,7 @@ test('construir cobra y ampliar abre celdas', () => {
 
 test('las piezas producen y se recogen; la colonia come y nunca atraviesa piezas', () => {
   const { home } = newGame(7);
-  const id = build(home, 'charca', 11, 12);
+  const id = build(home, 'charca', 11, 5);
   const rng = mulberry32(3);
   for (let k = 0; k < 60 * 300; k++) {
     tickHome(home, 1 / 60, rng);
@@ -121,12 +121,13 @@ test('combate: cada aberración es vencible y no es un paseo', () => {
 });
 
 test('composición: la humedad se mueve despacio hacia lo que hay dentro; la tapa la saca; el moho brota y los colémbolos lo limpian', async () => {
-  const { humidityTarget, setLid, gradient } = await import('../src/game/home.js');
+  const { humidityTarget, setLid, gradient, storePiece } = await import('../src/game/home.js');
   const { home } = newGame(21);
+  for (const p of Object.values(home.grid.pieces)) if (p.type === 'charca') storePiece(home, p.id); // se arranca sin agua
   home.weather = 'claro'; home.moist = humidityTarget(home);
   assert.equal(climate(home), 'seco', 'sin agua el terrario arranca seco');
   const dry = homeEffects(home);
-  assert.ok(build(home, 'charca', 7, 12));
+  assert.ok(build(home, 'charca', 7, 5));
   assert.ok(humidityTarget(home) > humidity(home), 'el agua sube el objetivo, no la humedad de golpe');
   const rng = mulberry32(3);
   for (let k = 0; k < 60 * 120; k++) tickHome(home, 1 / 60, rng);
@@ -134,7 +135,7 @@ test('composición: la humedad se mueve despacio hacia lo que hay dentro; la tap
   assert.ok(homeEffects(home).prodMul > dry.prodMul);
   assert.ok(gradient(home).ok, 'la charca moja su lado: hay rincón húmedo y rincón seco');
   home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
-  build(home, 'charca', 9, 12); home.weather = 'lluvia'; setLid(home, 0);
+  build(home, 'charca', 9, 5); home.weather = 'lluvia'; setLid(home, 0);
   for (let k = 0; k < 60 * 400; k++) tickHome(home, 1 / 60, rng);
   assert.ok(home.mold.length >= 3 && climate(home) === 'moho', 'cerrado y empapado brota moho');
   const calmMoho = calm(home);
@@ -252,7 +253,7 @@ test('cuidados del terrario: rociar sube la humedad poco a poco y se seca; no ca
   assert.equal(home.leaves.length, 0, 'sin hojas al azar');
   home.molts = [{ id: 'm', x: 2, y: 2 }]; const cal = home.resources.cal;
   for (let k = 0; k < 60 * 35; k++) tickHome(home, 1 / 60, rng);
-  assert.ok(!home.molts.some((m) => m.id === 'm')); assert.ok(home.resources.cal >= cal + 1, 'la muda se la comen: cal');
+  assert.ok(!home.molts.some((m) => m.id === 'm')); assert.ok(home.resources.cal >= cal, 'la muda se la comen');
 });
 
 test('culto (Cult of the Lamb): mimo diario, nivel de lealtad, reunión, peticiones y dormir de noche', async () => {
@@ -289,18 +290,33 @@ test('construir y trabajar (CotL): la obra la levantan los isópodos y no funcio
   home.resources = { musgo: 20, hojarasca: 20, esporas: 20, cal: 20, ambar: 20 };
   home.isopods.forEach((i) => { i.hunger = 1; });
   const b0 = H.beds(home);
-  assert.ok(H.build(home, 'corcho', 7, 12, 0, true));
+  assert.ok(H.build(home, 'corcho', 7, 5, 0, true));
   const p = Object.values(home.grid.pieces).find((q) => q.type === 'corcho');
   assert.ok(p.site && H.beds(home) === b0, 'en obra no da camas');
   let t = 0; while (p.site && t < 120) { H.tickHome(home, 1 / 30, rng, DAY_PHASES.dia); t += 1 / 30; }
   assert.ok(!p.site && H.beds(home) > b0, 'terminada da camas');
   assert.ok(t < 12 / 0.35, 'con ayudantes se termina antes que sola');
   // trabajar
-  const a = H.build(home, 'sepia', 12, 12); const sep = Object.values(home.grid.pieces).find((q) => q.type === 'sepia');
+  const a = H.build(home, 'sepia', 13, 6); const sep = Object.values(home.grid.pieces).find((q) => q.type === 'sepia');
   const iso = home.isopods[0]; iso.x = sep.x + 0.5; iso.y = sep.y + 1.4;
   assert.ok(H.orderIso(home, iso, 'trabajar') && iso.job === sep.id);
   assert.equal(H.workers(home, sep), 1);
   // mazmorra
   const run = { floor: { at: 0, rooms: [{ id: 0, type: 'tienda', links: [], offers: [{ get: 'gota', cost: { musgo: 2 } }] }] }, loot: { musgo: 3 }, items: { gota: 0 }, party: [{ hp: 5, maxHp: 10 }] };
   assert.ok(R.buy(run, 0) && run.items.gota === 1 && run.loot.musgo === 1 && !R.buy(run, 0), 'la tienda cobra en botín y vende una vez');
+});
+
+test('golpe fuerte: mantener y soltar pega en círculo a todos los cercanos, aturde más y tiene espera', async () => {
+  const C = await import('../src/game/combat.js');
+  const c = C.createCombat({ party: [{ id: 1, cls: 'rodador', name: 'a', hp: 60, maxHp: 60 }], enemies: ['larva', 'larva'], seed: 3 });
+  const me = C.mainActor(c), [e1, e2] = C.enemies(c);
+  Object.assign(e1, { x: me.x + 1.2, y: me.y }); Object.assign(e2, { x: me.x - 1.2, y: me.y });
+  const h1 = e1.hp, h2 = e2.hp;
+  C.step(c, 1 / 60, { heavy: true });
+  for (let k = 0; k < 30; k++) C.step(c, 1 / 60, {});
+  assert.ok(e1.hp < h1 && e2.hp < h2, 'pega a los dos lados');
+  assert.ok(c.events.some((e) => e.type === 'heavy'));
+  const n = c.events.filter((e) => e.type === 'heavyStart').length;
+  C.step(c, 1 / 60, { heavy: true });
+  assert.equal(c.events.filter((e) => e.type === 'heavyStart').length, n, 'con espera entre golpes fuertes');
 });

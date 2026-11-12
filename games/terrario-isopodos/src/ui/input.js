@@ -27,7 +27,7 @@ export function read() {
   if (keys.has('KeyW') || keys.has('ArrowUp')) y -= 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) y += 1;
   const out = { move: { x, y }, turn: (keys.has('KeyE') ? 1 : 0) - (keys.has('KeyQ') ? 1 : 0) };
-  out.held = { roll: holding.has('roll') || keys.has('Space') || keys.has('KeyK') };
+  out.held = { roll: holding.has('roll') || keys.has('Space') || keys.has('KeyK'), attack: holding.has('attack') || keys.has('KeyJ') };
   for (const p of pressed) out[p] = true;
   pressed.clear();
   return out;

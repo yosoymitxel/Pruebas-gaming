@@ -1068,3 +1068,6 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* Obra: anillo de progreso alrededor del martillo. */
 .marker.m-site { --mk: #1d6e68; border-radius: 50%; background: conic-gradient(#1d6e68 calc(var(--p, 0) * 360deg), #f6efdd 0); }
 .marker.m-site img { background: #f6efdd; border-radius: 50%; padding: 2px; animation: none; }
+
+/* Golpe fuerte cargando: el botón se llena en anillo y vibra al estar listo. */
+.pad.attack.charging { background: conic-gradient(var(--amber) calc(var(--charge) * 360deg), #1d1a16 0) !important; }

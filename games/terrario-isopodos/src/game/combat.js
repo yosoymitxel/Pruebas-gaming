@@ -20,6 +20,8 @@ const DASH = { time: 0.26, invuln: 0.2, speed: 12.5, cooldown: 0.4 };
 const BALL = { time: 0.42, invuln: 0.42, speed: 7.5, cooldown: 0.55 };
 const COMBO = [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }];
 const REACH = 1.25;
+// Ataque fuerte (como el de Cult of the Lamb): mantener y soltar. Golpe en círculo que empuja y aturde, con espera.
+export const HEAVY = { windup: 0.3, recover: 0.42, mul: 2.4, radius: 1.9, stagger: 2.2, cooldown: 2.2, charge: 0.45 };
 
 export function createCombat({ party, enemies, mods = {}, enemyHpMul = 1, items = {}, seed = 1, arena = 'claro' }) {
   const c = { t: 0, rng: mulberry32(seed), actors: [], events: [], items: { ...items }, mods, result: null, nextId: 1, main: 0, arena: layoutArena(arena, seed), poolT: 0 };
@@ -85,7 +87,7 @@ export function switchMain(c, id) {
 }
 
 function tickAlly(c, a, dt, input) {
-  for (const k of ['invuln', 'rollCd', 'taunt', 'comboWindow']) a[k] = Math.max(0, a[k] - dt);
+  for (const k of ['invuln', 'rollCd', 'taunt', 'comboWindow', 'heavyCd']) a[k] = Math.max(0, a[k] - dt);
   if (a.shieldT > 0 && (a.shieldT -= dt) <= 0) a.shield = 0;
   a.atb = Math.min(ATB_MAX, a.atb + dt * (input ? 0.02 : 0.05) * atbMul(c));
   if (a.held > 0) { a.held -= dt; a.vx = a.vy = 0; return; }
@@ -97,6 +99,7 @@ function tickAlly(c, a, dt, input) {
   a.vy = len ? (my / Math.max(1, len)) * a.speed : 0;
   if (len > 0.1) a.facing = Math.atan2(my, mx);
   if (intent.roll && a.rollCd <= 0) startRoll(a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
+  else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown }); emit(c, 'heavyStart', { id: a.id }); }
   else if (intent.attack) startSwing(c, a);
 }
 
@@ -116,6 +119,12 @@ function startSwing(c, a) {
 
 function tickSwing(c, a, dt) {
   if ((a.timer -= dt) > 0) return;
+  if (a.phase === 'windup' && a.heavy) {
+    for (const e of enemies(c)) if (dist(a, e) <= HEAVY.radius + e.r) { hurtEnemy(c, e, a.damage * HEAVY.mul, HEAVY.stagger, a); a.atb = Math.min(ATB_MAX, a.atb + 0.3 * atbMul(c)); }
+    emit(c, 'heavy', { id: a.id, x: a.x, y: a.y });
+    Object.assign(a, { phase: 'recover', timer: HEAVY.recover });
+    return;
+  }
   if (a.phase === 'windup') {
     const hit = COMBO[a.combo];
     for (const e of enemies(c)) {
@@ -126,7 +135,7 @@ function tickSwing(c, a, dt) {
     }
     Object.assign(a, { phase: 'recover', timer: hit.recover });
   } else {
-    Object.assign(a, { state: 'idle', comboWindow: 0.45 });
+    Object.assign(a, { state: 'idle', comboWindow: a.heavy ? 0 : 0.45, heavy: false });
   }
 }
 

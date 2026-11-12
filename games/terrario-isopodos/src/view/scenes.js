@@ -443,7 +443,7 @@ export class CombatView {
     for (const d of this.features.userData.pools ?? []) d.material.opacity = 0.45 + Math.sin(time * 3) * 0.12; // la charca late
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
     const main = this.c.actors.find((a) => a.id === this.c.main);
-    if (main) { this.marker.position.x = main.x; this.marker.position.z = main.y; this.marker.rotation.y = -main.facing; }
+    if (main) { this.marker.position.x = main.x; this.marker.position.z = main.y; this.marker.rotation.y = -main.facing; this.marker.scale.setScalar(1 + (this.charge ?? 0) * 0.9 + (this.charge >= 1 ? Math.sin(time * 30) * 0.05 : 0)); }
     if (main) this.stage.follow(main.x * 0.55, main.y * 0.55 + 0.6, dt, 3);
     this.vfx.update(dt);
     this.weather.update(dt);
