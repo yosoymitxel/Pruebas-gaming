@@ -1124,3 +1124,30 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes tip-in { from { opacity: 0; transform: translateY(-24px) rotate(-2deg); } to { opacity: 1; transform: none; } }
 @keyframes tip-out { to { opacity: 0; transform: translateY(-12px); } }
 @media (prefers-reduced-motion: reduce) { .tip-toast { animation: none; } }
+
+/* Nexos: cortinillas entre secciones. Isla: iris que se abre; nido: descenso a oscuras; combate: dos franjas que
+   golpean; sala: la tinta barre como una puerta. Solo transform, opacity y clip-path. */
+.nexo { position: fixed; inset: 0; z-index: var(--z-modal); pointer-events: none; display: grid; place-items: center; background: var(--ink); color: var(--paper); }
+.nexo span { display: grid; gap: 4px; text-align: center; animation: nexo-title 1.2s var(--ease-out) forwards; }
+.nexo b { font-family: var(--font-display, inherit); font-size: clamp(30px, 9vw, 56px); line-height: 1; }
+.nexo small { font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; }
+.nexo-isla { animation: nexo-iris 1.2s cubic-bezier(.7,0,.2,1) forwards; }
+.nexo-nido { animation: nexo-dive 1.25s ease-in forwards; }
+.nexo-nido span { animation-name: nexo-sink; }
+.nexo-combate { background: none; }
+.nexo-combate::before, .nexo-combate::after { content: ''; position: absolute; left: 0; right: 0; height: 50%; background: var(--ink); animation: nexo-slam 1s cubic-bezier(.6,0,.2,1) forwards; }
+.nexo-combate::before { top: 0; border-bottom: 3px solid var(--rust); --dy: -100%; }
+.nexo-combate::after { bottom: 0; border-top: 3px solid var(--rust); --dy: 100%; }
+.nexo-combate span { position: relative; z-index: 1; animation: nexo-punch 1s var(--ease-out) forwards; }
+.nexo-combate b { color: var(--rust); }
+.nexo-sala { animation: nexo-door 0.6s cubic-bezier(.6,0,.3,1) forwards; }
+@keyframes nexo-iris { 0%, 30% { clip-path: circle(75% at 50% 50%); } 100% { clip-path: circle(0% at 50% 50%); } }
+@keyframes nexo-dive { 0%, 45% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes nexo-slam { 0% { translate: 0 var(--dy); } 18%, 62% { translate: 0 0; } 100% { translate: 0 var(--dy); } }
+@keyframes nexo-door { 0% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 0 0 100%); } }
+@keyframes nexo-title { 0% { opacity: 0; scale: 0.9; } 20%, 60% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 1.05; } }
+@keyframes nexo-sink { 0% { opacity: 0; translate: 0 -20px; } 25%, 60% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 30px; } }
+@keyframes nexo-punch { 0%, 12% { opacity: 0; scale: 1.8; } 24% { opacity: 1; scale: 0.95; } 32%, 55% { scale: 1; opacity: 1; } 75%, 100% { opacity: 0; scale: 1; } }
+.drawer.center .doors .door { animation: door-in 360ms var(--ease-out) both; animation-delay: calc(var(--k) * 80ms); }
+@keyframes door-in { from { opacity: 0; translate: 0 10px; } }
+@media (prefers-reduced-motion: reduce) { .nexo { display: none; } }

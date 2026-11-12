@@ -130,7 +130,7 @@ await s(async () => {
 });
 await wait(400);
 await shot('11-fin-combate');
-await click('Continuar', 'fin de combate');
+await click(/^(Continuar|Ver el mapa)$/, 'fin de combate');
 await wait(500);
 check(['dungeon', 'result'].includes(await s(() => window.__terrario.mode)), 'tras el combate vuelve al mapa o al resultado');
 const overflow = await s(() => document.documentElement.scrollWidth > innerWidth);

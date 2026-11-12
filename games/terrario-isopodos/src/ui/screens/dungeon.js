@@ -57,9 +57,9 @@ function Preview({ node, biome, onEnter, onClose }) {
 
 // Piso del nivel (como el minimapa de salas de Cult of the Lamb): casillas unidas por pasillos, la actual con
 // estandarte; se va por las puertas de la sala actual (tocar una sala vecina o su botón).
-const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
-const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente'), arma: () => t('room.weapon', 'Arma'), maldito: () => t('room.cursed', 'Altar') };
-const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
+export const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
+export const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente'), arma: () => t('room.weapon', 'Arma'), maldito: () => t('room.cursed', 'Altar') };
+export const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
 
 function FloorMap({ s }) {
   const run = s.run, f = run.floor, cur = f.rooms[f.at];
