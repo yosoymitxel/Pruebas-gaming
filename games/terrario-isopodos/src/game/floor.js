@@ -6,8 +6,8 @@ import { mulberry32 } from '../core/rng.js';
 
 // Como en las cruzadas de Cult of the Lamb: además de peleas y botín hay seguidores que rescatar (pelea y se
 // une a la colonia), tiendas donde cambiar botín y fuentes que curan.
-export const ROOM_TYPES = ['pelea', 'botin', 'carta', 'reliquia', 'rescate', 'tienda', 'fuente'];
-const SIDE_ODDS = [['pelea', 0.38], ['botin', 0.15], ['carta', 0.1], ['reliquia', 0.08], ['rescate', 0.12], ['tienda', 0.09], ['fuente', 0.08]];
+export const ROOM_TYPES = ['pelea', 'botin', 'carta', 'reliquia', 'rescate', 'tienda', 'fuente', 'arma', 'maldito'];
+const SIDE_ODDS = [['pelea', 0.34], ['botin', 0.13], ['carta', 0.09], ['reliquia', 0.07], ['rescate', 0.11], ['tienda', 0.08], ['fuente', 0.07], ['arma', 0.06], ['maldito', 0.05]];
 const MAIN = { combate: 2, elite: 3, jefe: 2 };
 
 export function genFloor(nodeType, seed) {

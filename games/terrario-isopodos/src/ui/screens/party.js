@@ -9,7 +9,8 @@ import { adults } from '../../game/home.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { partyBonus, isoStats } from '../../game/home.js';
 import { portraitURL } from '../../view/sprites.js';
-import { Bar } from './common.js';
+import { Bar, Cost } from './common.js';
+import { ROBES } from '../../data/robes.js';
 import { Icon } from '../icons.js';
 
 const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'leaf' };
@@ -50,5 +51,17 @@ export function PartyPicker({ s, need, party, setParty }) {
     <div class="roster-head"><span>${t('party.colony', 'Colonia')} (${isopods.length})</span>
       <button class="btn ghost small" onClick=${() => setParty(recommended(isopods, need))}>${t('party.auto', 'Auto')}</button></div>
     <div class="roster">${isopods.map((iso) => html`<${Card} s=${s} iso=${iso} slot=${party.indexOf(iso.id)} onPick=${() => pick(iso.id)} />`)}</div>
+  </div>`;
+}
+
+// Manto para el nido (los vellones de Cult of the Lamb): fila de iconos; debajo, una línea con el elegido.
+// Tocar uno bloqueado lo compra (si alcanza).
+export function RobePicker({ s }) {
+  const g = s.game, own = new Set(['comun', ...(g.robes ?? [])]), cur = own.has(g.robe) ? g.robe : 'comun', r = ROBES[cur];
+  return html`<div class="robes">
+    <div class="robe-row" role="radiogroup" aria-label=${t('robe.title', 'Manto')}>${Object.entries(ROBES).map(([id, x]) => html`<button role="radio" aria-checked=${cur === id}
+      class=${`robe${cur === id ? ' on' : ''}${own.has(id) ? '' : ' locked'}`} aria-label=${x.name} title=${`${x.name}: ${x.desc}`} onClick=${() => (own.has(id) ? s.setRobe(id) : s.buyRobe(id))}>
+      <${Icon} name=${x.icon} size="20" />${!own.has(id) && html`<i class="lock" aria-hidden="true"></i>`}</button>`)}</div>
+    <p class="robe-line"><b>${r.name}</b> · ${r.desc}</p>
   </div>`;
 }

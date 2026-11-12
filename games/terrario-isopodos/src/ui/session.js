@@ -6,12 +6,13 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
-import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT } from '../game/run.js';
+import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
+import { ROBES } from '../data/robes.js';
 import { footprint, move } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
@@ -343,8 +344,17 @@ export class Session {
   }
 
   // ——— Expedición ———
+  setRobe(id) { this.game.robe = id; this.sfx('click'); this.persist(); this.emit(); }
+  buyRobe(id) {
+    const r = ROBES[id], home = this.game.home;
+    if (!r?.cost || !pay(home, r.cost)) { this.sfx('hurt', 1.6); return false; }
+    (this.game.robes ??= []).push(id); this.game.robe = id; this.sfx('win'); this.persist(); this.emit(); return true;
+  }
+  pickWeapon(k) { if (pickWeapon(this.run, k)) { this.sfx('build', 0.8); this.persist(); this.emit(); } }
+  swapWeapon() { if (swapWeapon(this.run)) { this.sfx('build', 0.8); this.emit(); } }
+  acceptPact() { if (acceptPact(this.run)) { this.sfx('boss', 1.4); this.shake(0.3); this.emit(); } }
   startRun(island, partyIds) {
-    this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0);
+    this.run = newRun(this.game.home, island, partyIds, this.game.heat ?? 0, { robe: this.game.robe, upgrades: this.game.upgrades ?? [] });
     visit(this.game, island.id);
     this.persist();
     this.setMode('dungeon', null, 0.75, this.run.island.weather);

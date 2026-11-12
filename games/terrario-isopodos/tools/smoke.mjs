@@ -101,7 +101,11 @@ await page.locator('.isle-nido:not(.done) button').first().dispatchEvent('click'
 await page.getByRole('button', { name: 'Auto' }).click();
 await shot('07b-equipo');
 await page.getByRole('button', { name: 'Partir' }).click();
-await wait(600);
+await wait(900);
+await shot('08a-arma');
+check(await page.locator('.weapon-card').count() >= 2, 'al entrar al nido se elige arma');
+await page.locator('.weapon-card').first().click();
+await wait(400);
 await shot('08-nido');
 await page.locator('.node.reach').first().click({ force: true });
 await wait(300);

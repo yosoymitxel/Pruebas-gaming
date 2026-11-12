@@ -5,6 +5,8 @@ import { ARENAS, BOSS_ARENAS } from '../data/arenas.js';
 import { CLASSES } from '../data/isopods.js';
 import { CARDS } from '../data/cards.js';
 import { BIOMES } from '../data/world.js';
+import { ROBES } from '../data/robes.js';
+import { rollWeapon } from '../data/weapons.js';
 import { genDungeon, nextNodes, enemiesFor, enemyHpMul } from './dungeon.js';
 import { partyBonus, recruit, isoStats } from './home.js';
 import { mulberry32, pickFrom } from '../core/rng.js';
@@ -13,22 +15,54 @@ import { speciesOf } from '../data/species.js';
 
 // `heat`: escalón de dificultad tras ganar una guardiana (como la Ascensión de Slay the Spire o el Calor de Hades).
 export const HEAT = { hp: 0.12, dmg: 0.1, max: 10 };
-export function newRun(home, island, partyIds, heat = 0) {
-  const rng = mulberry32(island.seed + 7);
+// `opts`: { robe (ROBES), upgrades (UPGRADES compradas) }. Se empieza eligiendo arma (estado 'weapon').
+export function newRun(home, island, partyIds, heat = 0, opts = {}) {
+  const rng = mulberry32(island.seed + 7), robe = ROBES[opts.robe] ? opts.robe : 'comun', ups = opts.upgrades ?? [], hpRobe = ROBES[robe].mods.hpMul ?? 1;
   const party = partyIds.map((id) => {
     const iso = home.isopods.find((x) => x.id === id);
-    const st = isoStats(iso), maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul * st.hpMul);
+    const st = isoStats(iso), maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul * st.hpMul * hpRobe * (ups.includes('quitina') ? 1.1 : 1));
     return { id, name: iso.name, cls: iso.cls, shell: iso.shell, hp: maxHp, maxHp, damageAdd: st.damageAdd, speedMul: st.speedMul, abilities: st.abilities };
   });
-  return {
-    island, dungeon: genDungeon(island.seed), party, items: { gota: 2, hongo: 1 }, cards: [],
-    loot: {}, rescued: 0, state: 'map', offer: null, node: null, seed: Math.floor(rng() * 1e9),
-    atbMul: partyBonus(home, home.isopods.find((x) => x.id === partyIds[0])).atbMul, heat, depth: 0,
+  const run = {
+    island, dungeon: genDungeon(island.seed), party, items: { gota: 2 + (ups.includes('rocio') ? 1 : 0), hongo: 1 }, cards: [],
+    loot: {}, rescued: 0, state: 'weapon', offer: null, node: null, seed: Math.floor(rng() * 1e9),
+    atbMul: partyBonus(home, home.isopods.find((x) => x.id === partyIds[0])).atbMul, heat, depth: 0, robe, weapon: null,
   };
+  // Al entrar se elige arma entre dos (tres con la mejora del armero), como el arma de la entrada en CotL.
+  const w1 = rollWeapon(rng); run.weaponOffer = [w1, rollWeapon(rng, [w1.type])];
+  if (ups.includes('armero')) run.weaponOffer.push(rollWeapon(rng, run.weaponOffer.map((w) => w.type)));
+  for (let k = 0; k < (ROBES[robe].startCards ?? 0); k++) { const pool = Object.keys(CARDS).filter((id) => !run.cards.includes(id)); if (pool.length) run.cards.push(pool[Math.floor(rng() * pool.length)]); }
+  return run;
+}
+export function pickWeapon(run, k) {
+  const w = run.state === 'weapon' ? run.weaponOffer?.[k] : null;
+  if (!w) return false;
+  run.weapon = w; run.weaponOffer = null; run.state = 'map';
+  return true;
+}
+// Sala de arma: se puede cambiar la del equipo por la que hay en el pedestal.
+// Altar maldito: carta rara a cambio de un 25 % de la vida actual de cada uno (sin bajar de 1).
+export function acceptPact(run) {
+  const room = run.floor?.rooms[run.floor.at];
+  if (room?.type !== 'maldito' || room.taken) return false;
+  const pool = Object.keys(CARDS).filter((id) => !run.cards.includes(id) && CARDS[id].rarity === 'rara');
+  room.taken = true;
+  for (const p of run.party) p.hp = Math.max(1, Math.round(p.hp * 0.75));
+  if (pool.length) run.cards.push(pool[Math.floor(Math.random() * pool.length)]);
+  const m = CARDS[run.cards[run.cards.length - 1]]?.mods ?? {};
+  if (m.gota) run.items.gota += m.gota;
+  return true;
+}
+export function swapWeapon(run) {
+  const room = run.floor?.rooms[run.floor.at];
+  if (!room?.weapon || room.taken) return false;
+  [run.weapon, room.weapon] = [room.weapon, run.weapon]; room.taken = true;
+  return true;
 }
 
 export function runMods(run) {
-  const mods = { atbMul: run.atbMul };
+  const mods = { atbMul: run.atbMul, weapon: run.weapon };
+  for (const [k, v] of Object.entries(ROBES[run.robe ?? 'comun'].mods)) { if (k === 'hpMul') continue; if (typeof v === 'boolean') mods[k] = v; else if (k.endsWith('Mul')) mods[k] = (mods[k] ?? 1) * v; else mods[k] = (mods[k] ?? 0) + v; }
   for (const id of run.cards) {
     for (const [k, v] of Object.entries(CARDS[id].mods)) {
       if (k.endsWith('Mul')) mods[k] = (mods[k] ?? 1) * v; else mods[k] = (mods[k] ?? 0) + v;
@@ -98,6 +132,11 @@ export function enterRoom(run, roomId) {
     const res = BIOMES[run.island.biome].loot;
     room.offers = SHOP.map((o, k) => ({ ...o, cost: { [res[k % res.length]]: o.price } }));
     run.last = { type: 'tienda', room: room.id };
+  } else if (room.type === 'maldito') { // altar maldito: un pacto opcional (carta rara a cambio de vida)
+    run.last = { type: 'maldito', room: room.id };
+  } else if (room.type === 'arma') { // pedestal con un arma: cambiarla es opcional
+    room.weapon ??= rollWeapon(rng, [run.weapon?.type]);
+    run.last = { type: 'arma', room: room.id };
   } else if (room.type === 'fuente') { // agua quieta: cura a todo el grupo una vez
     for (const p of run.party) p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp * 0.35));
     run.last = { type: 'fuente' };
@@ -123,6 +162,7 @@ export function buy(run, k) {
 }
 
 function offerCards(run, rng) {
+  if (ROBES[run.robe ?? 'comun'].noCards) return;
   const pool = Object.keys(CARDS).filter((id) => !run.cards.includes(id));
   run.offer = Array.from({ length: Math.min(3, pool.length) }, () => pool.splice(Math.floor(rng() * pool.length), 1)[0]);
   run.state = run.offer.length ? 'card' : run.state;

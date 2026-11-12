@@ -4,7 +4,7 @@ import { t } from '../../i18n/index.js';
 import { ISLAND_KINDS, BIOMES, WEATHERS, VESSELS } from '../../data/world.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
 import { CamControls, PauseButton } from './common.js';
-import { PartyPicker } from './party.js';
+import { PartyPicker, RobePicker } from './party.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
 
@@ -55,6 +55,7 @@ export function Islands({ s }) {
         </div>
       </div>
       ${isl.kind !== 'hogar' && html`<${PartyPicker} s=${s} need=${need} party=${party} setParty=${setParty} />`}
+      ${isl.kind === 'nido' && html`<${RobePicker} s=${s} />`}
       <div class="actions">
         <button class="btn ghost" onClick=${() => setSel(null)}>${t('ui.back', 'Volver')}</button>
         <button class="btn primary" disabled=${isl.kind !== 'hogar' && party.length !== need} onClick=${go}>${isl.kind === 'hogar' ? t('islands.home', 'Volver al terrario') : t('islands.go', 'Partir')}</button>

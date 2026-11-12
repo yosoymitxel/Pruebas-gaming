@@ -1073,3 +1073,26 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pad.attack.charging { background: conic-gradient(var(--amber) calc(var(--charge) * 360deg), #1d1a16 0) !important; }
 
 .run-sum { margin: 4px 0; font-size: 15px; } .heat-up { color: var(--rust); }
+
+/* Elegir arma: cartas que caen volteándose en cadena; la variante tiñe el borde. */
+.weapon-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.weapon-card { width: min(42vw, 190px); display: grid; justify-items: center; gap: 6px; padding: 16px 10px 12px; background: var(--paper); color: var(--ink);
+  border: 3px solid var(--ink); clip-path: polygon(4% 0, 100% 3%, 96% 100%, 0 97%); animation: weapon-in 520ms cubic-bezier(.2,1.4,.4,1) both; animation-delay: calc(var(--k) * 140ms); }
+.weapon-card:hover, .weapon-card:focus-visible { translate: 0 -6px; rotate: -1.5deg; }
+.weapon-card small { font-size: 12px; line-height: 1.25; text-align: center; opacity: 0.85; }
+.weapon-card .variant { color: #1d6e68; font-weight: 700; }
+.weapon-card.v-divina { border-color: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 40%, transparent); }
+.weapon-card.v-venenosa { border-color: #5f8a3a; } .weapon-card.v-vampirica { border-color: #8a2a3a; } .weapon-card.v-despiadada { border-color: #1d6e68; }
+.weapon-card .w-combo { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+.weapon-card .w-combo i { width: 7px; height: calc(var(--m) * 5px + 3px); background: var(--ink); }
+@keyframes weapon-in { from { opacity: 0; transform: translateY(-30px) rotateY(90deg); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .weapon-card { animation: none; } }
+.weapon-chip { font-weight: 700; }
+.pact { border-left: 3px solid #8a2a3a; }
+/* Mantos en la preparación de la salida: una fila de iconos y una línea. */
+.robes { margin: 6px 0; } .robe-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.robe { position: relative; width: 40px; height: 40px; display: grid; place-items: center; background: color-mix(in srgb, var(--paper) 85%, transparent); border: 2px solid transparent; }
+.robe.on { border-color: #1d6e68; background: color-mix(in srgb, #1d6e68 18%, var(--paper)); }
+.robe.locked { opacity: 0.55; } .robe .lock { position: absolute; right: 2px; bottom: 2px; width: 8px; height: 8px; background: var(--ink); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.robe-line { margin: 4px 0 0; font-size: 12px; line-height: 1.25; }
+.room-arma rect { fill: #c9b8a0; } .room-maldito rect { fill: #6a3a4a; }

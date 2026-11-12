@@ -77,12 +77,14 @@ test('mapa interior: capas conectadas, sin cruces, jefe al final', () => {
   }
 });
 
-test('expedición completa con el piloto: se gana o se pierde y el botín vuelve', () => {
+test('expedición completa con el piloto: se gana o se pierde y el botín vuelve', async () => {
+  const R0 = await import('../src/game/run.js');
   const g = newGame(11);
   const nest = g.islands.find((i) => i.kind === 'nido');
   const run = newRun(g.home, nest, g.home.isopods.slice(0, 3).map((i) => i.id));
   const rng = mulberry32(9);
   while (run.state !== 'won' && run.state !== 'lost') {
+    if (run.state === 'weapon') { R0.pickWeapon(run, 0); continue; }
     if (run.state === 'card') { pickCard(run, run.offer[0]); continue; }
     if (run.state === 'combat') {
       const c = createCombat(combatSetup(run));
@@ -326,12 +328,12 @@ test('roguelite: la misma isla da los mismos pisos aunque se juegue distinto; la
   const { nextNodes } = await import('../src/game/dungeon.js');
   const g = newGame(9), isl = g.islands.find((i) => i.kind === 'nido'), ids = g.home.isopods.slice(0, 3).map((i) => i.id);
   const hash = (heat, firstPick) => {
-    const run = R.newRun(g.home, isl, ids, heat), opts = nextNodes(run.dungeon);
+    const run = R.newRun(g.home, isl, ids, heat); R.pickWeapon(run, firstPick % 2); const opts = nextNodes(run.dungeon);
     R.enterNode(run, opts[firstPick % opts.length].id);
     return JSON.stringify({ map: run.dungeon.nodes.map((n) => [n.type, n.layer]), floor: run.floor?.rooms.map((r) => [r.type, r.x, r.y]) ?? null, foes: run.encounter?.enemies });
   };
   assert.equal(hash(0, 0), hash(0, 0), 'misma semilla, mismo piso');
-  const a = R.newRun(g.home, isl, ids, 0), b = R.newRun(g.home, isl, ids, 3);
+  const a = R.newRun(g.home, isl, ids, 0), b = R.newRun(g.home, isl, ids, 3); R.pickWeapon(a, 0); R.pickWeapon(b, 0);
   assert.equal(JSON.stringify(a.dungeon), JSON.stringify(b.dungeon), 'la plaga no cambia el mapa');
   R.enterNode(a, nextNodes(a.dungeon)[0].id); R.enterNode(b, nextNodes(b.dungeon)[0].id);
   assert.ok(R.combatSetup(b).enemyHpMul > R.combatSetup(a).enemyHpMul && R.combatSetup(b).heatDmg > 1, 'con plaga las aberraciones aguantan y pegan más');
