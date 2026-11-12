@@ -89,7 +89,9 @@ export class ActorLayer {
     if (a.face != null) { const goal = Math.atan2(Math.cos(a.face), Math.sin(a.face)); let d = goal - it.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); it.heading += d * Math.min(1, dt * 14); }
     else if (v > 0.15 && !a.spin) { const goal = Math.atan2(dx, dz); let d = goal - it.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); it.heading += d * Math.min(1, dt * 12); }
     // tamaño: el largo del bicho = el ancho que tendría su recorte
-    const aspect = spriteTexture(a.sprite).userData.aspect ?? 1.6, len = a.width ?? a.height * aspect * 0.8, k = len / it.base;
+    const aspect = spriteTexture(a.sprite).userData.aspect ?? 1.6, len = a.width ?? a.height * aspect * 0.8, k0 = len / it.base;
+    // Las aberraciones largas y planas (moho, ciempiés) crecen hasta tener algo de altura (máx. ×1,6).
+    const k = a.tint ? Math.min(k0 * 1.6, Math.max(k0, (a.height * 0.6) / it.tall)) : k0;
     const sq = a.squash ?? 1;
     it.body.scale.set(k / Math.sqrt(sq), k * sq, k / Math.sqrt(sq));
     it.body.rotation.set(0, it.heading, 0);
@@ -104,7 +106,7 @@ export class ActorLayer {
     for (const n of it.ants) n.b.rotation.x = n.rest.x + Math.sin(now * 3 + n.k) * 0.12;
     if (walk < 0.2) it.body.scale.y *= 1 + Math.sin(now * 2.2 + it.base) * 0.02; // respira quieto
     const fl = a.flash ?? 0;
-    for (const m of it.mats) if (m.emissive) { m.emissive.setScalar(fl); m.emissiveIntensity = 1; }
+    for (const m of it.mats) if (m.emissive) { if (a.tint) m.emissive.setRGB(Math.max(fl, a.tint[0]), Math.max(fl, a.tint[1]), Math.max(fl, a.tint[2])); else m.emissive.setScalar(fl); m.emissiveIntensity = 1; }
     const sk = a.shadowK ?? 1;
     it.shadow.scale.set(len * 0.75 * sk, 1, len * 0.45 * sk);
     it.shadow.visible = sk > 0 && (a.lift ?? 0) < 1.5;
