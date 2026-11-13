@@ -243,7 +243,8 @@ export const layer = (home, id) => home.layers?.[id] ?? START_LAYERS[id];
 // Humedad 0–1 a partir de lo que hay dentro: piezas húmedas, clima de fuera y grava (que deja subir el techo).
 // De dónde sale: [{ source: 'base' | 'weather' | <pieza>, amount }], para explicarlo en la interfaz.
 export function humidityParts(home) {
-  const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: HUMIDITY.weather[home.weather] ?? 0 }];
+  const w = HUMIDITY.weather[home.weather] ?? 0; // la lluvia solo entra si la tapa la deja pasar
+  const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: w > 0 ? w * HUMIDITY.rainByLid[home.lid ?? 1] : w }];
   if (home.mist > 0) parts.push({ source: 'rocio', amount: HUMIDITY.mist * Math.min(1, home.mist / ZEN.mistTime) });
   // Repetir una pieza de agua moja cada vez menos (la 2.ª la mitad, la 3.ª un tercio…): tres charcas no inundan.
   const seen = {};
@@ -262,8 +263,9 @@ export const humidity = (home) => home.moist ?? humidityTarget(home);
 
 // Humedad en una celda: la general más lo que mojan (o secan) las piezas cercanas. Así se arma el gradiente.
 export function localHumidity(home, x, y) {
+  const g = home.grid, i = Math.floor(x), j = Math.floor(y);
+  if (home.soil && i >= 0 && j >= 0 && i < g.w && j < g.h) return home.soil[j * g.w + i]; // el suelo real de esa celda
   let h = humidity(home);
-  if (home.wetSide) { const s = (x / home.grid.w) * 2 - 1; h += HUMIDITY.side * (home.wetSide === 'der' ? s : -s); }
   for (const p of livePieces(home)) {
     const L = HUMIDITY.local[p.type];
     if (!L) continue;
@@ -336,7 +338,8 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   if (home.mist > 0) home.mist = Math.max(0, home.mist - dt);
   if (home.mistCd > 0) home.mistCd = Math.max(0, home.mistCd - dt);
   if (home.harvestT > 0) home.harvestT -= dt;
-  home.moist = humidity(home) + Math.max(-HUMIDITY.drift * dt, Math.min(HUMIDITY.drift * dt, humidityTarget(home) - humidity(home)));
+  if (home.sprayCd > 0) home.sprayCd = Math.max(0, home.sprayCd - dt);
+  tickSoil(home, dt);
   growMold(home, dt, rng);
   tickCult(home, dt, rng, phase);
   for (const iso of home.isopods) iso.traits ??= rollTraits(mulberry32(iso.id * 977 + 13)); // partidas viejas
@@ -397,6 +400,45 @@ function breed(home, dt, rng) {
 
 // Como el jardín zen de KureiChaosChess: gestos de cuidado. Rociar sube la humedad un rato (con espera) y
 // de la rama caen hojas que se recogen a mano como hojarasca.
+// ——— Suelo por celdas ———
+// Humedad a la que tiende una celda: la del terrario (clima, tapa, piezas) más lo que mojan o secan las piezas cercanas.
+function cellTarget(home, x, y, base) {
+  let h = base;
+  for (const p of livePieces(home)) {
+    const L = HUMIDITY.local[p.type]; if (!L) continue;
+    const f = BUILDINGS[p.type].size, d = Math.hypot(x - (p.x + f.w / 2), y - (p.y + f.h / 2));
+    if (d < L[1]) h += L[0] * (1 - d / L[1]);
+  }
+  return Math.max(0, Math.min(1, h));
+}
+function tickSoil(home, dt) {
+  const g = home.grid, n = g.w * g.h, base = humidityTarget(home);
+  if (!home.soil || home.soil.length !== n) { home.soil = Array.from({ length: n }, () => home.moist ?? base); home.moss = new Array(n).fill(0); }
+  home.moss ??= new Array(n).fill(0);
+  const step = HUMIDITY.drift * dt, M = HUMIDITY.moss;
+  let sum = 0, cnt = 0;
+  for (let k = 0; k < n; k++) {
+    if (!g.open[k]) continue;
+    const t = cellTarget(home, (k % g.w) + 0.5, Math.floor(k / g.w) + 0.5, base), v = home.soil[k];
+    home.soil[k] = v + Math.max(-step, Math.min(step, t - v));
+    // musgo: crece si la celda se mantiene húmeda (sin encharcar) y se seca si pasa sed
+    const ok = home.soil[k] >= M.lo && home.soil[k] <= M.hi && g.cells[k] === null;
+    home.moss[k] = Math.max(0, Math.min(1, (home.moss[k] ?? 0) + (ok ? dt / M.grow : home.soil[k] < HUMIDITY.dry ? -dt / M.die : 0)));
+    sum += home.soil[k]; cnt++;
+  }
+  home.moist = cnt ? sum / cnt : base; // la humedad del terrario es la media de su suelo
+}
+// Rociar un punto: moja un círculo de suelo (más en el centro). Con una breve espera entre rociadas.
+export function sprayAt(home, x, y) {
+  if (home.sprayCd > 0) return false;
+  const g = home.grid; if (!home.soil) tickSoil(home, 0);
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+    const d = Math.hypot(i + 0.5 - x, j + 0.5 - y); if (d >= HUMIDITY.sprayR || !g.open[j * g.w + i]) continue;
+    home.soil[j * g.w + i] = Math.min(1, home.soil[j * g.w + i] + HUMIDITY.spray * (1 - d / HUMIDITY.sprayR));
+  }
+  home.sprayCd = HUMIDITY.sprayCd;
+  return true;
+}
 export function mist(home) {
   if (home.mistCd > 0) return false;
   home.mist = ZEN.mistTime; home.mistCd = ZEN.mistCooldown;

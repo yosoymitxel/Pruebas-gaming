@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, setWetSide, localHumidity, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, sprayAt, setLid, setWetSide, localHumidity, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -87,7 +87,7 @@ export class Session {
     if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
-    if (view) view.onMarker = (m) => { if (this.build || this.moveMode) return; if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
+    if (view) view.onMarker = (m) => { if (this.build || this.moveMode || this.sprayMode) return; if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -125,7 +125,7 @@ export class Session {
   persist() { if (this.game) save(this.game); }
 
   goHome() {
-    this.build = null; this.selIso = null;
+    this.build = null; this.selIso = null; this.sprayMode = false;
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
     if (this.mode === 'islands' || this.mode === 'result') this.nexo('isla', t('nexo.home', 'Terrario'));
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
@@ -186,6 +186,11 @@ export class Session {
   }
   tapHome(cell) {
     const home = this.game.home;
+    if (this.sprayMode) {
+      if (!sprayAt(home, cell.x, cell.y)) return null;
+      this.sfx('heal', 1.3); this.achieve('mist'); this.view.burst('heal', cell.x, cell.y); this.view.climateKind = null; this.persist(); this.emit();
+      return { sprayed: true };
+    }
     // Modo construcción (mover piezas): solo piezas; los isópodos, hojas y mudas no se tocan.
     if (this.moveMode) { const at = home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)]; if (at != null) this.startMove(at); return at != null ? { moving: at } : null; }
     // Primero lo vivo: una muda para recoger o un isópodo al que tocar (bolita o huida).
@@ -246,6 +251,8 @@ export class Session {
     const home = this.game.home, n = setLid(home, k ?? ((home.lid ?? 1) + 1) % 3);
     this.sfx(n === 2 ? 'open' : 'close'); this.persist(); this.emit();
   }
+  // Rociar: modo en el que cada toque moja ese punto del suelo (se sale tocando Rociar otra vez).
+  toggleSpray() { this.sprayMode = !this.sprayMode; if (this.sprayMode) { this.selectIso(null); this.selPiece = null; } this.sfx('click'); this.emit(); }
   mist() {
     const home = this.game.home;
     if (!mist(home)) { this.sfx('hurt', 1.6); return false; }

@@ -1287,3 +1287,4 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .roster .iso-card b { font-size: 17px; }
 .roster .iso-card .cls, .roster .iso-card .stats { min-width: 0; }
 .roster .iso-card .stats { flex-wrap: wrap; gap: 2px 8px; font-size: 12px; }
+.spray-hint { position: absolute; z-index: var(--z-hud); left: 50%; translate: -50% 0; bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 76px); margin: 0; display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: #2f6a9a; color: #fff; border-radius: 14px; font-weight: 700; white-space: nowrap; }
