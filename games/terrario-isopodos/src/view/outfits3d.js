@@ -49,7 +49,7 @@ export function attachOutfit(model, id, { rolled = false } = {}) {
     acc.add(slot);
   }
   // centro + eje × (along × medio largo), a la altura del caparazón menos lo que se hunde
-  const world = c.clone().addScaledVector(ax, t * half); world.y = top - H * (rolled ? 0.06 : def.sink ?? 0.1);
+  const world = c.clone().addScaledVector(ax, t * half); world.y = top - H * (rolled ? def.rolledSink ?? Math.max(0.1, def.sink ?? 0.1) + (def.size >= 0.8 ? 0.16 : 0) : def.sink ?? 0.1); // en la bola, lo ancho se hunde más para abrazar la curva
   acc.position.copy(world); acc.rotation.y = Math.atan2(-ax.z, ax.x);
   // se inclina con la curva del caparazón (pendiente del perfil de cúpula en ese punto): asienta como un sombrero
   const k = 0.92, slope = rolled ? 0 : -(H / half) * (k * k * t) / Math.sqrt(Math.max(0.05, 1 - (k * t) ** 2));
