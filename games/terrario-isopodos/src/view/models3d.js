@@ -13,6 +13,7 @@ import * as Stag from '../vendor/polyfork/stag-beetle-906c6e.mjs';
 import * as Orb from '../vendor/polyfork/garden-orb-weaver-b32844.mjs';
 import * as Worm from '../vendor/polyfork/earthworm-4a0bde.mjs';
 import { SPECIES } from '../data/species.js';
+import { attachOutfit } from './outfits3d.js';
 
 let renderer = null;
 function studio() {
@@ -61,7 +62,13 @@ export function isopodModel(id, { rolled = false, molt = false } = {}) {
     rolled, dome: flat ? 0.8 : s.body === 'pato' ? 1.15 : 1, breadth: s.body === 'fino' ? 0.8 : 1, antennae: flat ? 1.4 : 1,
   });
 }
-export const drawIsopod3D = (c, w, h, id, opts = {}) => shoot(c, w, h, isopodModel(id, opts), { yaw: Math.PI / 2 - 0.45 });
+// Retrato con su atuendo y su color de caparazón (los mismos que en el diorama).
+export function drawIsopod3D(c, w, h, id, opts = {}) {
+  const m = isopodModel(id, opts);
+  if (opts.paint) { const k = new THREE.Color(opts.paint); m.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((mt) => mt.color?.lerp(k, 0.6)); }); }
+  if (opts.outfit) attachOutfit(m, opts.outfit);
+  shoot(c, w, h, m, { yaw: Math.PI / 2 - 0.45 });
+}
 export const drawBall3D = (c, w, h, id) => shoot(c, w, h, isopodModel(id, { rolled: true }), { yaw: 0.6, fill: 0.8 });
 
 // Enemigos: modelo y colores del nido (pálidos y enfermos, nada de verde de jardín).

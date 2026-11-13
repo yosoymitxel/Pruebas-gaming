@@ -372,7 +372,7 @@ export class GatherView extends GridScene {
     const ground = Math.min(p.z, pw.y), up = Math.max(0, p.z - ground), land = this.landT / 0.16;
     const stretch = p.falling > 0 ? 0.5 : air ? 1 + Math.max(-0.18, Math.min(0.22, p.vz * 0.035)) : 1 - 0.32 * land * land;
     const lean = air ? Math.max(-0.3, Math.min(0.3, Math.hypot(p.vx, p.vy) * 0.06 * Math.sign(p.vz || 1))) * (p.vx < 0 ? 1 : -1) : 0;
-    const list = [{ id: 'player', sprite: `iso:${shell}`, x: pw.x, z: pw.z, y: ground + 0.05, height: 0.9,
+    const list = [{ id: 'player', sprite: `iso:${shell}`, outfit: this.g.outfit, paint: this.g.paint != null ? BADGES[this.g.paint] : null, x: pw.x, z: pw.z, y: ground + 0.05, height: 0.9,
       flip: p.vx < 0, lift: up + (!air && moving ? bob(time, 1) : 0), spin: lean,
       squash: stretch, shadowK: Math.max(0.3, 1 - up * 0.4) }];
     const l = this.g.lost;

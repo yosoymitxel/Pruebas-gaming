@@ -3,7 +3,7 @@ import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf } from '../../game/home.js';
-import { portraitURL } from '../../view/sprites.js';
+import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, ResIcon, CamControls, FxLayer, DayClock, CloseX } from './common.js';
 import { Icon } from '../icons.js';
@@ -57,10 +57,10 @@ function Assigned({ s, p }) {
   return html`<div class="assigned">${rows.map(([what, label, who, cap]) => html`<div class="as-row">
     <small>${label}${cap !== Infinity ? ` · ${who.length}/${cap}` : ''}</small>
     <div class="as-chips">${who.map((i) => html`<button class="as-chip" onClick=${() => s.unassign(i.id, what)} aria-label=${`${t('assign.remove', 'Quitar')} ${i.name}`}>
-      <img src=${portraitURL(`iso:${i.shell}`)} alt="" />${i.name}<span aria-hidden="true">×</span></button>`)}
+      <img src=${isoPortrait(i)} alt="" />${i.name}<span aria-hidden="true">×</span></button>`)}
       ${who.length < cap && html`<button class=${`as-chip add${add === what ? ' on' : ''}`} onClick=${() => setAdd(add === what ? null : what)}>+ ${t('assign.add', 'Asignar')}</button>`}</div>
     ${add === what && html`<ul class="pick-list">${home.isopods.filter((i) => !(i.baby > 0) && !who.includes(i)).map((i) => html`<li><button class="btn" onClick=${() => { s.orderIso(i.id, what, p.id); setAdd(null); }}>
-      <img src=${portraitURL(`iso:${i.shell}`)} alt="" /><b>${i.name}</b><small>${(what === 'trabajar' ? i.job : i.home) != null ? t('assign.moves', 'se cambia') : ''}</small></button></li>`)}</ul>`}
+      <img src=${isoPortrait(i)} alt="" /><b>${i.name}</b><small>${(what === 'trabajar' ? i.job : i.home) != null ? t('assign.moves', 'se cambia') : ''}</small></button></li>`)}</ul>`}
   </div>`)}</div>`;
 }
 // Mejoras permanentes (la Inspiración de Cult of the Lamb) pagadas con ámbar.
@@ -118,8 +118,7 @@ export function Home({ s }) {
     <${FxLayer} s=${s} />
     <header class="hud-top">
       <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
-          onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} />
-        <h2>${t('home.title', 'Tu terrario')}</h2></div>
+          onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} /></div>
       <${StatusChip} home=${home} onClick=${() => toggle('comp')} />
       <${Resources} have=${home.resources} />
     </header>

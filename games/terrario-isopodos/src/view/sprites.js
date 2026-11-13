@@ -129,22 +129,30 @@ export function spriteTexture(key) {
 }
 
 // Icono de recurso como imagen para la interfaz (mismo dibujo que en el mundo).
+// Iconos de recurso: trazos de Tabler Icons (MIT) con el color de cada recurso y un relleno suave, para que
+// hoja, musgo, seta, cal y ámbar se distingan de un vistazo (y de los iconos de acción, que van en tinta).
+const RES_PATH = {
+  hojarasca: 'M5 21c.5 -4.5 2.5 -8 7 -10 M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z',
+  musgo: 'M12 10l-3.397 -3.44a2.104 2.104 0 0 1 0 -2.95a2.04 2.04 0 0 1 2.912 0l.485 .39l.485 -.39a2.04 2.04 0 0 1 2.912 0a2.104 2.104 0 0 1 0 2.95l-3.397 3.44z M12 14l-3.397 3.44a2.104 2.104 0 0 0 0 2.95a2.04 2.04 0 0 0 2.912 0l.485 -.39l.485 .39a2.04 2.04 0 0 0 2.912 0a2.104 2.104 0 0 0 0 -2.95l-3.397 -3.44z M14 12l3.44 -3.397a2.104 2.104 0 0 1 2.95 0a2.04 2.04 0 0 1 0 2.912l-.39 .485l.39 .485a2.04 2.04 0 0 1 0 2.912a2.104 2.104 0 0 1 -2.95 0l-3.44 -3.397z M10 12l-3.44 -3.397a2.104 2.104 0 0 0 -2.95 0a2.04 2.04 0 0 0 0 2.912l.39 .485l-.39 .485a2.04 2.04 0 0 0 0 2.912a2.104 2.104 0 0 0 2.95 0l3.44 -3.397z',
+  esporas: 'M20 11.1c0 -4.474 -3.582 -8.1 -8 -8.1s-8 3.626 -8 8.1a.9 .9 0 0 0 .9 .9h14.2a.9 .9 0 0 0 .9 -.9z M10 12v7a2 2 0 1 0 4 0v-7',
+  cal: 'M21 16.008v-8.018a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.016 2.016 0 0 0 -2 0l-7 4.008c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.016 2.016 0 0 0 2 0l7 -4.008c.619 -.355 1 -1.01 1 -1.718z M12 22v-10 M12 12l8.73 -5.04 M3.27 6.96l8.73 5.04',
+  ambar: 'M19.875 6.27a2.225 2.225 0 0 1 1.125 1.948v7.284c0 .809 -.443 1.555 -1.158 1.948l-6.75 4.27a2.269 2.269 0 0 1 -2.184 0l-6.75 -4.27a2.225 2.225 0 0 1 -1.158 -1.948v-7.285c0 -.809 .443 -1.554 1.158 -1.947l6.75 -3.98a2.33 2.33 0 0 1 2.25 0l6.75 3.98h-.033z',
+};
+const RES_TINT = { hojarasca: '#b8752a', musgo: '#4f8a3a', esporas: '#c2412f', cal: '#7d776b', ambar: '#d8952a' };
 export function resourceIconURL(res) {
   const key = `icon:${res}`;
   if (!cache.has(key)) {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.lineJoin = 'round';
-    RES[res](ctx, 64, 64);
-    cache.set(key, canvas.toDataURL());
+    const c = RES_TINT[res] ?? INK;
+    cache.set(key, `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64"><path d="${RES_PATH[res]}" fill="${c}" fill-opacity="0.22" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)}`);
   }
   return cache.get(key);
 }
 
 // Imagen (URL) del mismo dibujo para la interfaz: retratos de isópodos, aberraciones y larvas.
+// Retrato de un isópodo concreto, con su atuendo y su color (iso de la colonia o actor de combate).
+export const isoPortrait = (iso) => portraitURL(`iso:${iso.shell}:${iso.outfit ?? ''}:${typeof iso.paint === 'number' ? iso.paint : iso.badge ?? ''}`);
 export function portraitURL(key) {
-  const [kind, arg] = key.split(':');
+  const [kind, arg, outfit, paint] = key.split(':');
   if (!ISO[kind] && kind !== 'proc') return spriteURL(key);
   const ck = `portrait:${key}`;
   if (!cache.has(ck)) {
@@ -153,7 +161,8 @@ export function portraitURL(key) {
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.lineJoin = 'round';
-    if (ISO[kind]) ISO[kind](ctx, w, h, arg); else PROC_SPRITES[arg].draw(ctx, w, h);
+    if (kind === 'iso' && (outfit || paint)) safe((c, ww, hh, a) => drawIsopod3D(c, ww, hh, a, { outfit: outfit || null, paint: paint !== '' && paint != null ? BADGES[+paint] : null }), drawIsopod)(ctx, w, h, arg);
+    else if (ISO[kind]) ISO[kind](ctx, w, h, arg); else PROC_SPRITES[arg].draw(ctx, w, h);
     cache.set(ck, canvas.toDataURL());
   }
   return cache.get(ck);

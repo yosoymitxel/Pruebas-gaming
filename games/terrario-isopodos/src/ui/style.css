@@ -956,9 +956,10 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 
 
 /* Cabecera del terrario: reloj + título a la izquierda, ficha de estado a la derecha, recursos debajo. */
-.home .hud-top { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title status" "res res"; align-items: center; gap: var(--s2) var(--s3); }
+/* Sin título: reloj a la izquierda ocupando dos filas; a su derecha, humedad/calma arriba y recursos abajo. */
+.home .hud-top { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "title status" "title res"; align-items: center; gap: 6px var(--s3); }
 .home .hud-top .title-block { grid-area: title; }
-.home .hud-top .status-chip { grid-area: status; justify-self: end; }
+.home .hud-top .status-chip { grid-area: status; justify-self: start; }
 .home .hud-top .resources { grid-area: res; justify-self: start; }
 .status-chip { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: var(--s3); padding: 7px 12px; font: inherit; color: var(--ui-fg);
   background: var(--ui-bg); backdrop-filter: blur(6px); border: 0; clip-path: var(--cut-s); }

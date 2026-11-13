@@ -342,7 +342,7 @@ export class Session {
   startGather(island, isoId) {
     const iso = this.game.home.isopods.find((x) => x.id === isoId);
     this.gather = newGather(island);
-    this.gather.shell = iso.shell;
+    this.gather.shell = iso.shell; this.gather.outfit = iso.outfit ?? null; this.gather.paint = iso.badge ?? null;
     const view = new GatherView(this.stage, this.gather);
     view.onPick = (n) => {
       const w = view.toWorld(n.x, n.y);
