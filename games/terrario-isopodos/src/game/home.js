@@ -463,11 +463,13 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
   // De noche se van a dormir solos: a una cama libre o, si no hay, se hacen un ovillo donde estén.
   if (phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
-    const bed = nearest(home, iso, (b, p) => b.beds && home.isopods.filter((o) => o.bed === p.id || o.goBed === p.id).length < b.beds * lvl(p));
+    const own = iso.home != null && home.grid.pieces[iso.home];
+    if (iso.home != null && !own) iso.home = null;
+    const bed = own || nearest(home, iso, (b, p) => b.beds && home.isopods.filter((o) => o.bed === p.id || o.goBed === p.id || o.home === p.id).length < b.beds * lvl(p));
     if (bed) { iso.order = 'dormir'; iso.goBed = bed.id; iso.night = true; }
     else { iso.rest = 1e9; iso.nightSleep = true; iso.vx = iso.vy = 0; return; }
   }
-  const feeder = hungry && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds);
+  const feeder = hungry && home.resources.hojarasca > 0 && ((iso.order === 'comer' && iso.feedAt != null && home.grid.pieces[iso.feedAt]) || nearest(home, iso, (b) => b.feeds));
   if (feeder) {
     const fx = feeder.x + 0.5, fy = feeder.y + 0.5;
     if (Math.hypot(iso.x - fx, iso.y - fy) < 1.6) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
@@ -492,7 +494,7 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
   }
   const d = Math.hypot(iso.tx - iso.x, iso.ty - iso.y);
   iso.stuck = (iso.stuck ?? 0) + dt;
-  if (d < 0.2 || iso.stuck > 10) { iso.tx = null; iso.wait = 1 + rng() * 3; iso.vx = iso.vy = 0; return; }
+  if (d < 0.2 || iso.stuck > 10) { if (iso.order === 'humedad') iso.order = null; iso.tx = null; iso.wait = 1 + rng() * 3; iso.vx = iso.vy = 0; return; }
   const v = WALK * speciesOf(iso.shell).speed * (phase.night ? 1.25 : 0.85) * (iso.dash > 0 ? 2.6 : 1) * (iso.baby > 0 ? 0.6 : 1);
   if (iso.dash > 0) iso.dash -= dt;
   stepTo(home, iso, iso.tx, iso.ty, v, dt);
@@ -547,6 +549,7 @@ export function isoStatus(home, iso) {
   if (iso.job != null && !(iso.hunger < 0.5)) return 'trabaja';
   if (iso.ate > 0) return 'come';
   if (iso.order === 'dormir') return 'dormir';
+  if (iso.order === 'humedad') return 'humedad';
   if (iso.order === 'comer' || (iso.hunger < 0.5 && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return 'comer';
   if (iso.hunger < 0.35) return 'hambre';
   if (iso.baby > 0) return 'cria';
@@ -555,13 +558,44 @@ export function isoStatus(home, iso) {
 
 // Órdenes del jugador: 'comer' (al comedero aunque no tenga hambre) o 'dormir' (al refugio más cercano).
 // Devuelve false si no se puede (no hay comedero, comida o refugio).
-export function orderIso(home, iso, what) {
+// `pieceId`: la pieza concreta (trabajar en ese criadero, dormir en ese refugio, comer en ese comedero). Asignar
+// es bilateral: la ficha del isópodo elige pieza y la ficha de la pieza elige isópodos; las dos llaman aquí.
+// 'trabajar' con pieceId null deja el trabajo; 'dormir' guarda la cama como suya (iso.home) para cada noche.
+// 'humedad': va al punto más cercano con su humedad ideal.
+export function orderIso(home, iso, what, pieceId) {
   if (iso.molting > 0) return false;
-  if (what === 'comer' && !(home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return false;
-  if (what === 'dormir' && !nearest(home, iso, (b) => b.beds)) return false;
-  if (what === 'trabajar') { if (iso.job != null) { iso.job = null; return true; } const p = nearest(home, iso, (b) => b.produces); if (!p) return false; iso.job = p.id; iso.tx = null; return true; }
+  const piece = pieceId != null ? home.grid.pieces[pieceId] : null, def = piece && BUILDINGS[piece.type];
+  if (pieceId != null && (!piece || piece.site)) return false;
+  if (what === 'trabajar') {
+    if (pieceId === null || (pieceId === undefined && iso.job != null)) { iso.job = null; return true; }
+    const p = piece ?? nearest(home, iso, (b) => b.produces);
+    if (!p || !BUILDINGS[p.type].produces) return false;
+    iso.job = p.id; iso.tx = null; return true;
+  }
+  if (what === 'comer' && !(home.resources.hojarasca > 0 && (def ? def.feeds : nearest(home, iso, (b) => b.feeds)))) return false;
+  if (what === 'dormir') {
+    if (def) { if (!def.beds || (sleepersOf(home, piece).filter((o) => o !== iso).length >= def.beds * lvl(piece))) return false; iso.home = piece.id; }
+    else if (!nearest(home, iso, (b) => b.beds)) return false;
+  }
+  if (what === 'humedad') { const spot = comfySpot(home, iso); if (!spot) return false; Object.assign(iso, { order: 'humedad', rest: 0, ball: 0, wait: 0, stuck: 0, tx: spot.x, ty: spot.y }); return true; }
   iso.order = what; iso.rest = 0; iso.ball = 0; iso.wait = 0; iso.tx = null; iso.stuck = 0;
+  if (what === 'dormir') iso.goBed = piece?.id ?? iso.home ?? null;
+  if (what === 'comer') iso.feedAt = piece?.id ?? null;
   return true;
+}
+// Quién trabaja en / duerme en una pieza (para su ficha).
+export const workersOf = (home, p) => home.isopods.filter((i) => i.job === p.id);
+export const sleepersOf = (home, p) => home.isopods.filter((i) => i.home === p.id);
+// Punto más cercano del suelo con la humedad que pide su especie (o null si no hay ninguno).
+export function comfySpot(home, iso) {
+  const band = speciesOf(iso.shell).humidity, g = home.grid;
+  let best = null, bd = Infinity;
+  for (let y = 0.5; y < g.h; y += 1) for (let x = 0.5; x < g.w; x += 1) {
+    if (blocked(g, Math.floor(x), Math.floor(y)) || !inBand(localHumidity(home, x, y), band)) continue;
+    const d = Math.hypot(x - iso.x, y - iso.y);
+    if (d < bd) { bd = d; best = { x, y }; }
+  }
+  return best;
 }
 
 export function renameIso(home, iso, name) {

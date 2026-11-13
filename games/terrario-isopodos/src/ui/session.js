@@ -293,12 +293,15 @@ export class Session {
     if (!sermon(home, this.game.day, hasUpgrade(this.game, 'coro') ? 2 : 1)) { this.sfx('hurt', 1.6); return false; }
     this.selectIso(null); this.sfx('boss', 1.6); this.emit(); return true;
   }
-  orderIso(id, what) {
+  // Quitar una asignación (trabajo o cama propia) desde cualquiera de las dos fichas.
+  unassign(id, what) { const iso = this.game.home.isopods.find((i) => i.id === id); if (!iso) return; if (what === 'trabajar') iso.job = null; else iso.home = null; this.sfx('click'); this.persist(); this.emit(); }
+  orderIso(id, what, pieceId) {
     const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
     if (!iso) return false;
-    const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what);
+    const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what, pieceId);
+    if (ok && pieceId != null) this.persist();
     const w = this.view.toWorld(iso.x, iso.y);
-    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa') }[what], w.x, w.z, 'note', 1); }
+    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa'), humedad: t('order.wet', '¡A la humedad!') }[what], w.x, w.z, 'note', 1); }
     else this.sfx('hurt', 1.6);
     this.emit();
     return ok;

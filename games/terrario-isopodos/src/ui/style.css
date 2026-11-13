@@ -1171,3 +1171,24 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .trade.sold { opacity: 0.5; }
 .trades .trade .btn { margin: 0; }
 .badges-t { width: 100%; margin: 4px 0 0; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; }
+/* Asignación bilateral (ficha del isópodo y ficha de la pieza). */
+.assign { display: grid; gap: 6px; width: 100%; }
+.assign-row { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border: var(--line); border-radius: var(--chip, 6px); background: var(--ui-bg-2, #f3ead6); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.assign-row b { justify-self: end; }
+.assign-row.on { box-shadow: inset 3px 0 0 var(--ui-accent, #13706f); }
+.assign-row .chev { opacity: 0.5; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+.pick-list .btn { width: 100%; justify-content: flex-start; gap: 8px; }
+.pick-list .btn small { margin-left: auto; opacity: 0.7; }
+.pick-list img, .as-chip img { width: 28px; height: 20px; object-fit: contain; }
+.wish-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wish-line > span { display: grid; flex: 1; }
+.wish-line .why { opacity: 0.7; }
+.assigned { width: 100%; display: grid; gap: 8px; }
+.as-row > small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; margin-bottom: 4px; }
+.as-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.as-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: var(--line); border-radius: 999px; background: var(--paper); color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+.as-chip span { opacity: 0.5; }
+.as-chip.add { border-style: dashed; }
+.as-chip.on { background: var(--ink); color: var(--paper); }
+.piece-card .pc-head { padding-right: 44px; }

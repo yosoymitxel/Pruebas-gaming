@@ -2,7 +2,8 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost } from '../../game/home.js';
+import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf } from '../../game/home.js';
+import { portraitURL } from '../../view/sprites.js';
 import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, ResIcon, CamControls, FxLayer, DayClock, CloseX } from './common.js';
 import { Icon } from '../icons.js';
@@ -47,6 +48,20 @@ function Merchant({ s, onClose }) {
       <div class="side"><small>${t('merchant.get', 'Recibes')}</small>${label(o.get)}</div>
       <button class="btn small${ok && !sold ? ' primary' : ''}" disabled=${sold || !ok} onClick=${() => s.trade(k)}>${sold ? t('merchant.sold', 'Hecho') : ok ? t('merchant.buy', 'Cambiar') : t('merchant.short', 'Te falta')}</button></li>`; })}</ul>
   </section>`;
+}
+// Lado pieza de la asignación: quién trabaja o duerme aquí, quitar a alguien o sumar a otro de la colonia.
+function Assigned({ s, p }) {
+  const home = s.game.home, b = BUILDINGS[p.type], [add, setAdd] = useState(null);
+  const rows = [b.produces && ['trabajar', t('assign.workHere', 'Trabajan aquí'), workersOf(home, p), Infinity], b.beds && ['dormir', t('assign.sleepHere', 'Duermen aquí'), sleepersOf(home, p), b.beds * lvl(p)]].filter(Boolean);
+  if (!rows.length || p.site) return null;
+  return html`<div class="assigned">${rows.map(([what, label, who, cap]) => html`<div class="as-row">
+    <small>${label}${cap !== Infinity ? ` · ${who.length}/${cap}` : ''}</small>
+    <div class="as-chips">${who.map((i) => html`<button class="as-chip" onClick=${() => s.unassign(i.id, what)} aria-label=${`${t('assign.remove', 'Quitar')} ${i.name}`}>
+      <img src=${portraitURL(`iso:${i.shell}`)} alt="" />${i.name}<span aria-hidden="true">×</span></button>`)}
+      ${who.length < cap && html`<button class=${`as-chip add${add === what ? ' on' : ''}`} onClick=${() => setAdd(add === what ? null : what)}>+ ${t('assign.add', 'Asignar')}</button>`}</div>
+    ${add === what && html`<ul class="pick-list">${home.isopods.filter((i) => !(i.baby > 0) && !who.includes(i)).map((i) => html`<li><button class="btn" onClick=${() => { s.orderIso(i.id, what, p.id); setAdd(null); }}>
+      <img src=${portraitURL(`iso:${i.shell}`)} alt="" /><b>${i.name}</b><small>${(what === 'trabajar' ? i.job : i.home) != null ? t('assign.moves', 'se cambia') : ''}</small></button></li>`)}</ul>`}
+  </div>`)}</div>`;
 }
 // Mejoras permanentes (la Inspiración de Cult of the Lamb) pagadas con ámbar.
 function Upgrades({ s, onClose }) {
@@ -125,6 +140,7 @@ export function Home({ s }) {
       ${upgradeCost(sel) && lvl(sel) < MAX_LEVEL ? html`<button class="btn primary upgrade" disabled=${!canAfford(home, upgradeCost(sel))} onClick=${() => s.upgradePiece(sel.id)}>
           <span class="up-l"><${Icon} name="expand" size="18" />${t('home.upgrade', 'Mejorar')} <small>${gainOf(BUILDINGS[sel.type])}</small></span><${Cost} cost=${upgradeCost(sel)} have=${home.resources} /></button>`
         : html`<p class="maxed"><${Icon} name="botin" size="16" />${t('home.maxedShort', 'Nivel máximo')}</p>`}
+      <${Assigned} s=${s} p=${sel} />
       <div class="pc-tools">
         <button class="btn" onClick=${() => s.startMove(sel.id)}><${Icon} name="move" size="18" />${t('home.move', 'Mover')}</button>
         <button class="btn ghost" onClick=${() => s.storePiece(sel.id) || say(t('home.cantStore', 'Hace falta al menos un comedero.'))}><${Icon} name="out" size="18" />${t('home.store', 'Guardar')} <${Cost} cost=${half(BUILDINGS[sel.type].cost)} have=${home.resources} /></button>
