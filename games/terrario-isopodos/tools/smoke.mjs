@@ -70,8 +70,8 @@ await page.getByRole('button', { name: 'Listo' }).click();
 
 // Pausa (Esc): congela el reloj y ofrece las salidas.
 await page.keyboard.press('Escape');
-await wait(300);
-check(await page.getByRole('dialog', { name: 'Pausa' }).isVisible(), 'abrir la pausa con Esc');
+// sin GPU (CI) el juego va a pocos fotogramas: se espera a que la pausa aparezca en vez de un tiempo fijo
+check(await page.getByRole('dialog', { name: 'Pausa' }).waitFor({ timeout: 5000 }).then(() => true, () => false), 'abrir la pausa con Esc');
 const clock0 = await s(() => window.__terrario.game.clock); // medido ya en pausa (la tecla entra al fotograma siguiente)
 await wait(600);
 check(await s(() => window.__terrario.game.clock) === clock0, 'la pausa detiene el reloj del día');
