@@ -9,7 +9,7 @@ import { FAITH } from '../data/cult.js';
 import { pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
-import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies } from '../game/combat.js';
+import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
 import { ROBES } from '../data/robes.js';
@@ -401,7 +401,7 @@ export class Session {
       for (const k of this.run.encounter.enemies) this.meta.seen[k] = true;
       saveMeta(this.meta);
       const setup = combatSetup(this.run), diff = DIFFICULTIES[this.settings.difficulty ?? 'normal'];
-      this.combo = null; this.cleared = null; this.hurtAt = null; this.slowmo = 0;
+      this.combo = null; this.cleared = null; this.exits = null; this.hurtAt = null; this.slowmo = 0;
       this.combat = createCombat({ ...setup, enemyHpMul: (setup.enemyHpMul ?? 1) * diff.hp, mods: { ...setup.mods, enemyDamageMul: diff.dmg * (setup.heatDmg ?? 1) } });
       this.tactical = false;
       const bossRoom = this.run.node.type === 'jefe' && this.run.room?.final;
@@ -431,6 +431,26 @@ export class Session {
     if (this.run.state === 'won' || this.run.state === 'lost') return this.settle();
     this.setMode('dungeon', null, 0.75, this.run.island.weather);
     if (door != null && this.run.state === 'floor') this.enterRoom(door);
+  }
+  // Salidas de la sala ganada (como las puertas de Cult of the Lamb): un arco en el borde de la arena por cada
+  // sala vecina sin hacer, en su dirección del mapa. Se sale caminando hasta él.
+  roamExits(dt, input) {
+    const c = this.combat;
+    if (c.result !== 'win' || !this.cleared || this.time - this.cleared < 1) return;
+    if (!this.exits) {
+      const f = this.run.floor, here = f?.rooms[f.at];
+      this.exits = here && !here.final ? here.links.map((id) => f.rooms[id]).filter((r) => !r.done).map((r) => {
+        const a = Math.atan2(r.y - here.y, r.x - here.x);
+        return { id: r.id, type: r.type, final: !!r.final, x: Math.cos(a) * (ARENA_R - 0.6), y: Math.sin(a) * (ARENA_R - 0.6) };
+      }) : [];
+      this.view.showExits(this.exits);
+      this.emit();
+    }
+    if (!this.exits.length) return;
+    roam(c, dt, input.move);
+    const a = c.actors.find((x) => x.id === c.main);
+    const hit = a && this.exits.find((e) => Math.hypot(a.x - e.x, a.y - e.y) < 0.9);
+    if (hit) { this.sfx('open'); this.endCombat(hit.id); }
   }
   setTactical(on) { if (on !== this.tactical) this.sfx(on ? 'open' : 'close'); this.tactical = on; this.emit(); }
   ability(actorId, abilityId) { const ok = useAbility(this.combat, actorId, abilityId); if (ok) this.setTactical(false); return ok; }
@@ -494,7 +514,7 @@ export class Session {
 
   tickCombat(dt, input) {
     const c = this.combat;
-    if (c.result) return;
+    if (c.result) return this.roamExits(dt, input);
     if (input.tactical) this.setTactical(!this.tactical);
     for (const [k, n] of [['p1', 0], ['p2', 1], ['p3', 2]]) if (input[k]) { const a = allies(c)[n]; if (a) switchMain(c, a.id); }
     if (this.hitstop > 0) { this.hitstop -= dt; return; }

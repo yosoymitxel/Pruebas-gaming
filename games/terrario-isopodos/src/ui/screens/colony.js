@@ -13,7 +13,7 @@ import { SKILLS } from '../../data/skills.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { CLIMATES } from '../../data/substrate.js';
 import { portraitURL } from '../../view/sprites.js';
-import { Bar, ResIcon, Cost } from './common.js';
+import { Bar, ResIcon, Cost, CloseX } from './common.js';
 
 const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'leaf' };
 import { Icon } from '../icons.js';
@@ -21,9 +21,9 @@ import { Icon } from '../icons.js';
 const Status = ({ k }) => html`<span class=${`iso-status st-${k}${STATUS[k].warn ? ' warn' : ''}`}><${Icon} name=${STATUS[k].icon} size="14" />${STATUS[k].name}</span>`;
 const Dot = ({ k }) => (k == null ? null : html`<i class="badge-dot" style=${{ background: BADGES[k] }} aria-hidden="true"></i>`);
 
-export function ColonyList({ s }) {
+export function ColonyList({ s, onClose }) {
   const home = s.game.home;
-  return html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
+  return html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}><${CloseX} onClose=${onClose} />
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
       ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
       <button class="btn small ghost" onClick=${() => { s.wantPanel = 'upgrades'; s.emit(); }}><${Icon} name="expand" size="16" />${t('upgrades.title', 'Mejoras')}</button>
@@ -53,7 +53,9 @@ function Care({ s, iso, st, sp }) {
       <button class=${`btn${iso.job != null ? ' active' : ''}`} aria-pressed=${iso.job != null} onClick=${() => s.orderIso(iso.id, 'trabajar')}><${Icon} name="recoleccion" size="18" />${iso.job != null ? t('colony.unjob', 'Dejar trabajo') : t('colony.job', 'Trabajar')}</button>
       ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'tocar')}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
     </div>
-    <div class="badges" role="group" aria-label=${t('colony.badge', 'Distintivo')}>
+    <p class="badges-t">${t('colony.paint', 'Color del caparazón')}</p>
+    <div class="badges" role="group" aria-label=${t('colony.paint', 'Color del caparazón')}>
+      <button class=${`badge none${iso.badge == null ? ' on' : ''}`} aria-pressed=${iso.badge == null} onClick=${() => s.badgeIso(iso.id, null)} aria-label=${t('colony.natural', 'Natural')}></button>
       ${BADGES.map((c, k) => html`<button class=${`badge${iso.badge === k ? ' on' : ''}`} style=${{ '--c': c }} aria-pressed=${iso.badge === k} onClick=${() => s.badgeIso(iso.id, k)}
         aria-label=${`${t('colony.badge', 'Distintivo')} ${k + 1}`}></button>`)}
     </div>`;
@@ -94,7 +96,7 @@ function Tree({ s, iso }) {
   </div>`;
 }
 
-export function IsoHub({ s }) {
+export function IsoHub({ s, onClose }) {
   const home = s.game.home, iso = home.isopods.find((i) => i.id === s.selIso);
   const [edit, setEdit] = useState(false);
   const [tab, setTab] = useState('care');
@@ -102,7 +104,7 @@ export function IsoHub({ s }) {
   const sp = speciesOf(iso.shell), st = isoStatus(home, iso);
   const save = (e) => { e.preventDefault(); s.renameIso(iso.id, e.currentTarget.querySelector("input").value); setEdit(false); };
   const TABS = [['care', t('colony.tabCare', 'Cuidar'), 'leaf'], ['sheet', t('colony.tabSheet', 'Ficha'), 'layers'], ['tree', t('colony.tabTree', 'Mudas'), 'expand']];
-  return html`<section class="drawer iso-hub" aria-label=${iso.name}>
+  return html`<section class="drawer iso-hub" aria-label=${iso.name}><${CloseX} onClose=${onClose} />
     <div class="hub-head">
       <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
       <div class="hub-id">
@@ -112,7 +114,7 @@ export function IsoHub({ s }) {
         <${Status} k=${st} />
         <span class="traits">${(iso.traits ?? []).map((id) => html`<span class=${`trait ${TRAITS[id].good ? 'good' : 'bad'}`} title=${TRAITS[id].desc}>${TRAITS[id].name}</span>`)}</span>
       </div>
-      <button class="btn ghost icon" onClick=${() => s.selectIso(null)} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="back" /></button>
+
     </div>
     <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
     <div class="loyal"><${Icon} name="heart" size="14" /><b>${t('loyal.level', 'Nivel')} ${iso.lv ?? 0}</b><${Bar} value=${iso.loyal ?? 0} max=${LOYALTY.max} kind="calm" label=${t('loyal.name', 'Lealtad')} /></div>

@@ -106,6 +106,11 @@ export class ActorLayer {
     for (const n of it.ants) n.b.rotation.x = n.rest.x + Math.sin(now * 3 + n.k) * 0.12;
     if (walk < 0.2) it.body.scale.y *= 1 + Math.sin(now * 2.2 + it.base) * 0.02; // respira quieto
     const fl = a.flash ?? 0;
+    if (it.paint !== (a.paint ?? null)) { // tinte de caparazón: mezcla el color base con el elegido
+      it.paint = a.paint ?? null;
+      const c = it.paint ? new THREE.Color(it.paint) : null;
+      for (const m of it.mats) { m.userData.base ??= m.color.clone(); m.color.copy(m.userData.base); if (c) m.color.lerp(c, 0.6); }
+    }
     for (const m of it.mats) if (m.emissive) { if (a.tint) m.emissive.setRGB(Math.max(fl, a.tint[0]), Math.max(fl, a.tint[1]), Math.max(fl, a.tint[2])); else m.emissive.setScalar(fl); m.emissiveIntensity = 1; }
     const sk = a.shadowK ?? 1;
     it.shadow.scale.set(len * 0.75 * sk, 1, len * 0.45 * sk);
