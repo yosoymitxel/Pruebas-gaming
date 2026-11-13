@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, sprayAt, setLid, setWetSide, localHumidity, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, sprayAt, harvestMoss, setLid, setWetSide, localHumidity, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -212,6 +212,8 @@ export class Session {
       return { res: 'cal', n: 1 };
     }
     const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
+    // Musgo crecido en el suelo: se arranca de a una celda.
+    if (harvestMoss(home, cell.x, cell.y)) { const w = this.view.toWorld(cell.x, cell.y); this.sfx('pickup'); this.view.burst('pickup', cell.x, cell.y); this.floatText(`+1 ${RESOURCES.musgo.name}`, w.x, w.z, 'gain'); this.view.climateKind = null; this.persist(); this.emit(); return { res: 'musgo', n: 1 }; }
     // Moho (los círculos blancos): sale con mucha humedad; se lo comen los colémbolos.
     if ((home.mold ?? []).some((m) => Math.hypot(m.x - cell.x, m.y - cell.y) < 0.8)) { this.emit(); return { info: t('soil.mold', 'Moho: sale con demasiada humedad y baja la calma. Abre la tapa; los colémbolos se lo comen.') }; }
     // Tocar el suelo explica su humedad (las manchas oscuras son barro, las grietas sequedad).

@@ -9,14 +9,15 @@ import { Icon } from '../icons.js';
 export const ResIcon = ({ res }) => html`<img class="res-icon" src=${resourceIconURL(res)} alt="" aria-hidden="true" />`;
 
 // Al cambiar una cifra salta (verde si sube, roja si baja) y suelta un +n / −n, como en Cult of the Lamb.
-export function Resources({ have, compact }) {
+export function Resources({ have, compact, cap }) {
   const prev = useRef(null), last = useRef({});
   const before = prev.current ?? have;
   for (const r of Object.keys(RESOURCES)) { const d = (have[r] ?? 0) - (before[r] ?? 0); if (d) last.current[r] = { d, k: (last.current[r]?.k ?? 0) + 1 }; }
   prev.current = { ...have };
   return html`<ul class=${`resources${compact ? ' compact' : ''}`} aria-label=${t('ui.resources', 'Recursos')}>
     ${Object.keys(RESOURCES).map((r) => { const ch = last.current[r];
-      return html`<li title=${RESOURCES[r].name} class=${ch ? (ch.d > 0 ? 'up' : 'down') : ''} key=${`${r}${ch?.k ?? 0}`}>
+      const full = cap && r !== 'ambar' && (have[r] ?? 0) >= cap;
+      return html`<li title=${full ? `${RESOURCES[r].name}: ${t('ui.full', 'almacén lleno')}` : RESOURCES[r].name} class=${`${ch ? (ch.d > 0 ? 'up' : 'down') : ''}${full ? ' full' : ''}`} key=${`${r}${ch?.k ?? 0}`}>
         <${ResIcon} res=${r} /><b>${have[r] ?? 0}</b><span class="sr">${RESOURCES[r].name}</span>
         ${ch && html`<i class="delta" aria-hidden="true">${ch.d > 0 ? '+' : '−'}${Math.abs(ch.d)}</i>`}</li>`; })}
   </ul>`;

@@ -327,9 +327,9 @@ export function collect(home, pieceId) {
   if (!p || !s?.ready) return 0;
   const { res } = BUILDINGS[p.type].produces;
   const n = s.ready;
-  home.resources[res] = (home.resources[res] ?? 0) + n;
+  const got = addRes(home, res, n);
   s.ready = 0;
-  return n;
+  return got;
 }
 
 // `phase`: efectos de la hora (DAY_PHASES): de noche se produce menos y sube el miedo.
@@ -356,7 +356,7 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
     const boost = 1 + JOBS.boost * Math.min(JOBS.max, workers(home, p));
     const s = (home.stock[p.id] ??= { ready: 0, t: 0 });
     if (s.ready < prod.cap + (lvl(p) - 1) * 2 && (s.t += dt * prodMul * boost * (1 + (lvl(p) - 1) * 0.35)) >= prod.every) { s.t = 0; s.ready = Math.min(prod.cap + (lvl(p) - 1) * 2, s.ready + prod.amount); }
-    if (s.ready && boost > 1) { home.resources[prod.res] = (home.resources[prod.res] ?? 0) + s.ready; (home.autoGot ??= []).push({ id: p.id, res: prod.res, n: s.ready }); s.ready = 0; } // el trabajador lo lleva al almacén
+    if (s.ready && boost > 1) { addRes(home, prod.res, s.ready); (home.autoGot ??= []).push({ id: p.id, res: prod.res, n: s.ready }); s.ready = 0; } // el trabajador lo lleva al almacén
   }
   for (const iso of home.isopods) { if (!lifecycle(home, iso, dt, rng)) walk(home, iso, dt, rng, hungerMul, phase); }
   breed(home, dt, rng);
@@ -427,6 +427,20 @@ function tickSoil(home, dt) {
     sum += home.soil[k]; cnt++;
   }
   home.moist = cnt ? sum / cnt : base; // la humedad del terrario es la media de su suelo
+}
+// Almacén: cada recurso tiene tope; crece con cada ampliación del terrario. Lo que sobra se pierde.
+export const storeCap = (home) => 25 + Math.max(0, home.expansion ?? 0) * 15;
+export function addRes(home, r, n) {
+  const cap = r === 'ambar' ? Infinity : storeCap(home), before = home.resources[r] ?? 0;
+  home.resources[r] = Math.min(Math.max(cap, before), before + n);
+  return home.resources[r] - before;
+}
+// Recoger musgo crecido (celda con musgo maduro): se arranca y vuelve a crecer si el suelo sigue húmedo.
+export function harvestMoss(home, x, y) {
+  const g = home.grid, k = Math.floor(y) * g.w + Math.floor(x);
+  if (!home.moss || !(home.moss[k] >= 0.8)) return 0;
+  home.moss[k] = 0;
+  return addRes(home, 'musgo', 1);
 }
 // Rociar un punto: moja un círculo de suelo (más en el centro). Con una breve espera entre rociadas.
 export function sprayAt(home, x, y) {

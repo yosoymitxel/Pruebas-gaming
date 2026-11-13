@@ -2,7 +2,7 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
+import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, storeCap, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
 import { RITUALS, JOBS } from '../../data/cult.js';
 import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { snailPortrait } from '../../view/models3d.js';
@@ -137,7 +137,7 @@ export function Home({ s }) {
       <div class="title-block row"><${DayClock} day=${s.game.day} clock=${s.game.clock} label=${`${t('ui.day', 'Día')} ${s.game.day} · ${DAY_PHASES[s.phase].name} · ${WEATHERS[s.game.home.weather]?.name ?? ''}`}
           onSleep=${s.phase === 'atardecer' || s.phase === 'noche' ? () => s.sleep() : null} /></div>
       <${StatusChip} home=${home} onClick=${() => toggle('comp')} />
-      <${Resources} have=${home.resources} />
+      <${Resources} have=${home.resources} cap=${storeCap(home)} />
     </header>
 
     ${toast && html`<p class="toast" role="status">${toast}</p>`}

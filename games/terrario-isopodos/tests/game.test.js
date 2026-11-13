@@ -33,18 +33,21 @@ test('construir cobra y ampliar abre celdas', () => {
   assert.equal(home.grid.open.reduce((s, v) => s + v, 0), 144);
 });
 
-test('las piezas producen y se recogen; la colonia come y nunca atraviesa piezas', () => {
+test('las piezas producen y se recogen; la colonia come y nunca atraviesa piezas', async () => {
   const { home } = newGame(7);
-  const id = build(home, 'charca', 11, 5);
+  home.resources.musgo = 10; build(home, 'charca', 11, 5); home.resources.cal = 5; const id = build(home, 'sepia', 13, 8);
   const rng = mulberry32(3);
   for (let k = 0; k < 60 * 300; k++) {
     tickHome(home, 1 / 60, rng);
     for (const iso of home.isopods) assert.ok(!blocked(home.grid, Math.floor(iso.x), Math.floor(iso.y)), `isópodo en celda bloqueada ${iso.x},${iso.y}`);
   }
   assert.ok(home.stock[id].ready > 0);
-  const musgo = home.resources.musgo;
+  const cal = home.resources.cal;
   assert.ok(collect(home, id) > 0);
-  assert.ok(home.resources.musgo > musgo);
+  assert.ok(home.resources.cal > cal);
+  const H = await import('../src/game/home.js'), g = home.grid, k = home.moss.findIndex((m) => m >= 0.8);
+  assert.ok(k >= 0, 'junto a la charca creció musgo');
+  const m0 = home.resources.musgo; assert.ok(H.harvestMoss(home, (k % g.w) + 0.5, Math.floor(k / g.w) + 0.5) === 1 && home.resources.musgo === m0 + 1, 'se arranca el musgo');
   assert.ok(home.isopods.every((i) => i.hunger > 0.3), 'comieron');
   assert.ok(calm(home) > 0 && beds(home) >= 7);
 });
