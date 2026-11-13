@@ -185,7 +185,7 @@ function tickCult(home, dt, rng, phase) {
   }
   // anochecer y amanecer
   const night = !!phase.night;
-  if (night && !home.wasNight && home.isopods.length > beds(home)) addFaith(home, 'camas');
+  if (night && !home.wasNight && home.isopods.some((i) => !(i.baby > 0) && (i.home == null || !home.grid.pieces[i.home]))) addFaith(home, 'camas'); // alguien sin cama
   if (!night && home.wasNight) { if (home.isopods.some((i) => i.hunger < 0.35)) addFaith(home, 'hambre'); for (const i of home.isopods) { if (i.nightSleep) { i.rest = 0; i.nightSleep = false; i.bed = null; } if (i.night) { i.night = false; i.goBed = null; if (i.order === 'dormir') i.order = null; } } }
   home.wasNight = night;
   // peticiones
@@ -499,11 +499,11 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     iso.tx = cx + (rng() - 0.5) * 0.4; iso.ty = cy; iso.stuck = 0;
   }
   const hungry = iso.hunger < 0.5 || iso.order === 'comer';
-  // De noche se van a dormir solos: a una cama libre o, si no hay, se hacen un ovillo donde estén.
+  // De noche se van a dormir solos: a su cama asignada o, sin cama, se hacen un ovillo donde estén.
   if (phase.night && !iso.order && !(iso.baby > 0) && iso.hunger >= 0.35) {
     const own = iso.home != null && home.grid.pieces[iso.home];
     if (iso.home != null && !own) iso.home = null;
-    const bed = own || nearest(home, iso, (b, p) => b.beds && home.isopods.filter((o) => o.bed === p.id || o.goBed === p.id || o.home === p.id).length < b.beds * lvl(p));
+    const bed = own; // solo duerme en cama quien la tiene asignada; el resto, ovillo donde esté (al raso)
     if (bed) { iso.order = 'dormir'; iso.goBed = bed.id; iso.night = true; }
     else { iso.rest = 1e9; iso.nightSleep = true; iso.vx = iso.vy = 0; return; }
   }
