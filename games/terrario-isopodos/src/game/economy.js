@@ -2,6 +2,7 @@
 import { MERCHANT, TRADES, UPGRADES } from '../data/economy.js';
 import { mulberry32 } from '../core/rng.js';
 import { canAfford, pay, recruit } from './home.js';
+import { OUTFITS } from '../data/outfits.js';
 
 export const merchantToday = (game) => game.day >= MERCHANT.first && game.day % MERCHANT.every === MERCHANT.first % MERCHANT.every;
 
@@ -27,6 +28,19 @@ export function trade(game, k, rng = Math.random) {
 }
 
 export const hasUpgrade = (game, id) => (game.upgrades ?? []).includes(id);
+// Armario (como el sastre de Cult of the Lamb): un atuendo se paga una vez y queda para toda la colonia.
+export const hasOutfit = (game, id) => (game.wardrobe ?? []).includes(id);
+export function buyOutfit(game, id) {
+  const o = OUTFITS[id];
+  if (!o || hasOutfit(game, id) || !pay(game.home, o.cost)) return false;
+  (game.wardrobe ??= []).push(id);
+  return true;
+}
+export function wearOutfit(game, iso, id) {
+  if (id != null && !hasOutfit(game, id)) return false;
+  iso.outfit = id === iso.outfit ? null : id;
+  return true;
+}
 export function buyUpgrade(game, id) {
   const u = UPGRADES[id];
   if (!u || hasUpgrade(game, id) || !pay(game.home, u.cost)) return false;

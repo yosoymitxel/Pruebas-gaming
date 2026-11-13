@@ -6,15 +6,15 @@
 import { localize } from '../i18n/index.js';
 
 export const WEAPONS = localize('weapons', {
-  pinza: { name: 'Pinza', desc: 'Equilibrada: tres golpes.', icon: 'attack', reach: 1.25, arc: 1.1,
+  pinza: { name: 'Pinza', desc: 'Equilibrada: tres golpes.', icon: 'pincer', reach: 1.25, arc: 1.1,
     combo: [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }] },
-  mandibula: { name: 'Mandíbula', desc: 'Lenta y amplia: pega fuerte.', icon: 'jefe', reach: 1.6, arc: 1.6,
+  mandibula: { name: 'Mandíbula', desc: 'Lenta y amplia: pega fuerte.', icon: 'jaws', reach: 1.6, arc: 1.6,
     combo: [{ windup: 0.24, recover: 0.3, mul: 2 }, { windup: 0.24, recover: 0.3, mul: 2 }, { windup: 0.34, recover: 0.55, mul: 2.8 }] },
-  aguijon: { name: 'Aguijón', desc: 'Rapidísimo: cinco pinchazos cortos.', icon: 'tactical', reach: 0.95, arc: 0.8,
+  aguijon: { name: 'Aguijón', desc: 'Rapidísimo: cinco pinchazos cortos.', icon: 'sting', reach: 0.95, arc: 0.8,
     combo: [0, 1, 2, 3].map(() => ({ windup: 0.06, recover: 0.08, mul: 0.42 })).concat([{ windup: 0.1, recover: 0.28, mul: 1 }]) },
-  garras: { name: 'Garras', desc: 'Dos toques y un tercero que revienta.', icon: 'roll', reach: 1.1, arc: 1.2,
+  garras: { name: 'Garras', desc: 'Dos toques y un tercero que revienta.', icon: 'claws', reach: 1.1, arc: 1.2,
     combo: [{ windup: 0.1, recover: 0.14, mul: 0.8 }, { windup: 0.1, recover: 0.14, mul: 0.8 }, { windup: 0.22, recover: 0.42, mul: 3 }] },
-  maza: { name: 'Maza de quitina', desc: 'Un mazazo enorme y muy lento.', icon: 'shield', reach: 1.5, arc: 2.2,
+  maza: { name: 'Maza de quitina', desc: 'Un mazazo enorme y muy lento.', icon: 'mace', reach: 1.5, arc: 2.2,
     combo: [{ windup: 0.4, recover: 0.55, mul: 4.8 }] },
 });
 

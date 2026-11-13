@@ -1155,10 +1155,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes door-in { from { opacity: 0; translate: 0 10px; } }
 @media (prefers-reduced-motion: reduce) { .nexo { display: none; } }
 .exit-hint { position: fixed; left: 50%; top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px); translate: -50% 0; z-index: var(--z-hud); display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 14px; background: var(--ink); color: var(--paper); border-radius: var(--chip, 6px); animation: door-in 360ms var(--ease-out) both; }
-.drawer-x { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--ink); color: var(--paper); cursor: pointer; z-index: 2; }
-.drawer-x:hover { background: var(--rust); }
-.drawer:has(> .drawer-x) { padding-top: 48px; }
-.drawer.center:has(> .drawer-x) { padding-top: 12px; }
+/* X de cierre: pestañita de papel que asoma por encima de la esquina superior derecha del panel (como la
+   guardiana sobre la ficha de la isla). Va fuera del panel (que hace scroll y la recortaría) y se ancla a él. */
+.drawer-x { position: fixed; z-index: calc(var(--z-drawer) + 1); translate: 0 -100%;
+  width: 34px; height: 28px; display: grid; place-items: center; padding: 0; border: var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
+  background: var(--paper); color: var(--ink); cursor: pointer; pointer-events: auto; box-shadow: 0 -2px 0 rgb(0 0 0 / 0.08); }
+.drawer-x:hover, .drawer-x:focus-visible { color: var(--rust); translate: 0 calc(-100% - 2px); }
 .mer-head { display: flex; gap: 10px; align-items: center; width: 100%; padding-right: 40px; }
 .mer-face { font-size: 34px; line-height: 1; }
 .mer-head h3 { margin: 0; }
@@ -1215,3 +1217,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   -webkit-mask: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 58%, #000 100%); mask: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 58%, #000 100%);
   background: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 70%, rgb(0 0 0 / 0.18)); }
 @media (min-aspect-ratio: 1/1) { #tiltshift { -webkit-mask: linear-gradient(90deg, #000, transparent 24% 76%, #000); mask: linear-gradient(90deg, #000, transparent 24% 76%, #000), linear-gradient(#000, transparent 18% 82%, #000); } }
+/* Armario: rejilla de atuendos con miniatura 3D; bloqueados en gris con su precio. */
+.wardrobe { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.outfit { width: 100%; display: grid; justify-items: center; gap: 2px; padding: 6px 4px; border: var(--line); border-radius: var(--chip, 6px); background: var(--paper); color: inherit; font: inherit; cursor: pointer; }
+.outfit > img { width: 56px; height: 56px; object-fit: contain; }
+.iso-hub .tabs { grid-template-columns: repeat(4, 1fr); }
+.outfit b { font-size: 12px; line-height: 1.15; text-align: center; }
+.outfit small.ok { font-size: 11px; color: var(--ui-accent, #13706f); font-weight: 700; }
+.outfit.locked > img { filter: grayscale(1) brightness(0.6); }
+.outfit.on { box-shadow: inset 0 0 0 3px var(--ui-accent, #13706f); }
+.outfit:disabled { opacity: 0.55; cursor: default; }

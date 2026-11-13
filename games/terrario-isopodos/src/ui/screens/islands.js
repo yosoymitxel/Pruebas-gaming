@@ -46,7 +46,7 @@ export function Islands({ s }) {
 
     ${isl && html`<div class=${`isl-wrap${isl.kind === 'nido' ? ' has-guard' : ''}`}>
     ${isl.kind === 'nido' && html`<figure class="guard"><img src=${portraitURL(ABERRATIONS[BIOMES[isl.biome].boss].sprite)} alt="" /><figcaption>${t('islands.guard', 'Guardiana')}: ${ABERRATIONS[BIOMES[isl.biome].boss].name}</figcaption></figure>`}
-    <section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}><${CloseX} onClose=${() => setSel(null)} />
+    <${CloseX} onClose=${() => setSel(null)} /><section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}>
       <div class="isl-head">
         <div>
           <h3><${Icon} name=${isl.kind} size="20" /> ${isl.kind !== 'hogar' ? BIOMES[isl.biome].name : ISLAND_KINDS[isl.kind].name}</h3>

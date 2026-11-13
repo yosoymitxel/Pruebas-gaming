@@ -36,11 +36,11 @@ function StatusChip({ home, onClick }) {
 // Mercader de visita: cambia recursos por ámbar y al revés, y a veces vende un isópodo.
 function Merchant({ s, onClose }) {
   const m = merchant(s.game), home = s.game.home;
-  if (!m) return html`<section class="drawer merchant"><${CloseX} onClose=${onClose} /><p>${t('merchant.gone', 'El mercader ya se fue. Vuelve cada tres días.')}</p></section>`;
+  if (!m) return html`<${CloseX} onClose=${onClose} /><section class="drawer merchant"><p>${t('merchant.gone', 'El mercader ya se fue. Vuelve cada tres días.')}</p></section>`;
   const label = (bag) => Object.entries(bag).map(([r, n]) => (r === 'isopodo'
     ? html`<span class="ware"><${Icon} name="colony" size="22" /><b>${n}</b><small>${t('merchant.iso', 'isópodo')}</small></span>`
     : html`<span class="ware"><${ResIcon} res=${r} /><b>${n}</b><small>${RESOURCES[r].name}</small></span>`));
-  return html`<section class="drawer merchant" aria-label=${t('merchant.title', 'Mercader')}><${CloseX} onClose=${onClose} />
+  return html`<${CloseX} onClose=${onClose} /><section class="drawer merchant" aria-label=${t('merchant.title', 'Mercader')}>
     <header class="mer-head"><span class="mer-face"><${Icon} name="snail" size="34" /></span><div><h3>${t('merchant.title', 'Caracol mercader')}</h3>
       <p>${t('merchant.line', '«Traigo ámbar de otras islas. Me voy mañana.»')}</p></div></header>
     <ul class="trades">${m.offers.map((i, k) => { const o = TRADES[i], sold = m.sold.includes(k), ok = canAfford(home, o.give); return html`<li class=${`trade${sold ? ' sold' : ''}`}>
@@ -66,7 +66,7 @@ function Assigned({ s, p }) {
 // Mejoras permanentes (la Inspiración de Cult of the Lamb) pagadas con ámbar.
 function Upgrades({ s, onClose }) {
   const home = s.game.home;
-  return html`<section class="drawer upgrades" aria-label=${t('upgrades.title', 'Mejoras')}><${CloseX} onClose=${onClose} />
+  return html`<${CloseX} onClose=${onClose} /><section class="drawer upgrades" aria-label=${t('upgrades.title', 'Mejoras')}>
     <h3><${Icon} name="expand" size="18" />${t('upgrades.title', 'Mejoras')}</h3>
     <ul class="trades">${Object.entries(UPGRADES).map(([id, u]) => { const own = hasUpgrade(s.game, id); return html`<li class=${own ? 'own' : ''}>
       <${Icon} name=${u.icon} size="18" /><span class="up-txt"><b>${u.name}</b><small>${u.desc}</small></span>
@@ -132,10 +132,9 @@ export function Home({ s }) {
       <button class="btn ghost" onClick=${() => s.cancelBuild()}>${t('ui.done', 'Listo')}</button>
     </div>`}
 
-    ${sel && !s.build && html`<section class="drawer piece-card" aria-label=${BUILDINGS[sel.type].name}>
+    ${sel && !s.build && html`<${CloseX} onClose=${() => { s.selPiece = null; s.emit(); }} /><section class="drawer piece-card" aria-label=${BUILDINGS[sel.type].name}>
       <div class="pc-head"><h3>${BUILDINGS[sel.type].name}</h3>
-        <span class="pips" aria-label=${`${t('home.level', 'nivel')} ${lvl(sel)}/${MAX_LEVEL}`}>${Array.from({ length: MAX_LEVEL }, (_, k) => html`<i class=${k < lvl(sel) ? 'on' : ''}></i>`)}</span>
-        <${CloseX} onClose=${() => { s.selPiece = null; s.emit(); }} /></div>
+        <span class="pips" aria-label=${`${t('home.level', 'nivel')} ${lvl(sel)}/${MAX_LEVEL}`}>${Array.from({ length: MAX_LEVEL }, (_, k) => html`<i class=${k < lvl(sel) ? 'on' : ''}></i>`)}</span></div>
       <p class="pc-desc">${BUILDINGS[sel.type].desc}</p>
       ${upgradeCost(sel) && lvl(sel) < MAX_LEVEL ? html`<button class="btn primary upgrade" disabled=${!canAfford(home, upgradeCost(sel))} onClick=${() => s.upgradePiece(sel.id)}>
           <span class="up-l"><${Icon} name="expand" size="18" />${t('home.upgrade', 'Mejorar')} <small>${gainOf(BUILDINGS[sel.type])}</small></span><${Cost} cost=${upgradeCost(sel)} have=${home.resources} /></button>`
@@ -147,7 +146,7 @@ export function Home({ s }) {
       </div>
     </section>`}
 
-    ${panel === 'build' && !s.build && html`<section class="drawer build-list" aria-label=${t('home.build', 'Construir')}><${CloseX} onClose=${() => setPanel(null)} />
+    ${panel === 'build' && !s.build && html`<${CloseX} onClose=${() => setPanel(null)} /><section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
       ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
         <img class="thumb" src=${pieceThumb(s.stage.renderer, id)} alt="" /><b>${b.name}</b><span class="desc">${b.desc}</span><span class="tags"><span>${b.size.w}×${b.size.h}</span>${b.produces && html`<span title=${RESOURCES[b.produces.res].name}>+<${ResIcon} res=${b.produces.res} /></span>`}
           ${b.beds && html`<span title=${t('home.beds', 'camas')}><${Icon} name="colony" size="14" />+${b.beds}</span>`}${b.calm && html`<span class="calm-tag" title=${t('home.calm', 'calma')}><${Icon} name="leaf" size="14" />+</span>`}</span>

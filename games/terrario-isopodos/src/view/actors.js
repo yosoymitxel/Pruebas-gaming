@@ -5,6 +5,7 @@ import { spriteTexture } from './sprites.js';
 import { PALETTES } from '../data/palettes.js';
 import { TILT } from './stage.js';
 import { liveModel } from './models3d.js';
+import { attachOutfit } from './outfits3d.js';
 
 const LEAN = -0.45;
 const plane = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
@@ -106,6 +107,10 @@ export class ActorLayer {
     for (const n of it.ants) n.b.rotation.x = n.rest.x + Math.sin(now * 3 + n.k) * 0.12;
     if (walk < 0.2) it.body.scale.y *= 1 + Math.sin(now * 2.2 + it.base) * 0.02; // respira quieto
     const fl = a.flash ?? 0;
+    if (it.outfit !== (a.outfit ?? null)) { // atuendo: se cuelga del modelo y se recolorea con él
+      if (it.acc) it.acc.parent?.remove(it.acc);
+      it.outfit = a.outfit ?? null; it.acc = it.outfit ? attachOutfit(it.model, it.outfit) : null;
+    }
     if (it.paint !== (a.paint ?? null)) { // tinte de caparazón: mezcla el color base con el elegido
       it.paint = a.paint ?? null;
       const c = it.paint ? new THREE.Color(it.paint) : null;

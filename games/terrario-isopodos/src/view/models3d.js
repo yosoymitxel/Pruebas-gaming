@@ -24,7 +24,7 @@ function studio() {
 }
 
 // Foto de perfil de tres cuartos, mirando a la derecha, encuadrada al lienzo y apoyada abajo.
-function shoot(c, w, h, group, { yaw = 0, pitch = 0.32, fill = 0.92 } = {}) {
+export function shoot(c, w, h, group, { yaw = 0, pitch = 0.32, fill = 0.92 } = {}) {
   const r = studio();
   r.setSize(w, h, false);
   const scene = new THREE.Scene();

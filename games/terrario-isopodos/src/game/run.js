@@ -22,7 +22,7 @@ export function newRun(home, island, partyIds, heat = 0, opts = {}) {
   const party = partyIds.map((id) => {
     const iso = home.isopods.find((x) => x.id === id);
     const st = isoStats(iso), maxHp = Math.round(CLASSES[iso.cls].hp * speciesOf(iso.shell).hp * partyBonus(home, iso).hpMul * st.hpMul * hpRobe * (ups.includes('quitina') ? 1.1 : 1) * traitMul(iso, 'hpMul'));
-    return { id, name: iso.name, cls: iso.cls, shell: iso.shell, hp: maxHp, maxHp, damageAdd: st.damageAdd, speedMul: st.speedMul, abilities: st.abilities };
+    return { id, name: iso.name, cls: iso.cls, shell: iso.shell, outfit: iso.outfit ?? null, paint: iso.badge ?? null, hp: maxHp, maxHp, damageAdd: st.damageAdd, speedMul: st.speedMul, abilities: st.abilities };
   });
   const run = {
     island, dungeon: genDungeon(island.seed), party, items: { gota: 2 + (ups.includes('rocio') ? 1 : 0), hongo: 1 }, cards: [],

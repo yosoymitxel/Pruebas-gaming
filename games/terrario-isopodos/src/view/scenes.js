@@ -248,7 +248,7 @@ export class HomeView extends GridScene {
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
     // Color elegido en la ficha: tiñe el caparazón (el modelo 3D) en vez de un banderín.
-    this.home.isopods.forEach((iso, k) => { if (iso.badge != null && list[k]) list[k].paint = BADGES[iso.badge]; });
+    this.home.isopods.forEach((iso, k) => { if (!list[k]) return; if (iso.badge != null) list[k].paint = BADGES[iso.badge]; if (iso.outfit) list[k].outfit = iso.outfit; });
     for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
       l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
       const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
@@ -283,7 +283,7 @@ export class HomeView extends GridScene {
     // Peticiones: globito sobre la cabeza con lo que quiere (como los seguidores de Cult of the Lamb).
     for (const iso of this.home.isopods) {
       if (!iso.wish || iso.rest > 0) continue;
-      const w = this.toWorld(iso.x, iso.y), ic = { pieza: 'build', humedad: 'items', comer: 'leaf', mimo: 'heart' }[iso.wish.kind];
+      const w = this.toWorld(iso.x, iso.y), ic = { pieza: 'build', humedad: 'items', comer: 'eat', mimo: 'heart' }[iso.wish.kind];
       marks.push({ id: `w${iso.id}`, kind: 'wish', icon: iconURL(ic), x: w.x, y: w.y + 0.9, z: w.z, iso: iso.id });
     }
     for (const iso of this.home.isopods) {
@@ -386,7 +386,7 @@ export class GatherView extends GridScene {
   }
 }
 
-const ROOM_ICON3D = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
+const ROOM_ICON3D = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'relic', rescate: 'rescue', tienda: 'shop', fuente: 'spring', arma: 'attack', maldito: 'eye' };
 
 // Mercader: un caracol viajero con su fardo de ámbar, de visita en una esquina del terrario.
 function merchantStall() {
@@ -538,7 +538,7 @@ export class CombatView {
         const lunge = a.state === 'attack' ? (a.phase === 'recover' ? 0.28 : -0.08) : 0;
         const squash = a.state === 'attack' && a.phase === 'windup' ? 0.86 : a.state === 'roll' ? 0.7 : breathe * (1 - f * 0.18);
         const balled = a.state === 'roll'; // al rodar siempre se ve la bolita girando: se entiende el esquive
-        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash: balled ? 1 : squash, flip: Math.cos(a.facing) < 0, face: a.facing,
+        list.push({ id: a.id, sprite: `${balled ? 'ball' : 'iso'}:${a.shell}`, x: a.x + Math.cos(a.facing) * lunge, z: a.y + Math.sin(a.facing) * lunge, height: balled ? 0.7 : 1.05, squash: balled ? 1 : squash, flip: Math.cos(a.facing) < 0, face: a.facing, outfit: balled ? null : a.outfit, paint: a.paint != null ? BADGES[a.paint] : null,
           spin: balled ? -time * 18 * (Math.cos(a.facing) < 0 ? -1 : 1) : 0,
           lift: moving && !down ? bob(time, a.id) : 0, alpha: down ? 0.35 : a.invuln > 0 ? 0.6 : 1, flash: f });
         if (a.state === 'roll' && (this.ghostT = (this.ghostT ?? 0) - dt) <= 0) { // estela del rodar

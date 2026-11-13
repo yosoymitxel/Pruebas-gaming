@@ -82,8 +82,27 @@ export class ArchipelagoView {
   fitScreen() {
     const W = this.stage.container.clientWidth, H = this.stage.container.clientHeight, mx = 85, my = 90;
     if (!W) return;
+    // En vertical: terrario abajo a la derecha y el resto en zigzag a lo alto (se aprovecha el alto, no se apiñan).
+    if (this.tall) {
+      const rest = this.models.filter((m) => m.isl.kind !== 'hogar').sort((a, b) => a.isl.seed - b.isl.seed), n = rest.length;
+      const home = this.models.find((m) => m.isl.kind === 'hogar');
+      if (home) this.moveTo(home, W * 0.66, H * 0.76);
+      rest.forEach((m, k) => { const jit = ((m.isl.seed % 7) - 3) * 4; this.moveTo(m, W * (k % 2 ? 0.68 : 0.32) + jit, H * (0.2 + (n > 1 ? (k / (n - 1)) * 0.36 : 0)) + jit); });
+      return;
+    }
     for (let pass = 0; pass < 8; pass++) this.fitPass(W, H, mx, my, true);
     this.fitPass(W, H, mx, my, false); // lo último es meterlas en pantalla
+  }
+  // Lleva una isla al punto de pantalla (tx, ty) con Newton sobre la proyección (suelo y = 0).
+  moveTo(m, tx, ty) {
+    const p = m.root.position;
+    for (let k = 0; k < 30; k++) {
+      const s0 = this.stage.project(p.x, 0, p.z), sx = this.stage.project(p.x + 1, 0, p.z), sz = this.stage.project(p.x, 0, p.z + 1);
+      const ex = tx - s0.x, ey = ty - s0.y;
+      if (Math.abs(ex) + Math.abs(ey) < 1) break;
+      const a = sx.x - s0.x, b = sz.x - s0.x, c = sx.y - s0.y, d = sz.y - s0.y, det = a * d - b * c || 1;
+      p.x += (d * ex - b * ey) / det; p.z += (-c * ex + a * ey) / det;
+    }
   }
   fitPass(W, H, mx, my, sep) {
     for (const m of this.models) {

@@ -13,9 +13,12 @@ import { SKILLS } from '../../data/skills.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { CLIMATES } from '../../data/substrate.js';
 import { portraitURL } from '../../view/sprites.js';
+import { OUTFITS } from '../../data/outfits.js';
+import { outfitThumb } from '../../view/outfits3d.js';
+import { hasOutfit } from '../../game/economy.js';
 import { Bar, ResIcon, Cost, CloseX } from './common.js';
 
-const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'leaf' };
+const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'plant' };
 import { Icon } from '../icons.js';
 
 const Status = ({ k }) => html`<span class=${`iso-status st-${k}${STATUS[k].warn ? ' warn' : ''}`}><${Icon} name=${STATUS[k].icon} size="14" />${STATUS[k].name}</span>`;
@@ -23,7 +26,7 @@ const Dot = ({ k }) => (k == null ? null : html`<i class="badge-dot" style=${{ b
 
 export function ColonyList({ s, onClose }) {
   const home = s.game.home;
-  return html`<section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}><${CloseX} onClose=${onClose} />
+  return html`<${CloseX} onClose=${onClose} /><section class="drawer colony" aria-label=${t('home.colony', 'Colonia')}>
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
       ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
       <button class="btn small ghost" onClick=${() => { s.wantPanel = 'upgrades'; s.emit(); }}><${Icon} name="expand" size="16" />${t('upgrades.title', 'Mejoras')}</button>
@@ -38,15 +41,15 @@ export function ColonyList({ s, onClose }) {
 
 const ABIL_DESC = { strike: (a) => `${t('abil.strike', 'Golpe')} ${a.power}`, burst: (a) => `${t('abil.burst', 'Área')} ${a.power}`,
   shield: (a) => `${t('abil.shield', 'Escudo')} ${a.power}`, heal: (a) => `${t('abil.heal', 'Cura')} ${a.power}`, taunt: () => t('abil.taunt', 'Atrae enemigos') };
-const KIND_ICON = { strike: 'attack', burst: 'roll', shield: 'shield', heal: 'leaf', taunt: 'eye' };
+const KIND_ICON = { strike: 'attack', burst: 'roll', shield: 'shield', heal: 'heal', taunt: 'eye' };
 
-const WISH_ICON = { pieza: 'build', humedad: 'items', comer: 'leaf', mimo: 'heart' };
+const WISH_ICON = { pieza: 'build', humedad: 'items', comer: 'eat', mimo: 'heart' };
 const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 // Asignación: cada fila dice dónde (qué criadero, qué refugio) y al tocarla se elige la pieza concreta.
 const PICK = {
   trabajar: { icon: 'recoleccion', label: () => t('assign.work', 'Trabaja en'), test: (b) => b.produces, cap: () => Infinity, who: workersOf, cur: (iso) => iso.job },
   dormir: { icon: 'refugio', label: () => t('assign.sleep', 'Duerme en'), test: (b) => b.beds, cap: (b, p) => b.beds * lvl(p), who: sleepersOf, cur: (iso) => iso.home },
-  comer: { icon: 'leaf', label: () => t('assign.eat', 'Comer en'), test: (b) => b.feeds, cap: () => Infinity, who: () => [], cur: () => null },
+  comer: { icon: 'eat', label: () => t('assign.eat', 'Comer en'), test: (b) => b.feeds, cap: () => Infinity, who: () => [], cur: () => null },
 };
 export function PiecePicker({ s, iso, what, onDone }) {
   const home = s.game.home, k = PICK[what];
@@ -73,7 +76,7 @@ function Care({ s, iso, st, sp }) {
     ${pick && html`<${PiecePicker} s=${s} iso=${iso} what=${pick} onDone=${() => setPick(null)} />`}
     <div class="hub-actions">
       <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => s.bless(iso.id)}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
-      <button class="btn" disabled=${st === 'muda'} onClick=${() => setPick('comer')}><${Icon} name="leaf" size="18" />${t('colony.eat', 'Comer')}</button>
+      <button class="btn" disabled=${st === 'muda'} onClick=${() => setPick('comer')}><${Icon} name="eat" size="18" />${t('colony.eat', 'Comer')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'dormir')}><${Icon} name="refugio" size="18" />${t('colony.nap', 'Siesta')}</button>
       ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'tocar')}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
     </div>
@@ -83,6 +86,15 @@ function Care({ s, iso, st, sp }) {
       ${BADGES.map((c, k) => html`<button class=${`badge${iso.badge === k ? ' on' : ''}`} style=${{ '--c': c }} aria-pressed=${iso.badge === k} onClick=${() => s.badgeIso(iso.id, k)}
         aria-label=${`${t('colony.badge', 'Distintivo')} ${k + 1}`}></button>`)}
     </div>`;
+}
+
+// Armario (como el sastre de Cult of the Lamb): lo comprado se puede poner a cualquiera; tocar lo puesto lo quita.
+function Wardrobe({ s, iso }) {
+  const home = s.game.home;
+  return html`<ul class="wardrobe">${Object.entries(OUTFITS).map(([id, o]) => { const own = hasOutfit(s.game, id), on = iso.outfit === id, ok = canAfford(home, o.cost);
+    return html`<li><button class=${`outfit${on ? ' on' : ''}${own ? '' : ' locked'}`} aria-pressed=${on} title=${o.desc}
+        onClick=${() => (own ? s.wearOutfit(iso.id, id) : ok && s.buyOutfit(id) && s.wearOutfit(iso.id, id))} disabled=${!own && !ok}>
+      <img src=${outfitThumb(id)} alt="" /><b>${o.name}</b>${own ? (on ? html`<small class="ok">${t('outfit.on', 'Puesto')}</small>` : null) : html`<${Cost} cost=${o.cost} have=${home.resources} />`}</button></li>`; })}</ul>`;
 }
 
 // Ficha: especie, cifras reales (con lo aprendido) y sus habilidades de combate.
@@ -127,8 +139,8 @@ export function IsoHub({ s, onClose }) {
   if (!iso) return null;
   const sp = speciesOf(iso.shell), st = isoStatus(home, iso);
   const save = (e) => { e.preventDefault(); s.renameIso(iso.id, e.currentTarget.querySelector("input").value); setEdit(false); };
-  const TABS = [['care', t('colony.tabCare', 'Cuidar'), 'leaf'], ['sheet', t('colony.tabSheet', 'Ficha'), 'layers'], ['tree', t('colony.tabTree', 'Mudas'), 'expand']];
-  return html`<section class="drawer iso-hub" aria-label=${iso.name}><${CloseX} onClose=${onClose} />
+  const TABS = [['care', t('colony.tabCare', 'Cuidar'), 'care'], ['sheet', t('colony.tabSheet', 'Ficha'), 'layers'], ['tree', t('colony.tabTree', 'Mudas'), 'expand'], ['outfit', t('colony.tabOutfit', 'Atuendo'), 'hat']];
+  return html`<${CloseX} onClose=${onClose} /><section class="drawer iso-hub" aria-label=${iso.name}>
     <div class="hub-head">
       <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
       <div class="hub-id">
@@ -144,6 +156,6 @@ export function IsoHub({ s, onClose }) {
     <div class="loyal"><${Icon} name="heart" size="14" /><b>${t('loyal.level', 'Nivel')} ${iso.lv ?? 0}</b><${Bar} value=${iso.loyal ?? 0} max=${LOYALTY.max} kind="calm" label=${t('loyal.name', 'Lealtad')} /></div>
     <div class="tabs" role="tablist">${TABS.map(([k, label, icon]) => html`<button role="tab" aria-selected=${tab === k} class=${`tab${tab === k ? ' on' : ''}`} onClick=${() => setTab(k)}>
       <${Icon} name=${icon} size="16" />${label}${k === 'tree' && Object.keys(SKILLS).some((id) => canLearn(home, iso, id) && canAfford(home, SKILLS[id].cost)) ? html`<i class="dot" aria-hidden="true"></i>` : ''}</button>`)}</div>
-    ${tab === 'care' ? html`<${Care} s=${s} iso=${iso} st=${st} sp=${sp} />` : tab === 'sheet' ? html`<${Sheet} s=${s} iso=${iso} sp=${sp} />` : html`<${Tree} s=${s} iso=${iso} />`}
+    ${tab === 'care' ? html`<${Care} s=${s} iso=${iso} st=${st} sp=${sp} />` : tab === 'sheet' ? html`<${Sheet} s=${s} iso=${iso} sp=${sp} />` : tab === 'outfit' ? html`<${Wardrobe} s=${s} iso=${iso} />` : html`<${Tree} s=${s} iso=${iso} />`}
   </section>`;
 }
