@@ -89,9 +89,9 @@ export function CamControls({ s }) {
 
 // Textos flotantes del mundo (daño, «+1 musgo», avisos): suben y se desvanecen sobre su punto 3D.
 export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">${s.fx.map((f) => {
-  // Números de golpe (Hit Combos 4): quedan en su punto y el salto, la subida y el fundido los hace el CSS.
-  const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, (f.y ?? 1.6) + (num ? 0 : (s.time - f.at) * 1.4), f.z);
-  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`, top: `${p.y}px`, opacity: num ? null : 1 - (s.time - f.at) / 0.9 }}>${f.text}</span>`;
+  // Quedan anclados a su punto; la subida y el fundido son animación CSS (suave, no a saltos de refresco).
+  const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, f.y ?? 1.6, f.z);
+  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`, top: `${p.y}px` }}>${f.text}</span>`;
 })}</div>`;
 
 // Reloj del día (como el de Cult of the Lamb): esfera oscura con el tramo de noche en rojo, una aguja que da

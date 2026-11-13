@@ -356,11 +356,12 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .tm-member b { font: 700 22px/1 var(--hand); min-width: 90px; }
 .tactical::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); pointer-events: none; }
 .fx-layer { position: absolute; inset: 0; z-index: var(--z-fx); pointer-events: none; }
-.fx { position: absolute; transform: translate(-50%, -50%); font: 700 26px var(--hand); color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper); white-space: nowrap; animation: pop 180ms var(--ease-out); }
-.fx-enemy { font-size: 32px; color: var(--paper); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); }
-.fx-ally { font-size: 30px; color: var(--rust); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--paper); }
+.fx { position: absolute; translate: -50% -50%; font: 800 20px/1.1 var(--sans, system-ui, sans-serif); letter-spacing: 0.01em; color: var(--paper); -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 6px rgb(0 0 0 / 0.35); white-space: nowrap; animation: fx-rise 0.95s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity; }
+@keyframes fx-rise { 0% { opacity: 0; transform: translateY(6px) scale(0.85); } 14% { opacity: 1; transform: translateY(0) scale(1.06); } 26% { transform: translateY(-4px) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-42px) scale(1); } }
+.fx-enemy { font-size: 28px; color: var(--paper); }
+.fx-ally { font-size: 26px; color: #ff6a4d; }
 .fx.big { font-size: 46px; color: var(--amber); }
-.fx-note { font-size: 22px; color: var(--amber); }
+.fx-note { font-size: 18px; color: #f7d98a; }
 
 /* Cámara */
 .cam-controls { position: absolute; z-index: var(--z-hud); right: var(--gap); top: 50%; transform: translateY(-50%); display: grid; gap: 6px; }
@@ -378,7 +379,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 @keyframes boss-in { 0% { opacity: 0; transform: translate(-50%, -20px) scale(1.15); } 12%, 82% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, 0) scale(0.96); } }
 .low-hp::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); box-shadow: inset 0 0 90px 10px color-mix(in srgb, var(--rust) 70%, transparent); animation: low 1s ease-in-out infinite alternate; }
 @keyframes low { from { opacity: 0.35; } to { opacity: 0.9; } }
-.fx-gain { color: var(--moss); font-size: 24px; }
+.fx-gain { color: #9be37a; font-size: 20px; }
 
 /* Palanca */
 .stick-zone { position: absolute; z-index: var(--z-world); left: 0; top: 0; bottom: 0; width: 55%; touch-action: none; }
@@ -1043,8 +1044,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @media (prefers-reduced-motion: reduce) { .combat .member.hit, .ko-banner { animation: none; } }
 /* Números de golpe (game-feel-prompts, Hit Combos 3+4): saltan a 125 %, bajan a 100 %, suben 40 px y se apagan en 0,7 s. */
 .fx-enemy, .fx-ally { animation: dmg-num 0.7s linear forwards !important; font-variant-numeric: tabular-nums; }
-@keyframes dmg-num { 0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; } 11% { transform: translate(-50%, -60%) scale(1.25); }
-  25% { transform: translate(-50%, -75%) scale(1); } 60% { opacity: 1; } 100% { transform: translate(-50%, calc(-50% - 40px)) scale(1); opacity: 0; } }
+@keyframes dmg-num { 0% { transform: scale(0.6); opacity: 1; } 11% { transform: translateY(-6px) scale(1.25); }
+  25% { transform: translateY(-14px) scale(1); } 60% { opacity: 1; } 100% { transform: translateY(-40px) scale(1); opacity: 0; } }
 
 /* Tapa del terrario y gradiente de humedad (panel Terrario). */
 .lid-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -1201,8 +1202,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes here-pulse { 50% { translate: 0 -2px; } }
 @media (prefers-reduced-motion: reduce) { .here-tag { animation: none; } }
 /* Caída: rojo grande que tiembla y se hunde (distinto del +tiempo verde de recoger). */
-.fx-fall { font: 800 30px/1 var(--font, sans-serif); color: #ff3b1f; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); animation: fx-fall 1s ease-in forwards !important; }
-@keyframes fx-fall { 0% { scale: 1.6; } 15% { scale: 1; translate: -4px 0; } 25% { translate: 4px 0; } 35% { translate: 0 0; opacity: 1; } 100% { translate: 0 40px; opacity: 0; } }
+.fx-fall { font-size: 24px; color: #ff6a4d; animation: fx-fall 1s ease-in forwards !important; }
+@keyframes fx-fall { 0% { transform: scale(1.5); } 15% { transform: translateX(-4px); } 25% { transform: translateX(4px); } 35% { transform: none; opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
 .fx-gain { font-weight: 800; }
 .hurt-flash.fall { background: radial-gradient(ellipse at center, transparent 40%, rgb(120 10 0 / 0.55)); }
 .screen.combat ~ .tip-toast, .screen.gather ~ .tip-toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 150px); }
@@ -1210,8 +1211,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pad { align-content: center; gap: 1px; }
 .pad small { font: 700 10px/1 var(--font, sans-serif); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
 .pad.attack small { font-size: 11px; }
-.fx-love { font-size: 34px; color: #f06aa0; text-shadow: 2px 2px 0 var(--ink); animation: fx-love 1.2s ease-out forwards !important; }
-@keyframes fx-love { 0% { scale: 0.3; } 25% { scale: 1.3; } 40% { scale: 1; } 100% { translate: 0 -50px; opacity: 0; } }
+.fx-love { font-size: 30px; color: #f78fb8; animation: fx-love 1.2s ease-out forwards !important; }
+@keyframes fx-love { 0% { transform: scale(0.3); } 25% { transform: scale(1.3); } 40% { transform: scale(1); } 100% { transform: translateY(-50px); opacity: 0; } }
 /* Efecto miniatura (tilt-shift): bordes desenfocados y algo más oscuros, centro nítido; se ve algo diminuto. */
 #tiltshift { position: fixed; inset: 0; pointer-events: none; z-index: 0;
   -webkit-backdrop-filter: blur(3px) saturate(1.1); backdrop-filter: blur(3px) saturate(1.1);
