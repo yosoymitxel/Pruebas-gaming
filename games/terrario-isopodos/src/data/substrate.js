@@ -26,7 +26,7 @@ export const HUMIDITY = {
   // El sustrato no cambia de golpe: la humedad real va hacia la que piden las fuentes a este ritmo (por s).
   drift: 0.006,
   // Tapa: cerrada guarda el agua, con rejilla ventila algo, abierta seca rápido (la palanca para quitar humedad).
-  lid: [0.08, -0.04, -0.2],
+  lid: [0.08, -0.06, -0.3], // abierta seca de verdad: con lluvia y agua de más aún vuelve a lo ideal
   // Gradiente: cuánto moja cada pieza a su alrededor (radio en celdas). Un buen terrario tiene un lado húmedo y uno seco.
   local: { charca: [0.28, 3], esfagno: [0.2, 2.5], huerto: [0.06, 2], tronco: [0.06, 2], corcho: [0.04, 1.5], piedra: [-0.08, 1.5], sepia: [-0.04, 1] },
   bands: { seco: [0, 0.5], ideal: [0.45, 0.8], humedo: [0.7, 1] },

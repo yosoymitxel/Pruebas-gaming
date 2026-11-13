@@ -41,14 +41,12 @@ export function Composition({ s, say, onClose }) {
       <ul class="hum-parts">${humidityParts(home).filter((p) => p.amount).map((p) => html`<li class=${p.amount > 0 ? 'up' : 'down'}>${label(p.source)} ${signed(p.amount)}</li>`)}</ul>
     </div>
     <div class="lid-row" role="radiogroup" aria-label=${t('comp.lid', 'Tapa')}><${Icon} name="lid" size="18" />
-      ${LID_NAMES.map((n, k) => html`<button class=${`btn small${(home.lid ?? 1) === k ? ' active' : ''}${fix?.lid === k ? ' fix-target' : ''}`} role="radio" aria-checked=${(home.lid ?? 1) === k} onClick=${() => s.lid(k)}>${t(`lid.${k}`, n)}</button>`)}
+      ${LID_NAMES.map((n, k) => html`<button class=${`btn small${(home.lid ?? 1) === k ? ' active' : ''}`} role="radio" aria-checked=${(home.lid ?? 1) === k} onClick=${() => s.lid(k)}>${t(`lid.${k}`, n)}</button>`)}
       <span class="trend">${pct(h)} → ${pct(humidityTarget(home))}</span></div>
     <div class="side-row" role="radiogroup" aria-label=${t('comp.wetSide', 'Lado húmedo')}><span>${t('comp.wetSide', 'Lado húmedo')}</span>
       ${[['izq', t('comp.left', 'Izquierda')], [null, t('comp.none', 'Parejo')], ['der', t('comp.right', 'Derecha')]].map(([v, n]) => html`<button class=${`btn small${(home.wetSide ?? null) === v ? ' active' : ''}`} role="radio" aria-checked=${(home.wetSide ?? null) === v} onClick=${() => s.wetSide(v)}>${n}</button>`)}</div>
     <p class="side-help">${home.wetSide ? t('comp.sideHelp', 'Un lado queda mojado y el otro seco: cada isópodo busca el suyo.') : t('comp.sideNone', 'Todo parejo: elige un lado húmedo para que haya rincón seco y rincón mojado.')}</p>
-    ${fix && html`<p class="fix"><${Icon} name="expand" size="16" />${fix.lid != null ? html`${t('comp.fixLid', 'Tapa')} <b>${LID_NAMES[fix.lid]}</b> ` : ''}${fix.layer ? html`${t('comp.fixLayer', 'Sube')} <b>${LAYERS[fix.layer].name}</b>` : ''}
-      ${fix.pieces ? html`${t('comp.fixAdd', 'Pon')} <b>${fix.pieces.map((id) => BUILDINGS[id].name).join(' / ')}</b>` : ''}
-      ${fix.less ? html` · ${t('comp.fixLess', 'menos')} <b>${BUILDINGS[fix.less].name}</b>` : ''}</p>`}
+    ${''}
     <dl class="stats3 comp-fx">
       <div class=${tone(eff.prodMul, true)}><dt>${t('comp.prod', 'Producción')}</dt><dd>×${eff.prodMul.toFixed(2)}</dd></div>
       <div class=${tone(eff.hungerMul, false)}><dt>${t('comp.hunger', 'Hambre')}</dt><dd>×${eff.hungerMul.toFixed(2)}</dd></div>
