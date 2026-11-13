@@ -14,6 +14,8 @@ import * as Orb from '../vendor/polyfork/garden-orb-weaver-b32844.mjs';
 import * as Worm from '../vendor/polyfork/earthworm-4a0bde.mjs';
 import * as Snail from '../vendor/polyfork/snail-base.mjs';
 import { SPECIES } from '../data/species.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const segadorURL = new URL('../../assets/models/el-segador.glb', import.meta.url).href; // Vite lo empaqueta; en Node no se carga
 import { attachOutfit } from './outfits3d.js';
 
 let renderer = null;
@@ -84,8 +86,16 @@ const FOES = {
 export const FOE_MODELS = Object.keys(FOES);
 
 // Élites y jefes (antes ilustraciones planas): mismos modelos del kit, grandes y con color de pesadilla.
+// Jefes sacados de los dibujos del dueño (art/aberraciones) con Hunyuan3D-2 y simplificados con gltf-transform.
+// Se cargan al arrancar; mientras tanto (o si falla) se usa el modelo del kit de debajo.
+const DRAWN = {};
+const tint = (g, hex) => { g.traverse((o) => { if (o.isMesh) o.material = new THREE.MeshLambertMaterial({ color: hex, flatShading: true }); }); return g; };
+if (typeof document !== 'undefined') for (const [k, url, hex] of [['el-segador.webp', segadorURL, 0x5b4636]]) {
+  new GLTFLoader().loadAsync(url).then((gl) => { DRAWN[k] = tint(gl.scene, hex); }).catch(() => {});
+}
+const drawn = (k, fallback) => () => (DRAWN[k] ? DRAWN[k].clone(true) : fallback());
 const ELITES = {
-  'el-segador.webp': () => Stag.createAsset({ colorway: 'ebony', mandibles: 1.2 }),
+  'el-segador.webp': drawn('el-segador.webp', () => Stag.createAsset({ colorway: 'ebony', mandibles: 1.2 })),
   'el-bufon.webp': () => Orb.createAsset({ abdomen: '#d9cfe0', folium: '#5a2e6a', marks: '#f2ebdf', carapace: '#c9b8d4', legs: '#8a7a96', bands: '#3a2440', tips: '#1a1020', size: 1.4 }),
   'la-gemela.webp': () => Tarantula.createAsset({ body: '#d8d0c0', abdomen: '#e6dfd0', band: '#7a1f2a', tips: '#2a2420', size: 1.5 }),
   'el-comensal.webp': () => Worm.createAsset({ skin: '#8a6f6a', saddle: '#b08a80', mouth: '#3a0f12', girth: 1.2, swell: 1, length: 1.25 }),
