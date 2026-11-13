@@ -248,9 +248,10 @@ function tickEnemy(c, e, dt) {
     emit(c, 'telegraph', { id: e.id, kind: at.kind });
     return;
   }
-  const keep = e.r + target.r + 0.6;
-  e.vx = d > keep ? ((target.x - e.x) / d) * def.speed : 0;
-  e.vy = d > keep ? ((target.y - e.y) / d) * def.speed : 0;
+  const keep = e.r + target.r + 0.6, k = Math.min(1, dt * 12); // acelera y frena suave (no a tirones)
+  const gx = d > keep ? ((target.x - e.x) / d) * def.speed : 0;
+  const gy = d > keep ? ((target.y - e.y) / d) * def.speed : 0;
+  e.vx += (gx - e.vx) * k; e.vy += (gy - e.vy) * k;
 }
 
 function usable(c, e, at, d, target) {

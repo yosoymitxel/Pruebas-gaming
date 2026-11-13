@@ -603,8 +603,8 @@ export class CombatView {
         }
       } else {
         const def = ABERRATIONS[a.kind], wind = a.state === 'windup';
-        const sway = a.staggered > 0 ? Math.sin(time * 20) * 0.08 : wind ? Math.sin(time * 30) * 0.05 : 0;
-        const squash = wind ? 0.9 + Math.sin(time * 30) * 0.02 : a.state === 'recover' ? 1.06 : breathe * (1 - f * 0.12);
+        const sway = a.staggered > 0 ? Math.sin(time * 12) * 0.06 : wind ? Math.sin(time * 16) * 0.04 : 0;
+        const squash = wind ? 0.9 + Math.sin(time * 16) * 0.02 : a.state === 'recover' ? 1.06 : breathe * (1 - f * 0.12);
         list.push({ id: a.id, sprite: def.sprite, x: a.x + sway, z: a.y, height: def.height, squash, flip: Math.cos(a.facing) < 0, face: a.facing, tint: [0.16, 0.02, 0.02],
           flash: Math.max(f, a.staggered > 0 ? 0.35 : 0) });
       }

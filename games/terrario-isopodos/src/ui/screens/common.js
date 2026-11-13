@@ -88,11 +88,25 @@ export function CamControls({ s }) {
 }
 
 // Textos flotantes del mundo (daño, «+1 musgo», avisos): suben y se desvanecen sobre su punto 3D.
-export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">${s.fx.map((f) => {
-  // Quedan anclados a su punto; la subida y el fundido son animación CSS (suave, no a saltos de refresco).
-  const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, f.y ?? 1.6, f.z);
-  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`, top: `${p.y}px` }}>${f.text}</span>`;
-})}</div>`;
+// Textos flotantes: la subida y el fundido son CSS; la posición se recoloca en cada fotograma (si fuera al ritmo
+// del HUD, unos 12 por segundo, el texto iría a saltos al moverse la cámara).
+export function FxLayer({ s }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    let raf;
+    const place = () => {
+      for (const el of ref.current?.children ?? []) {
+        const f = s.fx.find((x) => String(x.id) === el.dataset.id); if (!f) continue;
+        const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, f.y ?? 1.6, f.z);
+        el.style.left = `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`; el.style.top = `${p.y}px`;
+      }
+      raf = requestAnimationFrame(place);
+    };
+    place();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return html`<div class="fx-layer" ref=${ref} aria-hidden="true">${s.fx.map((f) => { const p = s.stage.project(f.x, f.y ?? 1.6, f.z); return html`<span key=${f.id} data-id=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px` }}>${f.text}</span>`; })}</div>`;
+}
 
 // Reloj del día (como el de Cult of the Lamb): esfera oscura con el tramo de noche en rojo, una aguja que da
 // la vuelta con el reloj (0 = amanecer, arriba) y el número de día.

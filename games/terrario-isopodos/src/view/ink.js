@@ -53,7 +53,7 @@ export function createInkPass() {
         float dark = 1. - lum(col);
         vec2 cellPx = gl_FragCoord.xy / (3. * dpr);
         vec2 cell = floor(cellPx);
-        float h = hash(cell + floor(time * 8.) * step(.5, gloom) * 7.);
+        float h = hash(cell); // punteado fijo: sin parpadeo a saltos
         vec2 f = fract(cellPx) - .5;
         // Punteado solo en las sombras hondas; en la base casi nada (el color manda), en el nido más.
         float dotMask = step(length(f), .32) * step(h, pow(max(dark - .62, 0.), 1.2) * 2.6) * (1. - blur * .6) * mix(.35, .45, gloom);

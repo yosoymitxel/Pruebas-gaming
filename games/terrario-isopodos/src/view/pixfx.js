@@ -1,6 +1,6 @@
 // Efectos de píxel de pixelfx dentro del diorama: cada uno se dibuja en su propio lienzo (tamaño del efecto),
 // sube como textura sin suavizado y va en un sprite del mundo, encima del pase de tinta (no lo ensucia).
-// Se redibuja a los fps del efecto, no a los del juego: el paso se nota como en el pixel art.
+// Se redibuja en cada fotograma del juego (fluido, sin saltos).
 import * as THREE from 'three';
 import { createFrame, clearFrame, createFx, composite } from '../vendor/pixelfx/core/fx.js';
 import { PIXEL_VFX } from '../data/vfx.js';
@@ -30,7 +30,7 @@ export class PixelFx {
     sprite.position.set(x, y + (def.lift ?? 0), z);
     this.scene.add(sprite);
     const fx = createFx(mod, { x: ox, y: oy, seed: Math.floor(Math.random() * 1e6), ...(def.palette && { palette: def.palette }), ...extra });
-    this.live.push({ fx, frame, img, tex, sprite, life: def.life ?? Infinity, step: 1 / (mod.meta.fps ?? 30), acc: Infinity });
+    this.live.push({ fx, frame, img, tex, sprite, life: def.life ?? Infinity, step: 0, acc: Infinity });
   }
 
   update(dt) {

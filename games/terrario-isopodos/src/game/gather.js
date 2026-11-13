@@ -18,7 +18,7 @@ const CHAIN = { window: 2, bonus: 0.4 }; // recoger seguido: cada eslabón desde
 // Nivel de altura de cada celda según la forma: null = hueco.
 function terrain(shape, rng) {
   const c = SIDE / 2, lv = new Array(SIDE * SIDE).fill(null), seedA = rng() * 6.28;
-  if (shape === 'sendero') return path(rng, seedA);
+  if (shape === 'sendero') return path(rng);
   for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) {
     const x = i + 0.5 - c, y = j + 0.5 - c, d = Math.hypot(x, y), a = Math.atan2(y, x);
     const rim = 6.4 + Math.sin(a * 3 + seedA) * 0.7;
@@ -41,15 +41,16 @@ function terrain(shape, rng) {
 
 // Sendero (como un nivel de Crash Bandicoot): de abajo hacia el fondo, tres celdas de ancho que serpentean;
 // sube escalones cada pocas filas, filas vacías que hay que saltar y algún recoveco lateral con premio.
-function path(rng, seedA) {
+function path(rng) {
   const lv = new Array(SIDE * SIDE).fill(null);
-  let h = 0;
+  let h = 0, cx = 7;
   for (let j = SIDE - 1; j >= 0; j--) {
-    const row = SIDE - 1 - j, cx = Math.round(SIDE / 2 - 0.5 + Math.sin(row * 0.55 + seedA) * 3);
-    if (row > 2 && row < SIDE - 2 && row % 4 === 2) continue; // hueco: fila entera al vacío (se salta)
-    if (row > 1 && row % 4 === 0 && h < 3) h++; // escalón hacia arriba
-    for (let i = cx - 1; i <= cx + 1; i++) if (i >= 0 && i < SIDE) lv[j * SIDE + i] = h;
-    if (row % 5 === 3) { const side = rng() < 0.5 ? cx - 2 : cx + 2; if (side >= 0 && side < SIDE) lv[j * SIDE + side] = h; } // recoveco
+    const row = SIDE - 1 - j;
+    if (row > 2 && row < SIDE - 2 && row % 4 === 2) continue; // hueco: fila entera al vacío; se salta en línea recta
+    if (row > 0 && (row - 1) % 4 !== 2) cx = Math.max(2, Math.min(12, cx + Math.floor(rng() * 3) - 1)); // serpentea de a una celda (siempre se solapa)
+    if (row > 1 && row % 4 === 0 && h < 3) h++; // escalón: se sube de a uno
+    for (let i = cx - 1; i <= cx + 1; i++) lv[j * SIDE + i] = h;
+    if (row % 5 === 3) { const side = rng() < 0.5 ? cx - 2 : cx + 2; lv[j * SIDE + side] = h; } // recoveco
   }
   return lv;
 }
@@ -71,12 +72,20 @@ export function newGather(island) {
     }
     return null;
   };
-  for (let k = 0; k < 4; k++) { const p = free(); if (p) place(grid, 'piedra', Math.floor(p.x), Math.floor(p.y)); }
+  if (shape !== 'sendero') for (let k = 0; k < 4; k++) { const p = free(); if (p) place(grid, 'piedra', Math.floor(p.x), Math.floor(p.y)); } // en el sendero tapaban el paso
   reach = reachable(levels, grid, start); // las piedras pueden cortar algún paso
   const biome = BIOMES[island.biome], top = Math.max(...cells.filter((c) => reach.has(c.j * SIDE + c.i)).map((c) => c.h));
   const nodes = [];
   // Recursos repartidos por alturas; en lo más alto, ámbar (el premio por trepar).
-  for (let k = 0; k < 14; k++) { const p = free(k < 5 ? Math.min(top, 2) : 0); if (p) nodes.push({ id: k, ...p, res: pickFrom(rng, biome.loot), taken: false }); }
+  if (shape === 'sendero') {
+    // repartidos a lo largo: uno o dos por fila alcanzable, desde el principio hasta el final
+    const byRow = new Map();
+    for (const k of reach) { const j = Math.floor(k / SIDE); if (j === start.j) continue; (byRow.get(j) ?? byRow.set(j, []).get(j)).push(k); }
+    let id = 0;
+    for (const [, ks] of [...byRow].sort((a, b) => b[0] - a[0])) {
+      for (let n = 0; n < Math.min(ks.length, rng() < 0.5 ? 2 : 1); n++) { const k = ks.splice(Math.floor(rng() * ks.length), 1)[0], i = k % SIDE, j = Math.floor(k / SIDE); nodes.push({ id: id++, x: i + 0.5, y: j + 0.5, h: levels[k], res: pickFrom(rng, biome.loot), taken: false }); }
+    }
+  } else for (let k = 0; k < 14; k++) { const p = free(k < 5 ? Math.min(top, 2) : 0); if (p) nodes.push({ id: k, ...p, res: pickFrom(rng, biome.loot), taken: false }); }
   for (let k = 0; k < 2; k++) { const p = free(top); if (p) nodes.push({ id: 100 + k, ...p, res: 'ambar', taken: false }); }
   // Diseño validado: solo se deja lo que se puede alcanzar andando y saltando desde el inicio.
   const ok = (p) => p && reach.has(Math.floor(p.y) * SIDE + Math.floor(p.x));
