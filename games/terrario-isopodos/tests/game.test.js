@@ -381,3 +381,14 @@ test('economía (CotL): el mercader viene cada tres días con ofertas fijas por 
   assert.equal(R.newRun(g.home, isl, ids, 0, { upgrades: g.upgrades }).weaponOffer.length, 3, 'con el armero se elige entre tres');
   assert.equal(R.newRun(g.home, isl, ids, 0, { robe: 'destino' }).cards.length, 4, 'el manto del destino da cuatro cartas');
 });
+
+test('sendero: en 200 semillas se llega al final y todos los recursos son alcanzables', async () => {
+  const { reachable } = await import('../src/game/gather.js');
+  for (let seed = 1; seed <= 200; seed++) {
+    const g = newGather({ seed, biome: 'hojarasca', weather: 'claro', kind: 'recoleccion' });
+    const reach = reachable(g.levels, g.grid, { i: Math.floor(g.player.x), j: Math.floor(g.player.y) });
+    const open = g.levels.map((h, k) => (h !== null ? k : -1)).filter((k) => k >= 0), end = Math.min(...open.map((k) => Math.floor(k / g.side)));
+    assert.ok([...reach].some((k) => Math.floor(k / g.side) === end), `semilla ${seed}: se llega al final`);
+    assert.ok(g.nodes.length >= 8 && g.nodes.every((n) => reach.has(Math.floor(n.y) * g.side + Math.floor(n.x))), `semilla ${seed}: recursos alcanzables`);
+  }
+});

@@ -633,7 +633,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item):nth-child(3n+2) { --qa: var(--q3); --qb: var(--q4); }
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item):nth-child(3n) { --qa: var(--q4); --qb: var(--q1); }
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled) { --qa: var(--q2); --qb: var(--q3); }
-:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::before { translate: 2px 2px; animation: jolt 300ms steps(3); }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::before { translate: 2px 2px; animation: jolt 300ms ease-out; }
 @keyframes jolt { 0% { clip-path: var(--q1); } 33% { clip-path: var(--q4); } 66% { clip-path: var(--q2); } 100% { clip-path: var(--qa); } }
 .btn:active:not(:disabled) { transform: scale(0.96); }
 .btn { transition: transform 160ms var(--ease-out); }
@@ -922,7 +922,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item, .tab.on, .slot, .pause-btn)::before { clip-path: var(--qb) !important; inset: 0 !important; translate: 2px 2px; }
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item, .tab.on, .slot, .pause-btn)::after { inset: 0 2px 2px 0 !important; box-shadow: inset 0 0 0 1px rgb(29 26 22 / 0.35); }
 :is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::before { translate: 3px 3px; animation: none; }
-:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::after { animation: jolt 260ms steps(2); }
+:is(.btn, .card-btn, .iso-card, .skill, .menu-item, .pause-btn):is(:hover, :focus-visible):not(:disabled)::after { animation: jolt 260ms ease-out; }
 .card-btn, .iso-card, .skill { --slab: rgb(29 26 22 / 0.45); }
 .btn.ghost { --slab: rgb(29 26 22 / 0.3); }
 .slot { --slab: rgb(29 26 22 / 0.2); }
