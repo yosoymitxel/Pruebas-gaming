@@ -92,7 +92,7 @@ export class InteriorView {
       const sm = this.home.sermon, k = sm ? 1 - sm.t / (sm.total ?? 7) : 1;
       isos.forEach((iso, i) => {
         const a = (i / isos.length) * Math.PI * 2 + 0.3, d = 2.3, hop = sm ? Math.abs(Math.sin(time * 5 + i)) * 0.18 : 0;
-        list.push({ id: `a${iso.id}`, sprite: `iso:${iso.shell}`, x: Math.cos(a) * d, z: Math.sin(a) * d, height: iso.baby > 0 ? 0.5 : 0.85, lift: hop, squash: 1 + hop * 0.5, face: a + Math.PI, ...look(iso) });
+        list.push({ id: `a${iso.id}`, sprite: `iso:${iso.shell}`, x: Math.cos(a) * d, z: Math.sin(a) * d, height: iso.baby > 0 ? 0.6 : 1.05, lift: hop, squash: 1 + hop * 0.5, face: a + Math.PI, ...look(iso) });
       });
       this.gem.rotation.y = time * (sm ? 2.5 : 0.5); this.gem.position.y = 0.5 + Math.sin(time * 2) * 0.06;
       this.halo.scale.setScalar(sm ? 1.1 - k * 0.4 : 1); this.halo.material.opacity = sm ? 0.5 + Math.sin(time * 6) * 0.3 : 0.25;
@@ -101,7 +101,7 @@ export class InteriorView {
       const p = this.home.grid.pieces[this.pieceId], mine = p ? isos.filter((i) => i.bed === p.id || i.home === p.id || sleepersOf(this.home, p).includes(i)) : [];
       mine.slice(0, this.beds.length).forEach((iso, i) => {
         const b = this.beds[i], asleep = iso.rest > 0;
-        list.push({ id: `b${iso.id}`, sprite: `${asleep ? 'ball' : 'iso'}:${iso.shell}`, x: b.x, z: b.z, y: 0.35, height: asleep ? 0.6 : 0.85, squash: asleep ? 1 + Math.sin(time * 1.3 + i) * 0.05 : 1, face: b.a + Math.PI, ...(asleep ? {} : look(iso)) });
+        list.push({ id: `b${iso.id}`, sprite: `${asleep ? 'ball' : 'iso'}:${iso.shell}`, x: b.x, z: b.z, y: 0.35, height: asleep ? 0.8 : 1.15, squash: asleep ? 1 + Math.sin(time * 1.3 + i) * 0.05 : 1, face: b.a + Math.PI, ...(asleep ? {} : look(iso)) });
         if (asleep) { const u = (time * 0.4 + i * 0.33) % 1; list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', x: b.x, z: b.z, height: 0.3 + u * 0.12, lift: 0.9 + u * 0.8, alpha: 1 - u }); }
       });
     }

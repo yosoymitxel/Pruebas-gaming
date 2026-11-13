@@ -248,7 +248,7 @@ export class HomeView extends GridScene {
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
     // Color elegido en la ficha: tiñe el caparazón (el modelo 3D) en vez de un banderín.
-    this.home.isopods.forEach((iso, k) => { if (!list[k]) return; if (iso.badge != null) list[k].paint = BADGES[iso.badge]; if (iso.outfit) list[k].outfit = iso.outfit; });
+    this.home.isopods.forEach((iso, k) => { if (!list[k]) return; if (iso.badge != null) list[k].paint = BADGES[iso.badge]; if (iso.outfit && list[k].sprite?.startsWith('iso:')) list[k].outfit = iso.outfit; });
     for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
       l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
       const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
