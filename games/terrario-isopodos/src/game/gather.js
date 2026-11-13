@@ -9,7 +9,7 @@ import { box } from '../core/physics.js';
 
 export const GATHER_TIME = 45;
 export const LEVEL_H = 0.5; // alto de un escalón en el mundo
-const SIDE = 15, SPEED = 3.6, ACCEL = 28, AIR_ACCEL = 14, PICK = 0.7, FALL_COST = 2.5;
+const SIDE = 15, SPEED = 3.6, ACCEL = 28, AIR_ACCEL = 14, PICK = 0.7, FALL_COST = 4;
 // Salto de plataformas: subida rápida, caída más pesada, altura según cuánto se mantiene el botón,
 // margen tras salir del borde (coyote) y pulsación recordada justo antes de tocar suelo (buffer).
 const JUMP = { v: 6.2, g: 20, fallMul: 1.7, cut: 0.45, coyote: 0.1, buffer: 0.13 };
@@ -134,7 +134,7 @@ export function tickGather(g, dt, move = {}, jump = false, held = true) {
     p.air = true;
     p.vz -= JUMP.g * (p.vz < 0 ? JUMP.fallMul : 1) * dt; p.z += p.vz * dt;
     if (ground !== null && p.z <= ground * LEVEL_H) { p.z = ground * LEVEL_H; p.vz = 0; p.air = false; }
-    else if (ground === null && p.z < -0.6) { p.falling = 0.5; g.falls++; g.time = Math.max(0, g.time - FALL_COST); }
+    else if (ground === null && p.z < -0.6) { p.falling = 0.5; g.falls++; g.time = Math.max(0, g.time - FALL_COST); g.chain.n = 0; g.chain.t = 0; }
   }
   if (!p.air && ground !== null) p.safe = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5, z: p.z };
   for (const n of g.nodes) {

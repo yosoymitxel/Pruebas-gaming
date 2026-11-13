@@ -13,6 +13,7 @@
 </head>
 <body>
   <div id="stage" aria-hidden="true"></div>
+  <div id="tiltshift" aria-hidden="true"></div>
   <div id="ui"><p class="boot">Cargando el terrario…</p></div>
   <!-- Si el módulo no llega a arrancar (navegador viejo, error de red), se dice en vez de quedar en blanco. -->
   <script>setTimeout(function () { if (!window.__terrario) { var b = document.querySelector('#ui .boot'); if (b) b.textContent = 'El juego no pudo arrancar en este navegador. Prueba a recargar o con Chrome/Firefox actualizados.'; } }, 12000);</script>

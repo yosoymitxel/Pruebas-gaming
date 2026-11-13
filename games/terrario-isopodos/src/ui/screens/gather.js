@@ -11,6 +11,7 @@ export function Gather({ s }) {
   return html`<main class="screen gather">
     <${Stick} />
     <${FxLayer} s=${s} />
+    ${s.hurtAt && s.time - s.hurtAt < 0.45 && html`<div class="hurt-flash fall" aria-hidden="true"></div>`}
     <${CamControls} s=${s} />
     <header class="hud-top">
       <div class="title-block"><span class="kicker">${GATHER_SHAPES[g.shape].name} · ${WEATHERS[g.island.weather].name}</span><h2>${BIOMES[g.island.biome].name}</h2></div>

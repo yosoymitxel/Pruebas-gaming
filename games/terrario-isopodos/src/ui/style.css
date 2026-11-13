@@ -1118,12 +1118,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .marker.m-merchant { --mk: var(--amber); width: 40px; height: 40px; margin: -44px 0 0 -20px; }
 
 /* Consejo de primera vez: tira de papel que entra desde arriba con un tirón, y se va sola. */
-.tip-toast { position: fixed; z-index: var(--z-modal, 50); top: calc(env(safe-area-inset-top, 0px) + 74px); left: 50%; translate: -50% 0; width: min(92vw, 420px);
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--paper); color: var(--ink); border-left: 4px solid #1d6e68;
-  clip-path: polygon(0 0, 100% 4%, 98% 100%, 1% 96%); box-shadow: 0 6px 18px rgb(0 0 0 / 0.35); font-size: 14px; line-height: 1.3;
-  animation: tip-in 420ms cubic-bezier(.2,1.5,.4,1) both, tip-out 400ms ease-in 5.1s forwards; cursor: pointer; }
-@keyframes tip-in { from { opacity: 0; transform: translateY(-24px) rotate(-2deg); } to { opacity: 1; transform: none; } }
-@keyframes tip-out { to { opacity: 0; transform: translateY(-12px); } }
+.tip-toast { position: fixed; z-index: var(--z-modal, 50); bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 76px); left: 50%; translate: -50% 0; width: min(92vw, 420px);
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; background: color-mix(in srgb, var(--ink) 92%, transparent); color: var(--paper); border-radius: 14px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.35); font-size: 14px; line-height: 1.3; backdrop-filter: blur(4px);
+  animation: tip-in 380ms var(--ease-out) both, tip-out 400ms ease-in 5.1s forwards; cursor: pointer; }
+.tip-toast > svg { flex: none; width: 34px; height: 34px; padding: 7px; border-radius: 50%; background: var(--amber); color: var(--ink); }
+.screen:has(.drawer) ~ .tip-toast, .screen:has(.drawer.center) ~ .tip-toast { display: none; }
+@keyframes tip-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes tip-out { to { opacity: 0; transform: translateY(12px); } }
 @media (prefers-reduced-motion: reduce) { .tip-toast { animation: none; } }
 
 /* Nexos: cortinillas entre secciones. Isla: iris que se abre; nido: descenso a oscuras; combate: dos franjas que
@@ -1171,3 +1173,45 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .trade.sold { opacity: 0.5; }
 .trades .trade .btn { margin: 0; }
 .badges-t { width: 100%; margin: 4px 0 0; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; }
+/* Asignación bilateral (ficha del isópodo y ficha de la pieza). */
+.assign { display: grid; gap: 6px; width: 100%; }
+.assign-row { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border: var(--line); border-radius: var(--chip, 6px); background: var(--ui-bg-2, #f3ead6); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.assign-row b { justify-self: end; }
+.assign-row.on { box-shadow: inset 3px 0 0 var(--ui-accent, #13706f); }
+.assign-row .chev { opacity: 0.5; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+.pick-list .btn { width: 100%; justify-content: flex-start; gap: 8px; }
+.pick-list .btn small { margin-left: auto; opacity: 0.7; }
+.pick-list img, .as-chip img { width: 28px; height: 20px; object-fit: contain; }
+.wish-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wish-line > span { display: grid; flex: 1; }
+.wish-line .why { opacity: 0.7; }
+.assigned { width: 100%; display: grid; gap: 8px; }
+.as-row > small { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; margin-bottom: 4px; }
+.as-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.as-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: var(--line); border-radius: 999px; background: var(--paper); color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+.as-chip span { opacity: 0.5; }
+.as-chip.add { border-style: dashed; }
+.as-chip.on { background: var(--ink); color: var(--paper); }
+.piece-card .pc-head { padding-right: 44px; }
+.here-tag { display: block; margin-top: 2px; padding: 2px 8px; background: #f2c14e; color: var(--ink); font: 700 11px/1.3 var(--font, sans-serif); text-transform: uppercase; letter-spacing: 0.08em; border-radius: 999px; animation: here-pulse 1.6s ease-in-out infinite; }
+@keyframes here-pulse { 50% { translate: 0 -2px; } }
+@media (prefers-reduced-motion: reduce) { .here-tag { animation: none; } }
+/* Caída: rojo grande que tiembla y se hunde (distinto del +tiempo verde de recoger). */
+.fx-fall { font: 800 30px/1 var(--font, sans-serif); color: #ff3b1f; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); animation: fx-fall 1s ease-in forwards !important; }
+@keyframes fx-fall { 0% { scale: 1.6; } 15% { scale: 1; translate: -4px 0; } 25% { translate: 4px 0; } 35% { translate: 0 0; opacity: 1; } 100% { translate: 0 40px; opacity: 0; } }
+.fx-gain { font-weight: 800; }
+.hurt-flash.fall { background: radial-gradient(ellipse at center, transparent 40%, rgb(120 10 0 / 0.55)); }
+.screen.combat ~ .tip-toast, .screen.gather ~ .tip-toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 150px); }
+/* Botones de combate con su nombre debajo del icono: se entiende qué hace cada uno. */
+.pad { align-content: center; gap: 1px; }
+.pad small { font: 700 10px/1 var(--font, sans-serif); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.pad.attack small { font-size: 11px; }
+.fx-love { font-size: 34px; color: #f06aa0; text-shadow: 2px 2px 0 var(--ink); animation: fx-love 1.2s ease-out forwards !important; }
+@keyframes fx-love { 0% { scale: 0.3; } 25% { scale: 1.3; } 40% { scale: 1; } 100% { translate: 0 -50px; opacity: 0; } }
+/* Efecto miniatura (tilt-shift): bordes desenfocados y algo más oscuros, centro nítido; se ve algo diminuto. */
+#tiltshift { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  -webkit-backdrop-filter: blur(3px) saturate(1.1); backdrop-filter: blur(3px) saturate(1.1);
+  -webkit-mask: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 58%, #000 100%); mask: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 58%, #000 100%);
+  background: radial-gradient(ellipse 62% 58% at 50% 48%, transparent 70%, rgb(0 0 0 / 0.18)); }
+@media (min-aspect-ratio: 1/1) { #tiltshift { -webkit-mask: linear-gradient(90deg, #000, transparent 24% 76%, #000); mask: linear-gradient(90deg, #000, transparent 24% 76%, #000), linear-gradient(#000, transparent 18% 82%, #000); } }
