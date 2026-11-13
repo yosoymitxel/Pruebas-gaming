@@ -9,7 +9,7 @@ export const WEAPONS = localize('weapons', {
   pinza: { name: 'Pinza', desc: 'Equilibrada: tres golpes.', icon: 'pincer', reach: 1.25, arc: 1.1,
     combo: [{ windup: 0.12, recover: 0.16, mul: 1 }, { windup: 0.12, recover: 0.16, mul: 1.1 }, { windup: 0.2, recover: 0.4, mul: 1.8 }] },
   mandibula: { name: 'Mandíbula', desc: 'Lenta y amplia: pega fuerte.', icon: 'jaws', reach: 1.6, arc: 1.6,
-    combo: [{ windup: 0.24, recover: 0.3, mul: 2 }, { windup: 0.24, recover: 0.3, mul: 2 }, { windup: 0.34, recover: 0.55, mul: 2.8 }] },
+    combo: [{ windup: 0.26, recover: 0.32, mul: 1.8 }, { windup: 0.26, recover: 0.32, mul: 1.8 }, { windup: 0.36, recover: 0.55, mul: 2.5 }] },
   aguijon: { name: 'Aguijón', desc: 'Rapidísimo: cinco pinchazos cortos.', icon: 'sting', reach: 0.95, arc: 0.8,
     combo: [0, 1, 2, 3].map(() => ({ windup: 0.06, recover: 0.08, mul: 0.42 })).concat([{ windup: 0.1, recover: 0.28, mul: 1 }]) },
   garras: { name: 'Garras', desc: 'Dos toques y un tercero que revienta.', icon: 'claws', reach: 1.1, arc: 1.2,

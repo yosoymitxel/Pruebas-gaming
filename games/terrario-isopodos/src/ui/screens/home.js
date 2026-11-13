@@ -178,7 +178,7 @@ export function Home({ s }) {
     ${panel === 'merchant' && html`<${Merchant} s=${s} onClose=${() => setPanel(null)} />`}
     ${panel === 'upgrades' && html`<${Upgrades} s=${s} onClose=${() => setPanel(null)} />`}
 
-    ${s.selIso != null ? html`<${IsoHub} s=${s} onClose=${() => s.selectIso(null)} />` : panel === 'colony' && html`<${ColonyList} s=${s} onClose=${() => setPanel(null)} />`}
+    ${s.selIso != null ? !s.hubHidden && html`<${IsoHub} s=${s} onClose=${() => s.selectIso(null)} />` : panel === 'colony' && html`<${ColonyList} s=${s} onClose=${() => setPanel(null)} />`}
 
     <nav class="hud-bottom">
       <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> <span>${t('home.build', 'Construir')}</span></button>

@@ -196,7 +196,7 @@ export class Session {
     }
     const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
     // Primer toque: lo selecciona (la cámara lo sigue y sale su ficha); tocarlo otra vez lo asusta.
-    if (iso && this.selIso !== iso.id) { this.selectIso(iso.id); return { selected: iso.id }; }
+    if (iso && (this.selIso !== iso.id || this.hubHidden)) { this.selectIso(iso.id); return { selected: iso.id }; }
     if (iso) {
       const what = poke(home, iso, cell), w = this.view.toWorld(iso.x, iso.y);
       this.sfx(what === 'ball' ? 'roll' : 'click');
@@ -247,12 +247,16 @@ export class Session {
     return { res: BUILDINGS[piece.type].produces.res, n };
   }
   selectIso(id) {
-    this.selIso = id ?? null; this.selPiece = null;
+    // Al elegir se acerca (sin alejar si ya estabas más cerca); al soltar vuelve al zoom que tenías.
+    if (id != null && this.selIso == null) this.prevZoom = this.stage.zoomK;
+    this.selIso = id ?? null; this.selPiece = null; this.hubHidden = false;
     if (this.view) this.view.selIso = this.selIso;
-    this.stage.zoomK = 1; if (id != null) this.stage.zoom(0.62);
-    else this.stage.frame(this.view.camera.target, this.view.camera.distance, this.view.camera.fit);
+    if (id != null) { this.stage.zoomK = Math.min(this.stage.zoomK, 0.62); this.stage.frame([this.stage.target.x, this.stage.target.z], this.stage.distance, this.stage.fit); }
+    else { this.stage.zoomK = this.prevZoom ?? this.stage.zoomK; this.stage.frame([this.stage.target.x, this.stage.target.z], this.stage.distance, this.stage.fit); }
     this.sfx('click'); this.emit();
   }
+  // Esconde la ficha para ver la acción de cerca; la cámara sigue al isópodo. Tocarlo otra vez la abre.
+  hideHub() { this.hubHidden = true; this.emit(); }
   // Consejos de primera vez (src/data/tips.js): uno cada vez, 5 s en pantalla; se guardan para no repetirlos.
   tips() {
     if (this.settings.tips === false || (this.tip && this.time - this.tip.at < 6)) return;

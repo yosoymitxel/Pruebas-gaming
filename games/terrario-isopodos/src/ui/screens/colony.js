@@ -65,20 +65,21 @@ function Care({ s, iso, st, sp }) {
   const [pick, setPick] = useState(null);
   const where = (id) => (id != null && home.grid.pieces[id] ? BUILDINGS[home.grid.pieces[id].type].name : null);
   // Cada petición con su acción directa (qué hacer y dónde).
-  const act = w && { humedad: html`<button class="btn small primary" onClick=${() => s.orderIso(iso.id, 'humedad')}>${t('wish.goWet', 'Llevar a su humedad')}</button>`,
+  const act = w && { humedad: html`<button class="btn small primary" onClick=${() => { s.orderIso(iso.id, 'humedad'); s.hideHub(); }}>${t('wish.goWet', 'Llevar a su humedad')}</button>`,
     comer: html`<button class="btn small primary" onClick=${() => setPick('comer')}>${t('wish.feed', 'Dar de comer')}</button>`,
     mimo: html`<button class="btn small primary" disabled=${!canBless(iso, day)} onClick=${() => s.bless(iso.id)}>${t('colony.bless', 'Mimo')}</button>`,
     pieza: html`<button class="btn small primary" onClick=${() => { s.selectIso(null); s.wantPanel = 'build'; s.emit(); }}>${t('wish.build', 'Construir')}</button>` }[w.kind];
   return html`
     ${w && html`<div class="wish-line"><${Icon} name=${WISH_ICON[w.kind]} size="16" /><span>${WISHES.kinds[w.kind].name}${w.piece ? html` <b>${BUILDINGS[w.piece].name}</b>` : ''}${w.kind === 'humedad' ? html`<small class="why">${t('wish.wetWhy', 'Busca un sitio')} ${CLIMATES[sp.humidity].name.toLowerCase()}</small>` : ''}</span><small>${mmss(w.t)}</small>${act}</div>`}
-    <div class="assign">${['trabajar', 'dormir'].map((k) => html`<button class=${`assign-row${pick === k ? ' on' : ''}`} onClick=${() => setPick(pick === k ? null : k)}>
-      <${Icon} name=${PICK[k].icon} size="18" /><span>${PICK[k].label()}</span><b>${where(PICK[k].cur(iso)) ?? t('assign.free', 'Sin asignar')}</b><span class="chev" aria-hidden="true">▾</span></button>`)}</div>
-    ${pick && html`<${PiecePicker} s=${s} iso=${iso} what=${pick} onDone=${() => setPick(null)} />`}
+    <div class="assign">${['trabajar', 'dormir'].map((k) => html`<button class=${`assign-row${pick === k ? ' on' : ''}`} aria-expanded=${pick === k} onClick=${() => setPick(pick === k ? null : k)}>
+      <${Icon} name=${PICK[k].icon} size="18" /><span>${PICK[k].label()}</span><b>${where(PICK[k].cur(iso)) ?? t('assign.free', 'Sin asignar')}</b><span class="chev" aria-hidden="true">▾</span></button>
+      ${pick === k && html`<${PiecePicker} s=${s} iso=${iso} what=${k} onDone=${() => setPick(null)} />`}`)}</div>
+    ${pick === 'comer' && html`<${PiecePicker} s=${s} iso=${iso} what="comer" onDone=${() => { setPick(null); s.hideHub(); }} />`}
     <div class="hub-actions">
-      <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => s.bless(iso.id)}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
+      <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => { s.bless(iso.id); s.hideHub(); }}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => setPick('comer')}><${Icon} name="eat" size="18" />${t('colony.eat', 'Comer')}</button>
-      <button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'dormir')}><${Icon} name="refugio" size="18" />${t('colony.nap', 'Siesta')}</button>
-      ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => s.orderIso(iso.id, 'tocar')}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
+      <button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'dormir'); s.hideHub(); }}><${Icon} name="refugio" size="18" />${t('colony.nap', 'Siesta')}</button>
+      ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'tocar'); s.hideHub(); }}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
     </div>
     <p class="badges-t">${t('colony.paint', 'Color del caparazón')}</p>
     <div class="badges" role="group" aria-label=${t('colony.paint', 'Color del caparazón')}>
@@ -136,6 +137,7 @@ export function IsoHub({ s, onClose }) {
   const home = s.game.home, iso = home.isopods.find((i) => i.id === s.selIso);
   const [edit, setEdit] = useState(false);
   const [tab, setTab] = useState('care');
+  const [more, setMore] = useState(false); // plegado: solo cabecera, saciedad y nivel (se ve al isópodo detrás)
   if (!iso) return null;
   const sp = speciesOf(iso.shell), st = isoStatus(home, iso);
   const save = (e) => { e.preventDefault(); s.renameIso(iso.id, e.currentTarget.querySelector("input").value); setEdit(false); };
@@ -154,8 +156,9 @@ export function IsoHub({ s, onClose }) {
     </div>
     <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
     <div class="loyal"><${Icon} name="heart" size="14" /><b>${t('loyal.level', 'Nivel')} ${iso.lv ?? 0}</b><${Bar} value=${iso.loyal ?? 0} max=${LOYALTY.max} kind="calm" label=${t('loyal.name', 'Lealtad')} /></div>
-    <div class="tabs" role="tablist">${TABS.map(([k, label, icon]) => html`<button role="tab" aria-selected=${tab === k} class=${`tab${tab === k ? ' on' : ''}`} onClick=${() => setTab(k)}>
+    <button class=${`hub-more${more ? ' on' : ''}`} aria-expanded=${more} onClick=${() => setMore(!more)}>${more ? t('colony.less', 'Menos') : t('colony.more', 'Opciones')}<span aria-hidden="true">▾</span></button>
+    ${more && html`<div class="tabs" role="tablist">${TABS.map(([k, label, icon]) => html`<button role="tab" aria-selected=${tab === k} class=${`tab${tab === k ? ' on' : ''}`} onClick=${() => setTab(k)}>
       <${Icon} name=${icon} size="16" />${label}${k === 'tree' && Object.keys(SKILLS).some((id) => canLearn(home, iso, id) && canAfford(home, SKILLS[id].cost)) ? html`<i class="dot" aria-hidden="true"></i>` : ''}</button>`)}</div>
-    ${tab === 'care' ? html`<${Care} s=${s} iso=${iso} st=${st} sp=${sp} />` : tab === 'sheet' ? html`<${Sheet} s=${s} iso=${iso} sp=${sp} />` : tab === 'outfit' ? html`<${Wardrobe} s=${s} iso=${iso} />` : html`<${Tree} s=${s} iso=${iso} />`}
+    ${tab === 'care' ? html`<${Care} s=${s} iso=${iso} st=${st} sp=${sp} />` : tab === 'sheet' ? html`<${Sheet} s=${s} iso=${iso} sp=${sp} />` : tab === 'outfit' ? html`<${Wardrobe} s=${s} iso=${iso} />` : html`<${Tree} s=${s} iso=${iso} />`}`}
   </section>`;
 }

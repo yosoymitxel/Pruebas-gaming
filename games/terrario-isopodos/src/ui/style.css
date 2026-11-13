@@ -1257,3 +1257,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .inside-exit { position: absolute; z-index: var(--z-hud); left: 50%; translate: -50% 0; bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 12px); }
 .nexo-dentro { background: var(--ink); animation: nexo-hole 1.1s cubic-bezier(.7,0,.2,1) forwards; }
 @keyframes nexo-hole { 0%, 35% { clip-path: circle(80% at 50% 55%); } 100% { clip-path: circle(0% at 50% 55%); } }
+/* Ficha del isópodo plegada: botón pequeño para abrir el resto (pestañas y acciones). */
+.hub-more { align-self: center; margin: 2px auto 0; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: var(--line); border-radius: 999px; background: var(--paper); color: inherit; font: 600 13px/1 var(--sans); cursor: pointer; }
+.hub-more span { transition: rotate 160ms; }
+.hub-more.on span { rotate: 180deg; }
+.assign .pick-list { margin: -2px 0 4px; padding-left: 12px; border-left: 3px solid var(--ui-accent, #13706f); }
