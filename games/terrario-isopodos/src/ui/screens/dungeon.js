@@ -8,7 +8,7 @@ import { ITEMS } from '../../data/abilities.js';
 import { CLASSES } from '../../data/isopods.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
 import { nextNodes, enemiesFor, LAYERS } from '../../game/dungeon.js';
-import { portraitURL } from '../../view/sprites.js';
+import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { Bar, Loot, ResIcon, PauseButton, Cost } from './common.js';
 import { Icon, IconAt } from '../icons.js';
 import { CardPick, CardFace } from './cards.js';
@@ -111,7 +111,7 @@ export function Dungeon({ s }) {
       <${PauseButton} s=${s} />
     </header>
     <div class="party-mini">${run.party.map((p, k) => html`<div class=${k === 0 ? 'lead' : ''}>
-      <img src=${portraitURL(`iso:${p.shell}`)} alt="" />
+      <img src=${isoPortrait(p)} alt="" />
       <span><b>${k === 0 ? '★ ' : ''}${p.name}</b><small>${CLASSES[p.cls].name} · ${p.hp}/${p.maxHp}</small><${Bar} value=${p.hp} max=${p.maxHp} label=${t('ui.hp', 'Vida')} /></span>
     </div>`)}</div>
 

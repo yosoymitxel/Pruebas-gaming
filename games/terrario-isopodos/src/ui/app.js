@@ -12,6 +12,7 @@ import { Islands } from './screens/islands.js';
 import { Gather } from './screens/gather.js';
 import { Dungeon } from './screens/dungeon.js';
 import { Combat } from './screens/combat.js';
+import { Interior } from './screens/interior.js';
 import { Settings } from './screens/settings.js';
 import { unlockAudio, playSfx } from './sfx.js';
 import { Loot } from './screens/common.js';
@@ -40,7 +41,7 @@ function Result({ s }) {
   </section></main>`;
 }
 
-const SCREENS = { gallery: Gallery, settings: Settings, menu: Menu, home: Home, islands: Islands, gather: Gather, dungeon: Dungeon, combat: Combat, result: Result };
+const SCREENS = { gallery: Gallery, settings: Settings, menu: Menu, home: Home, islands: Islands, gather: Gather, dungeon: Dungeon, combat: Combat, result: Result, interior: Interior };
 
 function App({ s }) {
   const [, force] = useState(0);

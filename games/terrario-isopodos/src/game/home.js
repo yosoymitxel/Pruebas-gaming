@@ -9,7 +9,7 @@ import { createGrid, openRect, place, canPlace, blocked, collideGrid, remove } f
 import { bump } from '../core/physics.js';
 import { mulberry32 } from '../core/rng.js';
 import { TRAITS, rollTraits, traitMul, traitSum } from '../data/traits.js';
-import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS } from '../data/cult.js';
+import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS, RITUALS, HARVEST } from '../data/cult.js';
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN, MOLT_CAL } from '../data/substrate.js';
 
 const BREED_FOOD = 3;
@@ -139,16 +139,37 @@ export function bless(home, iso, day) {
 export const canBless = (iso, day) => iso.blessDay !== day;
 // Reunión diaria (el sermón): la colonia se junta en círculo alrededor del altar (o del refugio).
 export function sermon(home, day, loyMul = 1) {
-  if (home.sermonDay === day) return false;
-  const spot = Object.values(home.grid.pieces).find((p) => p.type === 'altar') ?? Object.values(home.grid.pieces).find((p) => BUILDINGS[p.type].beds);
+  if (day != null && home.sermonDay === day) return false;
+  const spot = temple(home);
+  if (!spot || home.sermon) return false;
   const f = spot ? BUILDINGS[spot.type].size : { w: 0, h: 0 }, c = home.grid.w / 2;
-  home.sermonDay = day;
-  home.sermon = { t: SERMON.time, x: spot ? spot.x + f.w / 2 : c, y: spot ? spot.y + f.h + 1 : c, mul: loyMul };
+  if (day != null) home.sermonDay = day;
+  home.sermon = { t: SERMON.time, total: SERMON.time, x: spot ? spot.x + f.w / 2 : c, y: spot ? spot.y + f.h + 1 : c, mul: loyMul };
   const who = adults(home);
   who.forEach((iso, k) => { const a = (k / who.length) * Math.PI * 2; Object.assign(iso, { order: 'reunir', rest: 0, ball: 0, wait: 0, stuck: 0, tx: home.sermon.x + Math.cos(a) * SERMON.ring, ty: home.sermon.y + Math.sin(a) * SERMON.ring }); });
   return true;
 }
 export const canSermon = (home, day) => home.sermonDay !== day;
+// Templo = el altar: punto de encuentro de la colonia (sermón y rituales). Sin altar no hay templo.
+export const temple = (home) => Object.values(home.grid.pieces).find((p) => p.type === 'altar' && !p.site) ?? null;
+export const ritualReady = (home, id, day) => (home.rituals?.[id] ?? -99) + RITUALS[id].every <= day;
+export function ritual(home, id, day) {
+  const r = RITUALS[id], spot = temple(home);
+  if (!r || !spot || home.sermon || !ritualReady(home, id, day) || !pay(home, r.cost)) return false;
+  (home.rituals ??= {})[id] = day;
+  // la colonia se junta en el altar como en la reunión, y el efecto llega al terminar
+  sermon(home, null, 0); home.sermon.ritual = id;
+  return true;
+}
+function ritualEffect(home, id) {
+  const all = home.isopods;
+  if (id === 'festin') for (const i of all) { i.hunger = 1; i.ate = 1.5; }
+  else if (id === 'lluvia') home.moist = Math.min(1, humidity(home) + 0.25);
+  else if (id === 'cosecha') home.harvestT = HARVEST.time;
+  else if (id === 'vigilia') { home.fear = 0; addFaith(home, 'vigilia'); }
+  else if (id === 'vinculo') for (const i of all) gainLoyalty(home, i, 45);
+  addFaith(home, 'ritual');
+}
 function fulfil(home, iso) {
   iso.wish = null; addFaith(home, 'peticion'); gainLoyalty(home, iso, LOYALTY.peticion);
 }
@@ -157,8 +178,9 @@ function tickCult(home, dt, rng, phase) {
   if (home.faith) home.faith -= Math.sign(home.faith) * Math.min(Math.abs(home.faith), FAITH.decay * dt);
   // reunión en curso
   if (home.sermon && (home.sermon.t -= dt) <= 0) {
-    for (const iso of home.isopods) if (iso.order === 'reunir') { iso.order = null; iso.tx = null; gainLoyalty(home, iso, LOYALTY.reunion * (home.sermon.mul ?? 1)); }
-    addFaith(home, 'reunion'); home.sermon = null; home.sermonDone = true;
+    for (const iso of home.isopods) if (iso.order === 'reunir') { iso.order = null; iso.tx = null; if (home.sermon.mul) gainLoyalty(home, iso, LOYALTY.reunion * home.sermon.mul); }
+    if (home.sermon.ritual) { ritualEffect(home, home.sermon.ritual); home.ritualDone = home.sermon.ritual; } else { addFaith(home, 'reunion'); home.sermonDone = true; }
+    home.sermon = null;
   }
   // anochecer y amanecer
   const night = !!phase.night;
@@ -259,7 +281,7 @@ export const comfy = (home, iso) => inBand(localHumidity(home, iso.x, iso.y), sp
 // Multiplicadores que el terrario aplica ahora mismo (para la interfaz y tickHome).
 export function homeEffects(home) {
   const clim = CLIMATES[climate(home)];
-  return { prodMul: clim.prodMul * (1 + (layer(home, 'tierra') - 1) * 0.1), hungerMul: clim.hungerMul * (1 - layer(home, 'hojarasca') * 0.15) };
+  return { prodMul: clim.prodMul * (1 + (layer(home, 'tierra') - 1) * 0.1) * (home.harvestT > 0 ? HARVEST.mul : 1), hungerMul: clim.hungerMul * (1 - layer(home, 'hojarasca') * 0.15) };
 }
 
 // Clima interior: seco, ideal, muy húmedo (el carbón lo contiene) o moho. Ver CLIMATES.
@@ -309,6 +331,7 @@ export function tickHome(home, dt, rng, phase = { prodMul: 1, fear: 0 }) {
   home.clockT = (home.clockT ?? 0) + dt;
   if (home.mist > 0) home.mist = Math.max(0, home.mist - dt);
   if (home.mistCd > 0) home.mistCd = Math.max(0, home.mistCd - dt);
+  if (home.harvestT > 0) home.harvestT -= dt;
   home.moist = humidity(home) + Math.max(-HUMIDITY.drift * dt, Math.min(HUMIDITY.drift * dt, humidityTarget(home) - humidity(home)));
   growMold(home, dt, rng);
   tickCult(home, dt, rng, phase);

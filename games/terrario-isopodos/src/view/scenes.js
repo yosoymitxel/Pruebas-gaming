@@ -272,6 +272,17 @@ export class HomeView extends GridScene {
     this.syncMold();
     for (const p of Object.values(this.grid.pieces)) if (p.site) { const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       marks.push({ id: `site${p.id}`, kind: 'site', icon: iconURL('build'), x: w.x, y: w.y + 1.4, z: w.z, piece: p.id, progress: Math.min(1, p.site.t / p.site.need) }); }
+    // La cámara va al templo mientras su ficha está abierta o hay ceremonia.
+    const fp = this.focusPiece != null && this.grid.pieces[this.focusPiece];
+    if (fp && this.selIso == null) { const w = this.toWorld(fp.x + 1, fp.y + 1), k = this.stage.camDist * 0.2; this.stage.follow(w.x + Math.sin(this.stage.yaw) * k, w.z + Math.cos(this.stage.yaw) * k, dt, 4); }
+    if (fp && !this.home.sermon && this.selPieceNow !== fp.id) this.focusPiece = null;
+    // Sermón o ritual en curso: círculo de luz violeta que gira y se cierra en el centro del corro.
+    if (this.home.sermon) {
+      if (!this.halo) { this.halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xb48cff, transparent: true, depthWrite: false })); this.group.add(this.halo); }
+      const sm = this.home.sermon, w = this.toWorld(sm.x, sm.y), k = 1 - sm.t / (sm.total ?? 7);
+      this.halo.position.set(w.x, w.y + 0.05, w.z); this.halo.scale.setScalar(2.2 - k * 1.4); this.halo.rotation.y = time; this.halo.material.opacity = 0.5 + Math.sin(time * 6) * 0.25;
+      if ((this.haloT = (this.haloT ?? 0) - dt) <= 0) { this.haloT = 0.6; this.vfx.burst('mimo', w.x, w.y + 0.3, w.z); }
+    } else if (this.halo) { this.group.remove(this.halo); this.halo = null; }
     // Mercader de visita (cada tres días): espera en la esquina del terrario.
     if (this.merchant) {
       const g = this.grid, w = this.toWorld(g.w - 1.2, g.h - 1.2); // dentro, en la esquina de delante
@@ -333,12 +344,33 @@ export class MenuView extends HomeView {
 }
 
 export class GatherView extends GridScene {
+  // Huecos de dentro de la isla (no el mar de alrededor): pozo negro que se hunde y borde ámbar discontinuo a ras
+  // del suelo vecino, para que no se confundan con las sombras. Lo de fuera se queda como fondo.
+  holes(g) {
+    const idx = (i, j) => j * g.w + i, out = new Uint8Array(g.w * g.h), q = [];
+    for (let i = 0; i < g.w; i++) for (const j of [0, g.h - 1]) q.push([i, j]);
+    for (let j = 0; j < g.h; j++) for (const i of [0, g.w - 1]) q.push([i, j]);
+    while (q.length) { const [i, j] = q.pop(); if (i < 0 || j < 0 || i >= g.w || j >= g.h || out[idx(i, j)] || g.open[idx(i, j)]) continue; out[idx(i, j)] = 1; q.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
+    const shaft = new THREE.MeshBasicMaterial({ color: 0x020101 }), wall = new THREE.MeshBasicMaterial({ color: 0x0d0907, side: THREE.BackSide });
+    const rim = new THREE.MeshBasicMaterial({ color: 0xe0a03a, transparent: true, opacity: 0.85, depthWrite: false });
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+      if (g.open[idx(i, j)] || out[idx(i, j)]) continue;
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => g.open[idx(i + di, j + dj)]).map(([di, dj]) => this.island.heightAt(i + di, j + dj));
+      const top = nb.length ? Math.min(...nb) : 0, x = i - g.w / 2 + 0.5, z = j - g.h / 2 + 0.5;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.98, 3, 0.98), wall); box.position.set(x, top - 1.5, z); this.group.add(box);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(0.98, 0.98).rotateX(-Math.PI / 2), shaft); floor.position.set(x, top - 2.9, z); this.group.add(floor);
+      // borde de aviso solo en los lados que dan a suelo: tiras ámbar a ras del borde
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!g.open[idx(i + di, j + dj)]) continue;
+        const h = this.island.heightAt(i + di, j + dj), strip = new THREE.Mesh(new THREE.PlaneGeometry(di ? 0.07 : 0.96, di ? 0.96 : 0.07).rotateX(-Math.PI / 2), rim);
+        strip.position.set(x + di * 0.47, h + 0.025, z + dj * 0.47); this.group.add(strip);
+      }
+    }
+  }
   constructor(stage, gather) {
     super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather, levels: gather.levels });
     this.g = gather;
-    // Vacío: un pozo negro bajo toda la isla, con un degradado que se hunde; los huecos se leen como caída.
-    const pit = new THREE.Mesh(new THREE.PlaneGeometry(gather.grid.w + 2, gather.grid.h + 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050403 }));
-    pit.position.y = -0.35; this.group.add(pit);
+    this.holes(gather.grid);
     this.syncProps();
     this.pickups = gather.nodes.map((n) => {
       const m = pickupMesh(n.res), w = this.toWorld(n.x, n.y);
@@ -372,7 +404,7 @@ export class GatherView extends GridScene {
     const ground = Math.min(p.z, pw.y), up = Math.max(0, p.z - ground), land = this.landT / 0.16;
     const stretch = p.falling > 0 ? 0.5 : air ? 1 + Math.max(-0.18, Math.min(0.22, p.vz * 0.035)) : 1 - 0.32 * land * land;
     const lean = air ? Math.max(-0.3, Math.min(0.3, Math.hypot(p.vx, p.vy) * 0.06 * Math.sign(p.vz || 1))) * (p.vx < 0 ? 1 : -1) : 0;
-    const list = [{ id: 'player', sprite: `iso:${shell}`, x: pw.x, z: pw.z, y: ground + 0.05, height: 0.9,
+    const list = [{ id: 'player', sprite: `iso:${shell}`, outfit: this.g.outfit, paint: this.g.paint != null ? BADGES[this.g.paint] : null, x: pw.x, z: pw.z, y: ground + 0.05, height: 0.9,
       flip: p.vx < 0, lift: up + (!air && moving ? bob(time, 1) : 0), spin: lean,
       squash: stretch, shadowK: Math.max(0.3, 1 - up * 0.4) }];
     const l = this.g.lost;

@@ -89,9 +89,9 @@ export function CamControls({ s }) {
 
 // Textos flotantes del mundo (daño, «+1 musgo», avisos): suben y se desvanecen sobre su punto 3D.
 export const FxLayer = ({ s }) => html`<div class="fx-layer" aria-hidden="true">${s.fx.map((f) => {
-  // Números de golpe (Hit Combos 4): quedan en su punto y el salto, la subida y el fundido los hace el CSS.
-  const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, (f.y ?? 1.6) + (num ? 0 : (s.time - f.at) * 1.4), f.z);
-  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`, top: `${p.y}px`, opacity: num ? null : 1 - (s.time - f.at) / 0.9 }}>${f.text}</span>`;
+  // Quedan anclados a su punto; la subida y el fundido son animación CSS (suave, no a saltos de refresco).
+  const num = f.kind === 'enemy' || f.kind === 'ally', p = s.stage.project(f.x, f.y ?? 1.6, f.z);
+  return html`<span key=${f.id} class=${`fx fx-${f.kind}${f.big ? ' big' : ''}`} style=${{ left: `${p.x + (num ? ((f.id * 1e3) % 1 - 0.5) * 28 : 0)}px`, top: `${p.y}px` }}>${f.text}</span>`;
 })}</div>`;
 
 // Reloj del día (como el de Cult of the Lamb): esfera oscura con el tramo de noche en rojo, una aguja que da
@@ -103,7 +103,7 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
     <path class="night" d=${`M20 20L${20 + 16 * Math.sin(0.72 * 6.283)} ${20 - 16 * Math.cos(0.72 * 6.283)}A16 16 0 0 1 20 4z`} />
     <line x1=${20 + 11 * Math.sin(clock * 6.283)} y1=${20 - 11 * Math.cos(clock * 6.283)} x2=${20 + 16 * Math.sin(clock * 6.283)} y2=${20 - 16 * Math.cos(clock * 6.283)} />
     <circle class="hub" cx="20" cy="20" r="10" /></svg>
-  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 15.2A7 7 0 0 1 15.5 3.5z" /></svg></i>`}</${onSleep ? 'button' : 'div'}>`;
+  <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 // X de cierre arriba a la derecha de cualquier panel.
@@ -115,7 +115,7 @@ export function CloseX({ onClose }) {
     let raf;
     const place = () => {
       const b = ref.current, panel = b?.nextElementSibling?.matches('.drawer') ? b.nextElementSibling : b?.nextElementSibling?.querySelector?.('.drawer');
-      if (b && panel) { const r = panel.getBoundingClientRect(), guard = panel.parentElement?.querySelector(':scope > .guard'); b.style.top = `${r.top + 3}px`; b.style.left = `${guard ? r.left + 12 : r.right - 46}px`; b.style.visibility = r.height ? 'visible' : 'hidden'; }
+      if (b && panel) { const r = panel.getBoundingClientRect(), guard = panel.parentElement?.querySelector(':scope > .guard'); b.style.top = `${r.top + 1}px`; b.style.left = `${guard ? r.left + 8 : r.right - 40}px`; b.style.visibility = r.height ? 'visible' : 'hidden'; }
       raf = requestAnimationFrame(place);
     };
     place();

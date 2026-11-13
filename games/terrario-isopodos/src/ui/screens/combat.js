@@ -10,7 +10,7 @@ import { CLASSES } from '../../data/isopods.js';
 import { ATB_MAX, allies, enemies } from '../../game/combat.js';
 import { press , hold as holdKey } from '../input.js';
 import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
-import { portraitURL } from '../../view/sprites.js';
+import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
 import { WEAPONS } from '../../data/weapons.js';
 
@@ -56,7 +56,7 @@ export function Combat({ s }) {
       const hurt = a.hp < was - 0.5, ko = was > 0 && a.hp <= 0; if (hurt) hitAt.current[a.id] = s.time; if (ko) koAt.current = { name: a.name, at: s.time };
       return html`<button class=${`member${a.id === c.main ? ' main' : ''}${a.hp <= 0 ? ' down' : ''}${a.hp > 0 && a.hp / a.maxHp < 0.3 ? ' low' : ''}${a.atb >= ATB_MAX ? ' ready' : ''}${s.time - (hitAt.current[a.id] ?? -9) < 0.35 ? ' hit' : ''}`}
         onClick=${() => s.switchTo(a.id)} aria-pressed=${a.id === c.main} aria-label=${`${a.name}, ${CLASSES[a.cls].name}, ${Math.ceil(a.hp)} / ${a.maxHp}`}>
-      <span class="face"><img src=${portraitURL(`iso:${a.shell}`)} alt="" />${a.hp <= 0 && html`<i class="x" aria-hidden="true">✕</i>`}</span>
+      <span class="face"><img src=${isoPortrait(a)} alt="" />${a.hp <= 0 && html`<i class="x" aria-hidden="true">✕</i>`}</span>
       <span class="hp"><${Bar} value=${a.hp} max=${a.maxHp} label=${t('ui.hp', 'Vida')} /></span>
       <${Atb} value=${a.atb} />
     </button>`; })}</section>

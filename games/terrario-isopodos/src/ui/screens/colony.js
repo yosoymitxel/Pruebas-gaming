@@ -12,7 +12,7 @@ import { BUILDINGS } from '../../data/buildings.js';
 import { SKILLS } from '../../data/skills.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { CLIMATES } from '../../data/substrate.js';
-import { portraitURL } from '../../view/sprites.js';
+import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { OUTFITS } from '../../data/outfits.js';
 import { outfitThumb } from '../../view/outfits3d.js';
 import { hasOutfit } from '../../game/economy.js';
@@ -30,9 +30,9 @@ export function ColonyList({ s, onClose }) {
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
       ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
       <button class="btn small ghost" onClick=${() => { s.wantPanel = 'upgrades'; s.emit(); }}><${Icon} name="expand" size="16" />${t('upgrades.title', 'Mejoras')}</button>
-      <button class="btn small" disabled=${!canSermon(home, s.game.day) || !!home.sermon} onClick=${() => s.sermon()}><${Icon} name="colony" size="16" />${t('colony.sermon', 'Reunir')}</button></p>
+      <button class="btn small" onClick=${() => { onClose?.(); s.openTemple(); }}><${Icon} name="colony" size="16" />${t('colony.temple', 'Templo')}</button></p>
     ${home.isopods.map((iso) => html`<button class="iso-row" onClick=${() => s.selectIso(iso.id)}>
-      <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
+      <img src=${isoPortrait(iso)} alt="" />
       <span class="who"><b><${Dot} k=${iso.badge} />${iso.name}${iso.lv ? html` <small class="lv">${iso.lv}</small>` : ''}${iso.wish ? html` <${Icon} name="heart" size="13" />` : ''}</b><${Status} k=${isoStatus(home, iso)} /></span>
       <${Bar} value=${iso.hunger} max=${1} kind="food" label=${t('home.food', 'Saciedad')} />
     </button>`)}
@@ -142,7 +142,7 @@ export function IsoHub({ s, onClose }) {
   const TABS = [['care', t('colony.tabCare', 'Cuidar'), 'care'], ['sheet', t('colony.tabSheet', 'Ficha'), 'layers'], ['tree', t('colony.tabTree', 'Mudas'), 'expand'], ['outfit', t('colony.tabOutfit', 'Atuendo'), 'hat']];
   return html`<${CloseX} onClose=${onClose} /><section class="drawer iso-hub" aria-label=${iso.name}>
     <div class="hub-head">
-      <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
+      <img src=${isoPortrait(iso)} alt="" />
       <div class="hub-id">
         ${edit ? html`<form onSubmit=${save}><input maxlength=${MAX_NAME} value=${iso.name} aria-label=${t('colony.name', 'Nombre')} autofocus onBlur=${(e) => e.currentTarget.form.requestSubmit()} /></form>`
           : html`<button class="name-btn" onClick=${() => setEdit(true)} aria-label=${t('colony.rename', 'Cambiar nombre')}><b>${iso.name}</b><${Icon} name="build" size="14" /></button>`}

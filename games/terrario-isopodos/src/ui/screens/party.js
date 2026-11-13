@@ -8,7 +8,7 @@ import { speciesOf } from '../../data/species.js';
 import { adults } from '../../game/home.js';
 import { ABILITIES } from '../../data/abilities.js';
 import { partyBonus, isoStats } from '../../game/home.js';
-import { portraitURL } from '../../view/sprites.js';
+import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { Bar, Cost } from './common.js';
 import { ROBES } from '../../data/robes.js';
 import { Icon } from '../icons.js';
@@ -28,7 +28,7 @@ function Card({ s, iso, slot, onPick }) {
   return html`<button class=${`iso-card${slot >= 0 ? ' on' : ''}`} aria-pressed=${slot >= 0} onClick=${onPick}
     title=${`${speciesOf(iso.shell).name} · ${x.abilities.map((a) => ABILITIES[a].name).join(' · ')}`}>
     ${slot >= 0 && html`<i class="slot-tag">${slot === 0 ? '★' : slot + 1}</i>`}
-    <img src=${portraitURL(`iso:${iso.shell}`)} alt="" />
+    <img src=${isoPortrait(iso)} alt="" />
     <b>${iso.name}</b>
     <span class="cls"><${Icon} name=${CLASS_ICON[iso.cls]} size="15" />${cls.name}</span>
     <span class="stats"><span aria-label=${t('party.hp', 'Vida')}><${Icon} name="shield" size="13" />${hp}</span><span aria-label=${t('party.dmg', 'Daño')}><${Icon} name="attack" size="13" />${cls.damage + x.damageAdd}</span></span>
@@ -45,7 +45,7 @@ export function PartyPicker({ s, need, party, setParty }) {
       const iso = isopods.find((i) => i.id === party[k]);
       return html`<button class=${`slot${iso ? ' full' : ''}`} onClick=${() => iso && pick(iso.id)} aria-label=${iso ? `${label}: ${iso.name}` : label}>
         <span class="slot-label">${k === 0 && need === 3 ? '★ ' : ''}${label}</span>
-        ${iso ? html`<img src=${portraitURL(`iso:${iso.shell}`)} alt="" /><b>${iso.name}</b>` : html`<span class="slot-empty">${t('party.empty', 'Toca un isópodo')}</span>`}
+        ${iso ? html`<img src=${isoPortrait(iso)} alt="" /><b>${iso.name}</b>` : html`<span class="slot-empty">${t('party.empty', 'Toca un isópodo')}</span>`}
       </button>`;
     })}</div>
     <div class="roster-head"><span>${t('party.colony', 'Colonia')} (${isopods.length})</span>
