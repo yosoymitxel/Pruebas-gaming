@@ -94,7 +94,7 @@ export function Home({ s }) {
   const home = s.game.home;
   const [panel, setPanel] = useState(null);
   const [toast, setToast] = useState(null);
-  const say = (msg) => { setToast(msg); clearTimeout(say.t); say.t = setTimeout(() => setToast(null), 1600); };
+  const say = (msg) => { setToast(msg); clearTimeout(say.t); say.t = setTimeout(() => setToast(null), Math.max(1600, msg.length * 55)); };
   const toggle = (p) => { if (s.build) s.cancelBuild(); if (s.selIso != null) s.selectIso(null); setPanel(panel === p ? null : p); };
   if (s.wantPanel) { const p = s.wantPanel; s.wantPanel = null; if (s.selIso != null) s.selectIso(null); setTimeout(() => setPanel(p)); }
 
@@ -123,6 +123,7 @@ export function Home({ s }) {
     if (s.build) { s.hoverBuild(c.i, c.j); if (!s.confirmBuild()) say(t('home.cantPlace', 'No cabe ahí o faltan recursos.')); return; }
     const got = s.tapHome(c);
     if (got?.res) say(`+${got.n} ${RESOURCES[got.res].name}`);
+    else if (got?.info) say(got.info);
   };
   const exp = nextExpansion(home);
   const sel = s.selPiece ? home.grid.pieces[s.selPiece] : null;

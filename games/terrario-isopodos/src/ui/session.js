@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, setWetSide, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, setWetSide, localHumidity, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -26,6 +26,7 @@ import { read } from './input.js';
 import { t } from '../i18n/index.js';
 import { DEFAULT_YAW } from '../view/stage.js';
 import { RITUALS } from '../data/cult.js';
+import { HUMIDITY } from '../data/substrate.js';
 import { InteriorView } from '../view/interior.js';
 import { Group } from 'three';
 
@@ -199,6 +200,14 @@ export class Session {
       return { res: 'cal', n: 1 };
     }
     const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
+    // Moho (los círculos blancos): sale con mucha humedad; se lo comen los colémbolos.
+    if ((home.mold ?? []).some((m) => Math.hypot(m.x - cell.x, m.y - cell.y) < 0.8)) { this.emit(); return { info: t('soil.mold', 'Moho: sale con demasiada humedad y baja la calma. Abre la tapa; los colémbolos se lo comen.') }; }
+    // Tocar el suelo explica su humedad (las manchas oscuras son barro, las grietas sequedad).
+    if (!iso && home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)] == null) {
+      const h = localHumidity(home, cell.x, cell.y);
+      if (h > HUMIDITY.flood) { this.emit(); return { info: t('soil.wet', 'Suelo encharcado: demasiada agua aquí. Abre la tapa o quita agua.') }; }
+      if (h < HUMIDITY.dry - 0.08) { this.emit(); return { info: t('soil.dry', 'Suelo agrietado: muy seco aquí. Rocía o pon agua cerca.') }; }
+    }
     // Primer toque: lo selecciona (la cámara lo sigue y sale su ficha); tocarlo otra vez lo asusta.
     if (iso && (this.selIso !== iso.id || this.hubHidden)) { this.selectIso(iso.id); return { selected: iso.id }; }
     if (iso) {

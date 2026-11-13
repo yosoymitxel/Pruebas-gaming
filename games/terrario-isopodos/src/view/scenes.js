@@ -175,23 +175,24 @@ export class HomeView extends GridScene {
     // Cada celda según su humedad real (el lado que elegiste): grietas donde está seco, manchas oscuras donde
     // encharca. Fijo por celda: no aparecen ni desaparecen al azar, solo cambian si cambia la humedad.
     const crack = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:crack'), transparent: true, depthWrite: false });
-    const wet = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:mold'), transparent: true, depthWrite: false, opacity: 0.8 });
+    const wet = new THREE.MeshBasicMaterial({ color: 0x1f2a2e, transparent: true, depthWrite: false, opacity: 0.45 }); // barro mojado: mancha oscura, no círculos blancos
     for (const [i, j] of open) {
       const h = localHumidity(this.home, i + 0.5, j + 0.5), mat = h < HUMIDITY.dry - 0.08 ? crack : h > HUMIDITY.flood ? wet : null;
       if (!mat || (i * 7 + j * 13) % 3) continue; // una de cada tres: se ve la zona sin tapar el suelo
-      const w = this.toWorld(i + 0.5, j + 0.5), m = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), mat);
+      const w = this.toWorld(i + 0.5, j + 0.5), m = new THREE.Mesh(mat === wet ? new THREE.CircleGeometry(0.6, 18).rotateX(-Math.PI / 2) : new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), mat);
       m.position.set(w.x, w.y + 0.03, w.z); m.rotation.y = (i * 1.7 + j * 2.3) % 6; this.care.add(m);
     }
     void decal;
     // Corte del sustrato visto por el vidrio (frente y lado derecho): cada capa más gruesa según su nivel.
     const lv = (id) => this.home.layers?.[id] ?? 0, cs = this.island.cells, lo = this.toWorld(Math.min(...cs.map((c) => c.i)), Math.min(...cs.map((c) => c.j))), hi = this.toWorld(Math.max(...cs.map((c) => c.i)) + 1, Math.max(...cs.map((c) => c.j)) + 1), x0 = lo.x, z0 = lo.z, x1 = hi.x, z1 = hi.z;
-    const bands = [['grava', 0xc2bba9, 0.14 + 0.08 * lv('grava')], ['carbon', 0x3a342e, 0.08 * lv('carbon')], ['tierra', 0x9a6a3e, 0.24 + 0.1 * lv('tierra')], ['hojarasca', 0xe0a040, 0.07 * lv('hojarasca')]];
+    const bands = [['grava', 0x8f897c, 0.14 + 0.08 * lv('grava')], ['carbon', 0x2c2824, 0.08 * lv('carbon')], ['tierra', 0x5e4330, 0.24 + 0.1 * lv('tierra')], ['hojarasca', 0x7a5a32, 0.07 * lv('hojarasca')]]; // tonos apagados, como el resto
     let y = -1.07; // justo encima de la base de madera
     for (const [, col, th] of bands) {
       if (th <= 0) continue;
       const mat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide });
       const front = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, th), mat); front.position.set((x0 + x1) / 2, y + th / 2, z1 + 0.06); this.care.add(front);
-      const side = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0, th), mat); side.rotation.y = Math.PI / 2; side.position.set(x1 + 0.06, y + th / 2, (z0 + z1) / 2); this.care.add(side);
+      for (const z of [z0 - 0.06]) { const back = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, th), mat); back.position.set((x0 + x1) / 2, y + th / 2, z); this.care.add(back); }
+      for (const x of [x0 - 0.06, x1 + 0.06]) { const side = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0, th), mat); side.rotation.y = Math.PI / 2; side.position.set(x, y + th / 2, (z0 + z1) / 2); this.care.add(side); } // los cuatro lados
       y += th;
     }
     // condensación: gotas pegadas al vidrio delantero y a un lado
