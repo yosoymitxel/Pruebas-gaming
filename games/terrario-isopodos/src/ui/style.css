@@ -1281,3 +1281,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .side-row > span { font-weight: 700; margin-right: 4px; }
 .side-help { margin: 0; font-size: 12px; opacity: 0.75; width: 100%; }
 .lid-row .btn.active, .side-row .btn.active { color: var(--ink) !important; font-weight: 800; }
+/* Tarjetas del equipo: el texto no se corta (columna flexible con mínimo 0, imagen más chica, cifras que bajan). */
+.roster .iso-card { grid-template-columns: 44px minmax(0, 1fr); padding: 8px 8px 8px 6px; }
+.roster .iso-card img { width: 44px; }
+.roster .iso-card b { font-size: 17px; }
+.roster .iso-card .cls, .roster .iso-card .stats { min-width: 0; }
+.roster .iso-card .stats { flex-wrap: wrap; gap: 2px 8px; font-size: 12px; }

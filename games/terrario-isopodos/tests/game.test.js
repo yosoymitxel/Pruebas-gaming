@@ -222,7 +222,7 @@ test('mejorar piezas y agrandar partidas viejas', async () => {
 });
 
 test('recolección con relieve: cada forma deja recursos alcanzables, el salto sube un escalón y caer devuelve', async () => {
-  const { GATHER_SHAPES } = await import('../src/data/world.js');
+  void 0;
   const seen = new Set();
   for (let seed = 1; seed < 40; seed++) {
     const ga = newGather({ seed, biome: 'hojarasca', weather: 'claro', kind: 'recoleccion' });
@@ -230,7 +230,7 @@ test('recolección con relieve: cada forma deja recursos alcanzables, el salto s
     assert.ok(ga.nodes.length >= 6, `${ga.shape} ${seed}: recursos suficientes (${ga.nodes.length})`);
     assert.ok(new Set(ga.levels.filter((h) => h !== null)).size >= 2 || ga.shape === 'islotes', `${ga.shape}: tiene relieve`);
   }
-  assert.equal(seen.size, Object.keys(GATHER_SHAPES).length, 'salen todas las formas');
+  assert.deepEqual([...seen], ['sendero'], 'la recolección es siempre un sendero hacia delante');
   const ga = newGather({ seed: 3, biome: 'hojarasca', weather: 'claro', kind: 'recoleccion' });
   ga.player.x = -5; ga.player.y = -5; ga.player.air = true; ga.player.z = -1;
   const t0 = ga.time;

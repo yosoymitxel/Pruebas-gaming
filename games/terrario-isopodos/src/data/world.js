@@ -40,6 +40,7 @@ export const GATHER_SHAPES = localize('gatherShapes', {
   islotes: { name: 'Islotes', hint: 'Salta entre islotes; si caes, vuelves atrás.' },
   anillo: { name: 'Anillo', hint: 'Un pozo en medio: rodéalo por las terrazas.' },
   cresta: { name: 'Cresta', hint: 'Una cresta alta cruza la isla.' },
+  sendero: { name: 'Sendero', hint: 'Avanza hacia el fondo: salta los huecos y sube los escalones.' },
 });
 
 // Fases del día (reloj 0–1, 0 = amanecer). De noche las piezas producen la mitad, la colonia se inquieta

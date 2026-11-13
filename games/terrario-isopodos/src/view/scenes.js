@@ -410,7 +410,9 @@ export class GatherView extends GridScene {
     this.tick(dt);
     if (this.shine) this.shine.rotation.y = this.stage.yaw;
     const p = this.g.player, moving = Math.hypot(p.vx, p.vy) > 0.05, pw = this.toWorld(p.x, p.y);
-    this.stage.follow(pw.x, pw.z, dt);
+    // Sendero: cámara detrás del explorador mirando hacia el fondo, con algo de vista por delante (estilo Crash).
+    if (this.g.shape === 'sendero') { this.stage.yaw += (0 - this.stage.yaw) * Math.min(1, dt * 4); this.stage.follow(pw.x * 0.6, pw.z - 2.2, dt, 5); }
+    else this.stage.follow(pw.x, pw.z, dt);
     this.g.nodes.forEach((n, k) => {
       const m = this.pickups[k];
       if (n.taken && m.visible) { m.visible = false; this.burst('pickup', n.x, n.y); this.onPick?.(n); }
