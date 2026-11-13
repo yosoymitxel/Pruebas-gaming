@@ -18,6 +18,7 @@ export const STATUS = localize('isoStatus', {
   explora: { name: 'Explora', icon: 'eye' },
   comer: { name: 'Va a comer', icon: 'dodge' }, // mandado: camina al comedero
   come: { name: 'Come', icon: 'eat' },
+  fila: { name: 'En la fila del plato', icon: 'colony' },
   hambre: { name: 'Hambre', icon: 'alert', warn: true }, // necesita: no hay comida o comedero
   dormir: { name: 'Va a dormir', icon: 'refugio' },
   humedad: { name: 'Busca humedad', icon: 'items' },

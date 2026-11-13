@@ -6,15 +6,15 @@
 import { localize } from '../i18n/index.js';
 
 export const TRAITS = localize('traits', {
-  obediente: { name: 'Obediente', desc: 'Al llegar, +10 de fe.', good: true, faithJoin: 10 },
+  obediente: { name: 'Tranquilo', desc: 'Al llegar, sube el ánimo de la colonia.', good: true, faithJoin: 10 },
   trabajador: { name: 'Trabajador', desc: 'Construye y trabaja un 15 % más rápido.', good: true, workMul: 1.15 },
-  credulo: { name: 'Crédulo', desc: '+15 % de lealtad de todo.', good: true, loyalMul: 1.15 },
+  credulo: { name: 'Apegado', desc: '+15 % de lealtad de todo.', good: true, loyalMul: 1.15 },
   robusto: { name: 'Robusto', desc: '+10 % de vida en la expedición.', good: true, hpMul: 1.1 },
-  devoto: { name: 'Devoto', desc: 'Cada mimo da +3 de fe más.', good: true, blessFaith: 3 },
+  devoto: { name: 'Cariñoso', desc: 'Los mimos animan más a la colonia.', good: true, blessFaith: 3 },
   frugal: { name: 'Frugal', desc: 'Pasa hambre un 20 % más lento.', good: true, hungerMul: 0.8 },
-  esceptico: { name: 'Escéptico', desc: 'Al llegar, −10 de fe.', good: false, faithJoin: -10 },
+  esceptico: { name: 'Arisco', desc: 'Al llegar, baja el ánimo de la colonia.', good: false, faithJoin: -10 },
   perezoso: { name: 'Perezoso', desc: 'Construye y trabaja un 10 % más lento.', good: false, workMul: 0.9 },
-  cinico: { name: 'Cínico', desc: '−15 % de lealtad de todo.', good: false, loyalMul: 0.85 },
+  cinico: { name: 'Distante', desc: '−15 % de lealtad de todo.', good: false, loyalMul: 0.85 },
   gloton: { name: 'Glotón', desc: 'Pasa hambre un 25 % más rápido.', good: false, hungerMul: 1.25 },
   fragil: { name: 'Frágil', desc: '−10 % de vida en la expedición.', good: false, hpMul: 0.9 },
   miedoso: { name: 'Miedoso', desc: 'Los sustos le duran el doble.', good: false, fearMul: 2 },

@@ -40,7 +40,7 @@ export function playRun(seed, skill = 0.7, weapon = null, robe = 'comun') {
 }
 
 // Ninguna arma ni manto debe arrasar o hundir la expedición respecto a la pinza común.
-export function byOption(n = 30) {
+export function byOption(n = 60) { // 60 partidas: con 30 el azar del combate hacía saltar la comprobación
   const rate = (w, r) => Array.from({ length: n }, (_, k) => playRun(300 + k, 0.7, w, r)).filter((x) => x.state === 'won').length / n;
   const base = rate('pinza', 'comun');
   const rows = [];

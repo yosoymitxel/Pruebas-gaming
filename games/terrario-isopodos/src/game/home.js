@@ -81,6 +81,7 @@ export function pay(home, cost) {
 // `site`: se coloca como obra y la colonia la levanta (como en Cult of the Lamb); sin `site`, aparece hecha.
 export function build(home, type, x, y, rot = 0, site = false) {
   if (!canPlace(home.grid, type, x, y, rot) || !canAfford(home, BUILDINGS[type].cost)) return null;
+  if (BUILDINGS[type].unique && Object.values(home.grid.pieces).some((p) => p.type === type)) return null; // un único punto de reunión
   pay(home, BUILDINGS[type].cost);
   const id = place(home.grid, type, x, y, rot);
   const f = BUILDINGS[type].size;
@@ -260,6 +261,7 @@ export const humidity = (home) => home.moist ?? humidityTarget(home);
 // Humedad en una celda: la general más lo que mojan (o secan) las piezas cercanas. Así se arma el gradiente.
 export function localHumidity(home, x, y) {
   let h = humidity(home);
+  if (home.wetSide) { const s = (x / home.grid.w) * 2 - 1; h += HUMIDITY.side * (home.wetSide === 'der' ? s : -s); }
   for (const p of livePieces(home)) {
     const L = HUMIDITY.local[p.type];
     if (!L) continue;
@@ -416,6 +418,19 @@ function growMold(home, dt, rng) {
     return;
   }
 }
+// Lado húmedo del terrario ('izq', 'der' o null): fija dónde se moja y dónde se seca.
+export function setWetSide(home, side) { home.wetSide = side === 'izq' || side === 'der' ? side : null; return home.wetSide; }
+// Punto libre del lado pedido ('humedo' o 'seco'), el más cercano al isópodo.
+export function sideSpot(home, iso, want) {
+  const g = home.grid; let best = null, bd = Infinity;
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+    if (blocked(g, i, j)) continue;
+    const h = localHumidity(home, i + 0.5, j + 0.5), ok = want === 'humedo' ? h >= HUMIDITY.wet - 0.05 : h <= HUMIDITY.dry + 0.05;
+    const d = Math.hypot(i + 0.5 - iso.x, j + 0.5 - iso.y) - (want === 'humedo' ? h : 1 - h) * 4; // prefiere lo más extremo
+    if (ok && d < bd) { bd = d; best = { x: i + 0.5, y: j + 0.5 }; }
+  }
+  return best;
+}
 export function setLid(home, level) { home.lid = Math.max(0, Math.min(2, level)); return home.lid; }
 function dropLeaf(home, dt, rng) {
   if ((home.leafT = (home.leafT ?? 0) + dt) < ZEN.leafEvery) return;
@@ -492,12 +507,16 @@ function walk(home, iso, dt, rng, hungerMul, phase) {
     if (bed) { iso.order = 'dormir'; iso.goBed = bed.id; iso.night = true; }
     else { iso.rest = 1e9; iso.nightSleep = true; iso.vx = iso.vy = 0; return; }
   }
-  const feeder = hungry && home.resources.hojarasca > 0 && ((iso.order === 'comer' && iso.feedAt != null && home.grid.pieces[iso.feedAt]) || nearest(home, iso, (b) => b.feeds));
+  const feeder = hungry && home.resources.hojarasca > 0 && ((iso.order === 'comer' && iso.feedAt != null && home.grid.pieces[iso.feedAt]) || (iso.eatAt != null && home.grid.pieces[iso.eatAt]) || nearest(home, iso, (b) => b.feeds)); // sin cambiar de fila a medias
   if (feeder) {
+    // Un plato, un comensal: los demás esperan en fila detrás (orden de llegada a la fila).
     const fx = feeder.x + 0.5, fy = feeder.y + 0.5;
-    if (Math.hypot(iso.x - fx, iso.y - fy) < 1.6) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
-    else { iso.tx = fx; iso.ty = fy; }
-  } else if (iso.order === 'comer') iso.order = null; // sin comida o sin comedero: la orden no se puede cumplir
+    if (iso.eatAt !== feeder.id) { iso.eatAt = feeder.id; iso.eatSince = home.clockT ?? 0; }
+    const line = feederQueue(home, feeder), k = line.indexOf(iso), busy = home.isopods.some((o) => o !== iso && o.ate > 0 && o.eatAt === feeder.id);
+    if (k === 0 && !busy && Math.hypot(iso.x - fx, iso.y - fy) < 1.6) { iso.hunger = 1; home.resources.hojarasca--; iso.tx = null; iso.wait = 1.5; iso.ate = 1.5; iso.order = null; gainLoyalty(home, iso, LOYALTY.comer); if (iso.wish?.kind === 'comer') fulfil(home, iso); else addFaith(home, 'comer'); }
+    else if (k <= 0) { iso.tx = fx; iso.ty = fy; }
+    else { const f = BUILDINGS[feeder.type].size; iso.tx = fx + 0.5 * (k % 2 ? 1 : -1); iso.ty = feeder.y + f.h + 0.4 + k * 0.55; iso.stuck = 0; if (Math.hypot(iso.x - iso.tx, iso.y - iso.ty) < 0.3) { iso.vx = iso.vy = 0; return; } }
+  } else { if (iso.order === 'comer') iso.order = null; if (!(iso.ate > 0)) iso.eatAt = null; } // sin hambre, comida o comedero: sale de la fila
   const bed = !feeder && iso.order === 'dormir' && ((iso.goBed != null && home.grid.pieces[iso.goBed]) || nearest(home, iso, (b) => b.beds));
   if (bed) {
     const f = BUILDINGS[bed.type].size, bx = bed.x + f.w / 2, by = bed.y + f.h + 0.3;
@@ -571,6 +590,7 @@ export function isoStatus(home, iso) {
   if (iso.order === 'construir') return 'construye';
   if (iso.job != null && !(iso.hunger < 0.5)) return 'trabaja';
   if (iso.ate > 0) return 'come';
+  if (iso.eatAt != null && home.grid.pieces[iso.eatAt] && feederQueue(home, home.grid.pieces[iso.eatAt]).indexOf(iso) > 0) return 'fila';
   if (iso.order === 'dormir') return 'dormir';
   if (iso.order === 'humedad') return 'humedad';
   if (iso.order === 'comer' || (iso.hunger < 0.5 && home.resources.hojarasca > 0 && nearest(home, iso, (b) => b.feeds))) return 'comer';
@@ -591,8 +611,8 @@ export function orderIso(home, iso, what, pieceId) {
   if (pieceId != null && (!piece || piece.site)) return false;
   if (what === 'trabajar') {
     if (pieceId === null || (pieceId === undefined && iso.job != null)) { iso.job = null; return true; }
-    const p = piece ?? nearest(home, iso, (b) => b.produces);
-    if (!p || !BUILDINGS[p.type].produces) return false;
+    const p = piece ?? nearest(home, iso, (b, q) => b.produces && workersOf(home, q).length < JOBS.max);
+    if (!p || !BUILDINGS[p.type].produces || (iso.job !== p.id && workersOf(home, p).length >= JOBS.max)) return false; // cupo por pieza
     iso.job = p.id; iso.tx = null; return true;
   }
   if (what === 'comer' && !(home.resources.hojarasca > 0 && (def ? def.feeds : nearest(home, iso, (b) => b.feeds)))) return false;
@@ -600,12 +620,15 @@ export function orderIso(home, iso, what, pieceId) {
     if (def) { if (!def.beds || (sleepersOf(home, piece).filter((o) => o !== iso).length >= def.beds * lvl(piece))) return false; iso.home = piece.id; }
     else if (!nearest(home, iso, (b) => b.beds)) return false;
   }
+  if (what === 'zonaHumeda' || what === 'zonaSeca') { const spot = sideSpot(home, iso, what === 'zonaHumeda' ? 'humedo' : 'seco'); if (!spot) return false; Object.assign(iso, { order: 'humedad', rest: 0, ball: 0, wait: 0, stuck: 0, tx: spot.x, ty: spot.y }); return true; }
   if (what === 'humedad') { const spot = comfySpot(home, iso); if (!spot) return false; Object.assign(iso, { order: 'humedad', rest: 0, ball: 0, wait: 0, stuck: 0, tx: spot.x, ty: spot.y }); return true; }
   iso.order = what; iso.rest = 0; iso.ball = 0; iso.wait = 0; iso.tx = null; iso.stuck = 0;
   if (what === 'dormir') iso.goBed = piece?.id ?? iso.home ?? null;
   if (what === 'comer') iso.feedAt = piece?.id ?? null;
   return true;
 }
+// Fila del comedero: quien va hacia él con hambre, por orden de llegada (el primero come).
+export const feederQueue = (home, p) => home.isopods.filter((i) => i.eatAt === p.id && !(i.ate > 0)).sort((a, b) => (a.eatSince ?? 0) - (b.eatSince ?? 0));
 // Quién trabaja en / duerme en una pieza (para su ficha).
 export const workersOf = (home, p) => home.isopods.filter((i) => i.job === p.id);
 export const sleepersOf = (home, p) => home.isopods.filter((i) => i.home === p.id);

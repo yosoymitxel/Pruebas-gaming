@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, setWetSide, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -24,6 +24,7 @@ import { playSfx, setSound, setMusic, playMusic } from './sfx.js';
 import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
+import { DEFAULT_YAW } from '../view/stage.js';
 import { RITUALS } from '../data/cult.js';
 import { InteriorView } from '../view/interior.js';
 import { Group } from 'three';
@@ -85,7 +86,7 @@ export class Session {
     if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
-    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
+    if (view) view.onMarker = (m) => { if (this.build || this.moveMode) return; if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -127,6 +128,7 @@ export class Session {
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
     if (this.mode === 'islands' || this.mode === 'result') this.nexo('isla', t('nexo.home', 'Terrario'));
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
+    this.stage.bounds = Math.max(this.game.home.grid.w, this.game.home.grid.h) * 0.45; // el terrario no se pierde de vista
   }
   // Nexo: cortinilla entre secciones (isla: iris; nido: descenso; combate: golpe; sala: puerta).
   nexo(kind, title, sub) { this.nexus = this.settings.reduceMotion ? null : { kind, title, sub, at: this.time }; }
@@ -176,6 +178,8 @@ export class Session {
   }
   tapHome(cell) {
     const home = this.game.home;
+    // Modo construcción (mover piezas): solo piezas; los isópodos, hojas y mudas no se tocan.
+    if (this.moveMode) { const at = home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)]; if (at != null) this.startMove(at); return at != null ? { moving: at } : null; }
     // Primero lo vivo: una muda para recoger o un isópodo al que tocar (bolita o huida).
     const leaf = (home.leaves ?? []).find((l) => Math.hypot(l.x - cell.x, l.y - cell.y) < 0.7);
     if (leaf && takeLeaf(home, leaf.id)) {
@@ -196,7 +200,7 @@ export class Session {
     }
     const iso = home.isopods.find((i) => Math.hypot(i.x - cell.x, i.y - cell.y) < 0.6);
     // Primer toque: lo selecciona (la cámara lo sigue y sale su ficha); tocarlo otra vez lo asusta.
-    if (iso && this.selIso !== iso.id) { this.selectIso(iso.id); return { selected: iso.id }; }
+    if (iso && (this.selIso !== iso.id || this.hubHidden)) { this.selectIso(iso.id); return { selected: iso.id }; }
     if (iso) {
       const what = poke(home, iso, cell), w = this.view.toWorld(iso.x, iso.y);
       this.sfx(what === 'ball' ? 'roll' : 'click');
@@ -221,6 +225,7 @@ export class Session {
     return this.collectPiece(piece);
   }
   // Tapa: cerrada → rejilla → abierta → cerrada. La humedad se mueve despacio hacia lo que pide.
+  wetSide(side) { setWetSide(this.game.home, side); this.view.climateKind = null; this.sfx('click'); this.persist(); this.emit(); }
   lid(k) {
     const home = this.game.home, n = setLid(home, k ?? ((home.lid ?? 1) + 1) % 3);
     this.sfx(n === 2 ? 'open' : 'close'); this.persist(); this.emit();
@@ -247,12 +252,16 @@ export class Session {
     return { res: BUILDINGS[piece.type].produces.res, n };
   }
   selectIso(id) {
-    this.selIso = id ?? null; this.selPiece = null;
+    // Al elegir se acerca (sin alejar si ya estabas más cerca); al soltar vuelve al zoom que tenías.
+    if (id != null && this.selIso == null) this.prevZoom = this.stage.zoomK;
+    this.selIso = id ?? null; this.selPiece = null; this.hubHidden = false;
     if (this.view) this.view.selIso = this.selIso;
-    this.stage.zoomK = 1; if (id != null) this.stage.zoom(0.62);
-    else this.stage.frame(this.view.camera.target, this.view.camera.distance, this.view.camera.fit);
+    if (id != null) { this.stage.zoomK = Math.min(this.stage.zoomK, 0.62); this.stage.frame([this.stage.target.x, this.stage.target.z], this.stage.distance, this.stage.fit); }
+    else { this.stage.zoomK = this.prevZoom ?? this.stage.zoomK; this.stage.frame([this.stage.target.x, this.stage.target.z], this.stage.distance, this.stage.fit); }
     this.sfx('click'); this.emit();
   }
+  // Esconde la ficha para ver la acción de cerca; la cámara sigue al isópodo. Tocarlo otra vez la abre.
+  hideHub() { this.hubHidden = true; this.emit(); }
   // Consejos de primera vez (src/data/tips.js): uno cada vez, 5 s en pantalla; se guardan para no repetirlos.
   tips() {
     if (this.settings.tips === false || (this.tip && this.time - this.tip.at < 6)) return;
@@ -266,14 +275,10 @@ export class Session {
       return;
     }
   }
-  // Fe y lealtad a la vista: cada evento sale como número sobre la colonia (como el +5 de fe de Cult of the Lamb).
+  // Subidas de nivel de cariño a la vista (el ánimo general ya no sale flotando).
   cultFx() {
     const home = this.game.home, log = home.faithLog ?? [], c = this.view.toWorld(home.grid.w / 2, home.grid.h / 2);
-    for (const e of log.splice(0)) {
-      if (Math.abs(e.delta) < 2) continue;
-      this.floatText(`${e.delta > 0 ? '+' : '−'}${Math.abs(e.delta)} ${FAITH.events[e.key].name}`, c.x, c.z, e.delta > 0 ? 'gain' : 'ally', 2.4);
-      if (e.delta >= 10) this.sfx('heal', 1.1); else if (e.delta <= -10) this.sfx('hurt', 0.8);
-    }
+    log.splice(0); void c; // el ánimo se ve en la calma; los «+5 …» flotantes tapaban todo
     for (const id of (home.levelUps ?? []).splice(0)) {
       const iso = home.isopods.find((i) => i.id === id); if (!iso) continue;
       const w = this.view.toWorld(iso.x, iso.y);
@@ -295,11 +300,12 @@ export class Session {
     if (!p) return;
     this.selPiece = null; this.selIso = null;
     this.interior = { kind, pieceId, at: this.time };
-    this.nexo('dentro', kind === 'altar' ? t('inside.altar', 'Cámara del altar') : BUILDINGS[p.type].name);
+    this.nexo('dentro', kind === 'altar' ? t('inside.altar', 'Punto de reunión') : BUILDINGS[p.type].name);
     this.sfx('open');
+    this.yawOutside ??= this.stage.yaw; this.stage.yaw = DEFAULT_YAW; // dentro, la cámara mira siempre de frente
     this.setMode('interior', new InteriorView(this.stage, this.game.home, kind, pieceId), kind === 'altar' ? 0.35 : 0.15);
   }
-  exitInterior() { this.interior = null; this.nexo('dentro', null); this.goHome(); }
+  exitInterior() { this.interior = null; if (this.yawOutside != null) { this.stage.yaw = this.yawOutside; this.yawOutside = null; } this.nexo('dentro', null); this.goHome(); }
   // Tocar una pieza: los refugios se abren por dentro; el resto enseña su ficha.
   selectPiece(id) {
     const p = id != null && this.game.home.grid.pieces[id];
@@ -310,19 +316,19 @@ export class Session {
   openTemple() {
     const tp = temple(this.game.home);
     if (tp) { this.selIso = null; this.selPiece = tp.id; this.sfx('open'); this.view.focusPiece = tp.id; }
-    else { this.wantPanel = 'build'; this.floatText(t('temple.need', 'Construye un Altar de musgo'), 0, 0, 'note', 1.5); }
+    else { this.wantPanel = 'build'; this.floatText(t('temple.need', 'Construye un Claro de reunión'), 0, 0, 'note', 1.5); }
     this.emit();
   }
   ritual(id) {
     if (!ritual(this.game.home, id, this.game.day)) { this.sfx('hurt', 1.6); return false; }
     this.selPiece = null;
-    this.sfx('boss', 1.2); this.persist(); this.enterInterior('altar', temple(this.game.home).id); this.nexo('ritual', RITUALS[id].name, t('temple.gather', 'La colonia se reúne en el altar')); return true;
+    this.sfx('boss', 1.2); this.persist(); this.enterInterior('altar', temple(this.game.home).id); this.nexo('ritual', RITUALS[id].name, t('temple.gather', 'La colonia se junta')); return true;
   }
   sermon() {
     const home = this.game.home;
     if (!sermon(home, this.game.day, hasUpgrade(this.game, 'coro') ? 2 : 1)) { this.sfx('hurt', 1.6); return false; }
     this.selPiece = null;
-    this.selectIso(null); this.sfx('boss', 1.6); this.enterInterior('altar', temple(home).id); this.nexo('ritual', t('temple.sermon', 'Sermón'), t('temple.gather', 'La colonia se reúne en el altar')); return true;
+    this.selectIso(null); this.sfx('boss', 1.6); this.enterInterior('altar', temple(home).id); this.nexo('ritual', t('meet.talk', 'Reunión'), t('temple.gather', 'La colonia se junta')); return true;
   }
   // Quitar una asignación (trabajo o cama propia) desde cualquiera de las dos fichas.
   unassign(id, what) { const iso = this.game.home.isopods.find((i) => i.id === id); if (!iso) return; if (what === 'trabajar') iso.job = null; else iso.home = null; this.sfx('click'); this.persist(); this.emit(); }
@@ -332,7 +338,7 @@ export class Session {
     const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what, pieceId);
     if (ok && pieceId != null) this.persist();
     const w = this.view.toWorld(iso.x, iso.y);
-    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa'), humedad: t('order.wet', '¡A la humedad!') }[what], w.x, w.z, 'note', 1); }
+    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa'), humedad: t('order.wet', '¡A la humedad!'), zonaHumeda: t('order.wetSide', '¡Al lado húmedo!'), zonaSeca: t('order.drySide', '¡Al lado seco!') }[what], w.x, w.z, 'note', 1); }
     else this.sfx('hurt', 1.6);
     this.emit();
     return ok;
@@ -530,6 +536,7 @@ export class Session {
       const home = this.game.home; tickHome(home, dt, this.rng, DAY_PHASES[this.phase]);
       if (this.interior?.kind === 'altar' && !home.sermon && this.time - this.interior.at > 2.5) this.exitInterior();
     }
+    else if (this.mode === 'home' && (this.build || this.moveMode)) { /* construyendo: la colonia se queda quieta */ }
     else if (this.mode === 'home') { this.view.selPieceNow = this.selPiece; this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.view.merchant = merchantToday(this.game); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;

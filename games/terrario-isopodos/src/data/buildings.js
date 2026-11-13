@@ -15,7 +15,7 @@ export const BUILDINGS = localize('buildings', {
     produces: { res: 'esporas', amount: 1, every: 40, cap: 4 }, upgrade: [{ esporas: 3, musgo: 2 }, { esporas: 5, ambar: 1 }] },
   charca: { name: 'Charca', desc: 'Musgo y humedad.', size: { w: 2, h: 1 }, solid: true, cost: { musgo: 3 },
     produces: { res: 'musgo', amount: 1, every: 50, cap: 4 }, calm: 0.05, upgrade: [{ musgo: 4 }, { musgo: 6, ambar: 1 }] },
-  altar: { name: 'Altar de musgo', desc: 'Mucha calma.', size: { w: 2, h: 2 }, solid: true, cost: { musgo: 4, ambar: 1 }, calm: 0.2,
+  altar: { name: 'Claro de reunión', desc: 'Donde se junta la colonia. Uno solo por terrario.', unique: true, size: { w: 2, h: 2 }, solid: true, cost: { musgo: 4, ambar: 1 }, calm: 0.2,
     upgrade: [{ musgo: 6, ambar: 1 }, { musgo: 8, ambar: 2 }] },
   piedra: { name: 'Piedra plana', desc: 'Un poco de calma.', size: { w: 1, h: 1 }, solid: true, cost: { cal: 1 }, calm: 0.03 },
   corcho: { name: 'Corteza de corcho', desc: 'Camas y calma.', size: { w: 2, h: 1 }, solid: true, cost: { hojarasca: 2, musgo: 1 }, beds: 2, calm: 0.06,

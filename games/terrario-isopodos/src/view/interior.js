@@ -12,7 +12,7 @@ import { ActorLayer } from './actors.js';
 import { Vfx } from './vfx.js';
 import { BADGES } from '../data/palettes.js';
 import { BUILDINGS } from '../data/buildings.js';
-import { lvl, sleepersOf } from '../game/home.js';
+import { lvl } from '../game/home.js';
 
 const R = 3.6; // radio de la cueva
 const L = (c, extra) => new THREE.MeshLambertMaterial({ color: c, flatShading: true, ...extra });
@@ -98,7 +98,8 @@ export class InteriorView {
       this.halo.scale.setScalar(sm ? 1.1 - k * 0.4 : 1); this.halo.material.opacity = sm ? 0.5 + Math.sin(time * 6) * 0.3 : 0.25;
       if (sm && (this.sparkT = (this.sparkT ?? 0) - dt) <= 0) { this.sparkT = 0.35; this.vfx.burst('mimo', 0, 1.1, 0); }
     } else {
-      const p = this.home.grid.pieces[this.pieceId], mine = p ? isos.filter((i) => i.bed === p.id || i.home === p.id || sleepersOf(this.home, p).includes(i)) : [];
+      // solo los que están aquí ahora (durmiendo en esta pieza); los asignados que andan fuera no aparecen
+      const p = this.home.grid.pieces[this.pieceId], mine = p ? isos.filter((i) => i.bed === p.id && i.rest > 0) : [];
       mine.slice(0, this.beds.length).forEach((iso, i) => {
         const b = this.beds[i], asleep = iso.rest > 0;
         list.push({ id: `b${iso.id}`, sprite: `${asleep ? 'ball' : 'iso'}:${iso.shell}`, x: b.x, z: b.z, y: 0.35, height: asleep ? 0.8 : 1.15, squash: asleep ? 1 + Math.sin(time * 1.3 + i) * 0.05 : 1, face: b.a + Math.PI, ...(asleep ? {} : look(iso)) });

@@ -18,6 +18,7 @@ const CHAIN = { window: 2, bonus: 0.4 }; // recoger seguido: cada eslabón desde
 // Nivel de altura de cada celda según la forma: null = hueco.
 function terrain(shape, rng) {
   const c = SIDE / 2, lv = new Array(SIDE * SIDE).fill(null), seedA = rng() * 6.28;
+  if (shape === 'sendero') return path(rng, seedA);
   for (let j = 0; j < SIDE; j++) for (let i = 0; i < SIDE; i++) {
     const x = i + 0.5 - c, y = j + 0.5 - c, d = Math.hypot(x, y), a = Math.atan2(y, x);
     const rim = 6.4 + Math.sin(a * 3 + seedA) * 0.7;
@@ -38,14 +39,29 @@ function terrain(shape, rng) {
   return lv;
 }
 
+// Sendero (como un nivel de Crash Bandicoot): de abajo hacia el fondo, tres celdas de ancho que serpentean;
+// sube escalones cada pocas filas, filas vacías que hay que saltar y algún recoveco lateral con premio.
+function path(rng, seedA) {
+  const lv = new Array(SIDE * SIDE).fill(null);
+  let h = 0;
+  for (let j = SIDE - 1; j >= 0; j--) {
+    const row = SIDE - 1 - j, cx = Math.round(SIDE / 2 - 0.5 + Math.sin(row * 0.55 + seedA) * 3);
+    if (row > 2 && row < SIDE - 2 && row % 4 === 2) continue; // hueco: fila entera al vacío (se salta)
+    if (row > 1 && row % 4 === 0 && h < 3) h++; // escalón hacia arriba
+    for (let i = cx - 1; i <= cx + 1; i++) if (i >= 0 && i < SIDE) lv[j * SIDE + i] = h;
+    if (row % 5 === 3) { const side = rng() < 0.5 ? cx - 2 : cx + 2; if (side >= 0 && side < SIDE) lv[j * SIDE + side] = h; } // recoveco
+  }
+  return lv;
+}
+
 export function newGather(island) {
   const rng = mulberry32(island.seed);
-  const shapes = Object.keys(GATHER_SHAPES), shape = shapes[island.seed % shapes.length];
+  const shape = 'sendero'; // recolección = recorrido hacia delante (el resto de formas quedan en GATHER_SHAPES)
   const levels = terrain(shape, rng);
   const grid = createGrid(SIDE, SIDE);
   levels.forEach((h, k) => { if (h !== null) openRect(grid, k % SIDE, Math.floor(k / SIDE), 1, 1); });
   const cells = levels.map((h, k) => ({ h, i: k % SIDE, j: Math.floor(k / SIDE) })).filter((c) => c.h !== null);
-  const start = cells.filter((c) => c.h === 0).sort((a, b) => Math.hypot(a.i - 7, a.j - 11) - Math.hypot(b.i - 7, b.j - 11))[0] ?? cells[0];
+  const start = cells.filter((c) => c.h === 0).sort((a, b) => b.j - a.j || Math.abs(a.i - 7) - Math.abs(b.i - 7))[0] ?? cells[0]; // al principio del sendero
   let reach = reachable(levels, grid, start);
   const free = (minH = 0) => {
     for (let k = 0; k < 200; k++) {

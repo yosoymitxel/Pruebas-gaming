@@ -1,4 +1,4 @@
-// La colonia como el culto de Cult of the Lamb (wiki: Faith, Loyalty, Followers, Rituals):
+// Ánimo de la colonia (inspirado en Faith/Loyalty de Cult of the Lamb, sin culto: en el juego se llama ánimo):
 // - Fe: sube y baja con lo que pasa (cada evento con su cifra, como en el juego) y se va apagando sola.
 //   Se suma a la calma: así cuidar se nota en el momento y no solo por lo que hay construido.
 // - Lealtad de cada isópodo: barra de 0 a 100; al llenarse sube de nivel y deja una recompensa.
@@ -25,11 +25,11 @@ export const FAITH = {
     camas: { name: 'Faltan camas', delta: -20 },
     hambre: { name: 'Pasan hambre', delta: -10 },
     nivel: { name: 'Subió de nivel', delta: 5 },
-    obediente: { name: 'Llegó alguien obediente', delta: 10 },
-    esceptico: { name: 'Llegó alguien escéptico', delta: -10 },
-    devoto: { name: 'Mimo a un devoto', delta: 3 },
-    ritual: { name: 'Ritual', delta: 15 },
-    vigilia: { name: 'Vigilia', delta: 25 },
+    obediente: { name: 'Llegó alguien tranquilo', delta: 10 },
+    esceptico: { name: 'Llegó alguien arisco', delta: -10 },
+    devoto: { name: 'Mimo a un cariñoso', delta: 3 },
+    ritual: { name: 'Actividad', delta: 15 },
+    vigilia: { name: 'Noche tranquila', delta: 25 },
   }),
 };
 
@@ -56,9 +56,9 @@ export const SERMON = { time: 7, ring: 1.6 };
 // círculo, cuestan recursos y cada uno se puede repetir pasados `every` días. `icon`: nombre en src/ui/icons.js.
 export const RITUALS = localize('rituals', {
   festin: { name: 'Festín', desc: 'Toda la colonia come hasta llenarse.', icon: 'eat', cost: { hojarasca: 8 }, every: 2 },
-  lluvia: { name: 'Danza de la lluvia', desc: 'Sube la humedad del terrario de golpe.', icon: 'items', cost: { musgo: 4 }, every: 1 },
-  cosecha: { name: 'Bendición de cosecha', desc: 'Las piezas producen un 50 % más durante un día.', icon: 'plant', cost: { esporas: 3, hojarasca: 2 }, every: 3 },
-  vigilia: { name: 'Vigilia', desc: 'Se acaban los sustos y la fe sube mucho.', icon: 'moon', cost: { ambar: 1 }, every: 2 },
+  lluvia: { name: 'Rocío compartido', desc: 'Sube la humedad del terrario de golpe.', icon: 'items', cost: { musgo: 4 }, every: 1 },
+  cosecha: { name: 'Cosecha abundante', desc: 'Las piezas producen un 50 % más durante un día.', icon: 'plant', cost: { esporas: 3, hojarasca: 2 }, every: 3 },
+  vigilia: { name: 'Noche tranquila', desc: 'Se acaban los sustos y suben los ánimos.', icon: 'moon', cost: { ambar: 1 }, every: 2 },
   vinculo: { name: 'Lazo de la colonia', desc: 'Todos ganan mucha lealtad.', icon: 'care', cost: { ambar: 2, cal: 3 }, every: 3 },
 });
 export const HARVEST = { mul: 1.5, time: 240 };

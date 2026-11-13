@@ -1257,3 +1257,33 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .inside-exit { position: absolute; z-index: var(--z-hud); left: 50%; translate: -50% 0; bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 12px); }
 .nexo-dentro { background: var(--ink); animation: nexo-hole 1.1s cubic-bezier(.7,0,.2,1) forwards; }
 @keyframes nexo-hole { 0%, 35% { clip-path: circle(80% at 50% 55%); } 100% { clip-path: circle(0% at 50% 55%); } }
+/* Ficha del isópodo plegada: botón pequeño para abrir el resto (pestañas y acciones). */
+.hub-more { align-self: center; margin: 2px auto 0; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: var(--line); border-radius: 999px; background: var(--paper); color: inherit; font: 600 13px/1 var(--sans); cursor: pointer; }
+.hub-more span { transition: rotate 160ms; }
+.hub-more.on span { rotate: 180deg; }
+.assign .pick-list { margin: -2px 0 4px; padding-left: 12px; border-left: 3px solid var(--ui-accent, #13706f); }
+/* Dentro no hay barra de abajo: el panel baja al borde y queda bajo; el resto es escena. */
+.interior .drawer { bottom: max(var(--gap), env(safe-area-inset-bottom)); max-height: 30vh; }
+/* Modo construcción: sin avisos de isópodos ni recogidas (no se tocan), solo la obra. */
+.home.building .markers { pointer-events: none; opacity: 0.25; }
+/* Humedad entendible: veredicto de color, escala con nombres bajo la barra y lado húmedo elegible. */
+.composition .verdict { width: 100%; margin: 0; padding: 8px 12px; border-radius: var(--chip, 6px); font-weight: 700; }
+.verdict.v-ideal { background: color-mix(in srgb, #4f8a3a 18%, transparent); color: #2f6a24; }
+.verdict.v-seco { background: color-mix(in srgb, #d8952a 22%, transparent); color: #8a5a10; }
+.verdict.v-humedo, .verdict.v-moho { background: color-mix(in srgb, #c2412f 18%, transparent); color: #9a2e20; }
+.hum-scale { display: flex; width: 100%; margin-top: 3px; font: 600 10px/1 var(--sans); text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
+.hum-scale b { font-weight: 600; text-align: center; border-left: 1px solid currentColor; }
+.hum-scale b:first-child { border-left: 0; }
+.hum-scale b:last-child { flex: 1; }
+.hum-legend { display: block; margin-top: 6px; font-size: 11px; opacity: 0.65; }
+.hum-parts .up { color: #2f6a9a; } .hum-parts .down { color: #8a5a10; }
+.side-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; }
+.side-row > span { font-weight: 700; margin-right: 4px; }
+.side-help { margin: 0; font-size: 12px; opacity: 0.75; width: 100%; }
+.lid-row .btn.active, .side-row .btn.active { color: var(--ink) !important; font-weight: 800; }
+/* Tarjetas del equipo: el texto no se corta (columna flexible con mínimo 0, imagen más chica, cifras que bajan). */
+.roster .iso-card { grid-template-columns: 44px minmax(0, 1fr); padding: 8px 8px 8px 6px; }
+.roster .iso-card img { width: 44px; }
+.roster .iso-card b { font-size: 17px; }
+.roster .iso-card .cls, .roster .iso-card .stats { min-width: 0; }
+.roster .iso-card .stats { flex-wrap: wrap; gap: 2px 8px; font-size: 12px; }

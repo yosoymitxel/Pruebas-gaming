@@ -85,6 +85,7 @@ export class Stage {
     this.root.clear();
     this.pixfx.clear();
     this.root.add(group);
+    this.bounds = null;
     this.backdrop.group.visible = group.children.length > 0;
     this.yaw = DEFAULT_YAW;
     this.zoomK = 1;
@@ -102,6 +103,9 @@ export class Stage {
   zoom(f) { this.zoomK = Math.min(ZOOM[1], Math.max(ZOOM[0], this.zoomK * f)); this.frame([this.target.x, this.target.z], this.distance, this.fit); }
 
   frame([x, z], distance, fit = this.fit ?? 0) {
+    // la vista no se escapa de la escena: el punto que mira queda dentro de `bounds` (radio) si la escena lo pide
+    const r = this.bounds, d0 = Math.hypot(x, z);
+    if (r && d0 > r) { x *= r / d0; z *= r / d0; }
     this.target.set(x, 0, z);
     this.distance = distance;
     this.fit = fit;
