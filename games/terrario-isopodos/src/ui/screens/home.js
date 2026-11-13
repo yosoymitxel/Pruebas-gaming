@@ -5,6 +5,7 @@ import { RESOURCES } from '../../data/resources.js';
 import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
 import { RITUALS } from '../../data/cult.js';
 import { portraitURL, isoPortrait } from '../../view/sprites.js';
+import { snailPortrait } from '../../view/models3d.js';
 import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, ResIcon, CamControls, FxLayer, DayClock, CloseX } from './common.js';
 import { Icon } from '../icons.js';
@@ -42,7 +43,7 @@ function Merchant({ s, onClose }) {
     ? html`<span class="ware"><${Icon} name="colony" size="22" /><b>${n}</b><small>${t('merchant.iso', 'isópodo')}</small></span>`
     : html`<span class="ware"><${ResIcon} res=${r} /><b>${n}</b><small>${RESOURCES[r].name}</small></span>`));
   return html`<${CloseX} onClose=${onClose} /><section class="drawer merchant" aria-label=${t('merchant.title', 'Mercader')}>
-    <header class="mer-head"><span class="mer-face"><${Icon} name="snail" size="34" /></span><div><h3>${t('merchant.title', 'Caracol mercader')}</h3>
+    <header class="mer-head"><img class="mer-face" src=${snailPortrait()} alt="" /><div><h3>${t('merchant.title', 'Caracol mercader')}</h3>
       <p>${t('merchant.line', '«Traigo ámbar de otras islas. Me voy mañana.»')}</p></div></header>
     <ul class="trades">${m.offers.map((i, k) => { const o = TRADES[i], sold = m.sold.includes(k), ok = canAfford(home, o.give); return html`<li class=${`trade${sold ? ' sold' : ''}`}>
       <div class="side"><small>${t('merchant.give', 'Das')}</small>${label(o.give)}</div><span class="arrow" aria-hidden="true">→</span>

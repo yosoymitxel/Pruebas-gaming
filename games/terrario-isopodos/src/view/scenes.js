@@ -10,6 +10,7 @@ import { RESOURCES } from '../data/resources.js';
 import { speciesOf } from '../data/species.js';
 import { tank, jar, jarShine, globe, floatingRock, substrateDisc, CHARCOAL } from './vessel.js';
 import { mulberry32 } from '../core/rng.js';
+import * as Snail from '../vendor/polyfork/snail-base.mjs';
 import { propMesh, ghostMesh } from './props.js';
 import { ActorLayer } from './actors.js';
 import { Vfx, Weather } from './vfx.js';
@@ -288,7 +289,8 @@ export class HomeView extends GridScene {
       const g = this.grid, w = this.toWorld(g.w - 1.2, g.h - 1.2); // dentro, en la esquina de delante
       if (!this.stall) { this.stall = merchantStall(); this.group.add(this.stall); }
       this.stall.position.set(w.x, w.y, w.z); this.stall.rotation.y = this.stage.yaw + 0.6;
-      this.stall.children[0].position.y = 0.32 + Math.sin(time * 2) * 0.02; // el caracol respira
+      this.stall.children[0].scale.y = this.stall.children[0].scale.x * (1 + Math.sin(time * 2) * 0.03); // el caracol respira
+      this.stall.userData.amber.rotation.y = time * 1.5;
       marks.push({ id: 'merchant', kind: 'merchant', icon: iconURL('snail'), x: w.x, y: w.y + 1.9, z: w.z });
     } else if (this.stall) { this.group.remove(this.stall); this.stall = null; }
     // Peticiones: globito sobre la cabeza con lo que quiere (como los seguidores de Cult of the Lamb).
@@ -420,23 +422,22 @@ export class GatherView extends GridScene {
 
 const ROOM_ICON3D = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'relic', rescate: 'rescue', tienda: 'shop', fuente: 'spring', arma: 'attack', maldito: 'eye' };
 
-// Mercader: un caracol viajero con su fardo de ámbar, de visita en una esquina del terrario.
+// Mercader: el caracol de Polyfork (src/vendor/polyfork/snail-base.mjs) con su fardo de ámbar en la concha,
+// de visita en una esquina del terrario.
 function merchantStall() {
-  const g = new THREE.Group(), L = (c) => new THREE.MeshLambertMaterial({ color: c });
-  const body = new THREE.Group();
-  const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.1, 4, 10).rotateZ(Math.PI / 2), L(0xb9a68a));
-  foot.scale.set(1, 0.55, 0.8); foot.position.y = -0.18;
-  const shell = new THREE.Mesh(new THREE.TorusKnotGeometry(0.34, 0.2, 48, 8, 1, 3), L(0x8a4e2a));
-  shell.position.set(-0.1, 0.25, 0); shell.scale.setScalar(0.9);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), L(0xb9a68a)); head.position.set(0.62, 0.05, 0);
-  for (const z of [-0.08, 0.08]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.4, 5), L(0xb9a68a)); st.position.set(0.7, 0.3, z); st.rotation.z = -0.3; const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), L(0x1d1a16)); eye.position.set(0.76, 0.5, z); body.add(st, eye); }
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.42), L(0x6b5a3a)); pack.position.set(-0.15, 0.72, 0); pack.rotation.y = 0.4;
-  const amber = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshLambertMaterial({ color: 0xf2a93b, emissive: 0x7a3b00 })); amber.position.set(-0.15, 0.98, 0);
-  body.add(foot, shell, head, pack, amber);
-  body.position.y = 0.32; body.traverse((m) => { m.castShadow = true; });
-  g.add(body);
-  for (let k = 0; k < 3; k++) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshLambertMaterial({ color: 0xf2a93b, emissive: 0x5a2b00 })); gem.position.set(0.3 + k * 0.22, 0.1, 0.55); g.add(gem); }
-  g.scale.setScalar(1.3);
+  const g = new THREE.Group(), body = new THREE.Group();
+  const snail = Snail.createAsset({ shell: '#a86a3a', band: '#f2c14e', body: '#b9a68a', sole: '#8f7f66' });
+  const box = new THREE.Box3().setFromObject(snail), sz = box.getSize(new THREE.Vector3());
+  snail.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+  snail.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.material = [].concat(o.material).map((mt) => new THREE.MeshLambertMaterial({ vertexColors: mt.vertexColors, color: mt.color, flatShading: true })); if (o.material.length === 1) o.material = o.material[0]; } });
+  const k = 1.6 / Math.max(sz.x, sz.z); body.add(snail); body.scale.setScalar(k);
+  // fardo atado encima de la concha y una gema de ámbar que brilla
+  const top = sz.y * k, L = (c, e) => new THREE.MeshLambertMaterial({ color: c, ...e });
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.34), L(0x6b5a3a)); pack.position.set(-0.1, top + 0.08, 0); pack.rotation.y = 0.4;
+  const amber = new THREE.Mesh(new THREE.OctahedronGeometry(0.13), L(0xf2a93b, { emissive: 0x7a3b00 })); amber.position.set(-0.1, top + 0.32, 0);
+  g.add(body, pack, amber); g.userData.amber = amber;
+  for (let i = 0; i < 3; i++) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), L(0xf2a93b, { emissive: 0x5a2b00 })); gem.position.set(0.3 + i * 0.2, 0.09, 0.6); g.add(gem); }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
 

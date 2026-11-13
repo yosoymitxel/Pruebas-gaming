@@ -12,6 +12,7 @@ import * as Wasp from '../vendor/polyfork/common-wasp-base.mjs';
 import * as Stag from '../vendor/polyfork/stag-beetle-906c6e.mjs';
 import * as Orb from '../vendor/polyfork/garden-orb-weaver-b32844.mjs';
 import * as Worm from '../vendor/polyfork/earthworm-4a0bde.mjs';
+import * as Snail from '../vendor/polyfork/snail-base.mjs';
 import { SPECIES } from '../data/species.js';
 import { attachOutfit } from './outfits3d.js';
 
@@ -104,3 +105,12 @@ export const drawFoe3D = (kind) => (c, w, h) => shoot(c, w, h, FOES[kind](), { y
 
 // Foto de cualquier modelo vivo (retratos, pruebas).
 export const drawLive3D = (c, w, h, key) => shoot(c, w, h, liveModel(key), { yaw: Math.PI / 2 - 0.45 });
+
+// Retrato del caracol mercader (el mismo modelo que espera en el terrario), para su panel.
+let snailURL = null;
+export function snailPortrait() {
+  if (snailURL) return snailURL;
+  const c = document.createElement('canvas'); c.width = 160; c.height = 120;
+  try { shoot(c.getContext('2d'), 160, 120, Snail.createAsset({ shell: '#a86a3a', band: '#f2c14e', body: '#b9a68a', sole: '#8f7f66' }), { yaw: Math.PI / 2 - 0.5 }); } catch { /* sin WebGL: queda vacío */ }
+  return (snailURL = c.toDataURL());
+}
