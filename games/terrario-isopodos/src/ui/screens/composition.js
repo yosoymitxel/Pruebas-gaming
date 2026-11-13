@@ -19,7 +19,8 @@ function advice(home, clim, h) {
   const lid = home.lid ?? 1;
   if (clim === 'ideal') return t('adv.ok', 'Bien así: no hace falta tocar nada.');
   if (clim === 'seco') return lid > 0 ? t('adv.closeLid', 'Muy seco: cierra la tapa y rocía.') : t('adv.addWater', 'Muy seco: rocía o pon una charca o musgo esfagno.');
-  if (lid < 2) return t('adv.openLid', 'Demasiada agua: abre la tapa.');
+  if (home.weather === 'lluvia' && lid > 0) return t('adv.rain', 'Llueve y entra agua: cierra la tapa hasta que pare.');
+  if (lid < 2) return t('adv.openLid', 'Demasiada agua: abre la tapa para que se seque.');
   return t('adv.lessWater', 'Demasiada agua aun con la tapa abierta: quita una charca o un esfagno.');
 }
 export function Composition({ s, say, onClose }) {
@@ -43,9 +44,7 @@ export function Composition({ s, say, onClose }) {
     <div class="lid-row" role="radiogroup" aria-label=${t('comp.lid', 'Tapa')}><${Icon} name="lid" size="18" />
       ${LID_NAMES.map((n, k) => html`<button class=${`btn small${(home.lid ?? 1) === k ? ' active' : ''}`} role="radio" aria-checked=${(home.lid ?? 1) === k} onClick=${() => s.lid(k)}>${t(`lid.${k}`, n)}</button>`)}
       <span class="trend">${pct(h)} → ${pct(humidityTarget(home))}</span></div>
-    <div class="side-row" role="radiogroup" aria-label=${t('comp.wetSide', 'Lado húmedo')}><span>${t('comp.wetSide', 'Lado húmedo')}</span>
-      ${[['izq', t('comp.left', 'Izquierda')], [null, t('comp.none', 'Parejo')], ['der', t('comp.right', 'Derecha')]].map(([v, n]) => html`<button class=${`btn small${(home.wetSide ?? null) === v ? ' active' : ''}`} role="radio" aria-checked=${(home.wetSide ?? null) === v} onClick=${() => s.wetSide(v)}>${n}</button>`)}</div>
-    <p class="side-help">${home.wetSide ? t('comp.sideHelp', 'Un lado queda mojado y el otro seco: cada isópodo busca el suyo.') : t('comp.sideNone', 'Todo parejo: elige un lado húmedo para que haya rincón seco y rincón mojado.')}</p>
+    <p class="side-help">${t('comp.soilHelp', 'El suelo se moja donde rocías y junto al agua, y se seca solo. Donde se mantiene húmedo crece musgo; donde se seca, se agrieta.')}</p>
     ${''}
     <dl class="stats3 comp-fx">
       <div class=${tone(eff.prodMul, true)}><dt>${t('comp.prod', 'Producción')}</dt><dd>×${eff.prodMul.toFixed(2)}</dd></div>

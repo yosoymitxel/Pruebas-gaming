@@ -240,18 +240,21 @@ test('recolección con relieve: cada forma deja recursos alcanzables, el salto s
 });
 
 test('cuidados del terrario: rociar sube la humedad poco a poco y se seca; no caen hojas al azar; las mudas se comen solas', async () => {
-  const { mist, humidity: hum, humidityTarget } = await import('../src/game/home.js');
+  const H2 = await import('../src/game/home.js'), { sprayAt, localHumidity, humidity: hum } = H2;
   const { home } = newGame(8);
-  home.moist = humidityTarget(home);
-  const h0 = hum(home);
-  assert.ok(mist(home));
-  assert.ok(humidityTarget(home) > h0, 'rociar sube la humedad objetivo');
-  assert.ok(!mist(home), 'con espera entre rociadas');
   const rng = mulberry32(2);
-  for (let k = 0; k < 60 * 20; k++) tickHome(home, 1 / 60, rng);
-  assert.ok(hum(home) > h0, 'el sustrato se moja');
-  for (let k = 0; k < 60 * 300; k++) tickHome(home, 1 / 60, rng);
-  assert.ok(Math.abs(hum(home) - h0) < 0.02, 'el rocío se seca');
+  for (let k = 0; k < 60 * 5; k++) tickHome(home, 1 / 60, rng);
+  const g = home.grid, k0 = g.open.findIndex((o, k) => o && g.cells[k] === null), x = (k0 % g.w) + 0.5, y = Math.floor(k0 / g.w) + 0.5;
+  const c0 = localHumidity(home, x, y), far = localHumidity(home, x + 6, y), h0 = hum(home);
+  assert.ok(sprayAt(home, x, y) && !sprayAt(home, x, y), 'rociar un punto, con espera');
+  assert.ok(localHumidity(home, x, y) > c0 + 0.3, 'esa celda se moja');
+  assert.equal(localHumidity(home, x + 6, y), far, 'lejos no cambia');
+  for (let k = 0; k < 60 * 120; k++) tickHome(home, 1 / 60, rng);
+  assert.ok(Math.abs(localHumidity(home, x, y) - c0) < 0.05 && Math.abs(hum(home) - h0) < 0.05, 'el rocío se seca');
+  const rain = () => H2.humidityParts(home).find((p) => p.source === 'weather').amount;
+  home.weather = 'lluvia'; home.lid = 0; const closed = rain(); home.lid = 2;
+  assert.ok(closed === 0 && rain() > 0, 'la lluvia solo entra con la tapa abierta');
+  home.weather = 'claro'; home.lid = 1;
   assert.equal(home.leaves.length, 0, 'sin hojas al azar');
   home.molts = [{ id: 'm', x: 2, y: 2 }]; const cal = home.resources.cal;
   for (let k = 0; k < 60 * 35; k++) tickHome(home, 1 / 60, rng);

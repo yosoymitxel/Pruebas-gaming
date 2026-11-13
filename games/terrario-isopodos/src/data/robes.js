@@ -5,8 +5,8 @@ import { localize } from '../i18n/index.js';
 
 export const ROBES = localize('robes', {
   comun: { name: 'Caparazón de siempre', desc: 'Sin ventajas ni precio.', icon: 'shield', cost: null, mods: {} },
-  dorado: { name: 'Caparazón dorado', desc: '+10 % de daño por cada muerte; se pierde al recibir un golpe y recibes un 25 % más.', icon: 'jefe', cost: { ambar: 3 },
-    mods: { killStack: 0.1, incomingMul: 1.25 } },
+  dorado: { name: 'Caparazón dorado', desc: '+12 % de daño por cada muerte; se pierde al recibir un golpe y recibes un 10 % más.', icon: 'jefe', cost: { ambar: 3 },
+    mods: { killStack: 0.12, incomingMul: 1.1 } },
   cristal: { name: 'Caparazón de cristal', desc: 'Habilidades +30 % y −30 % de ATB; golpe básico −40 % y vida −30 %.', icon: 'tactical', cost: { ambar: 3, esporas: 3 },
     mods: { abilityMul: 1.3, atbCostMul: 0.7, damageMul: 0.6, hpMul: 0.7 } },
   destino: { name: 'Caparazón del destino', desc: 'Empiezas con 4 cartas; no aparecen más.', icon: 'carta', cost: { ambar: 4 },

@@ -141,6 +141,7 @@ export function Home({ s }) {
     </header>
 
     ${toast && html`<p class="toast" role="status">${toast}</p>`}
+    ${s.sprayMode && html`<p class="spray-hint" role="status"><${Icon} name="items" size="16" />${t('home.sprayHint', 'Toca el suelo donde quieras mojar')}</p>`}
     ${home.sermon && html`<p class="ceremony" role="status"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" /><b>${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}</b><small>${t('temple.gathering', 'en el punto de reunión')}</small><i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
 
     ${s.build && html`<div class="build-bar">
@@ -184,7 +185,7 @@ export function Home({ s }) {
     <nav class="hud-bottom">
       <button class=${`btn${panel === 'build' ? ' active' : ''}`} onClick=${() => toggle('build')}><${Icon} name="build" /> <span>${t('home.build', 'Construir')}</span></button>
       <button class=${`btn${panel === 'comp' ? ' active' : ''}`} onClick=${() => toggle('comp')}><${Icon} name="layers" /> <span>${t('home.terrarium', 'Terrario')}</span></button>
-      <button class="btn mist" disabled=${home.mistCd > 0} onClick=${() => s.mist()} aria-label=${t('home.mist', 'Rociar')} style=${{ '--cd': home.mistCd > 0 ? home.mistCd / ZEN.mistCooldown : 0 }}><${Icon} name="items" /> <span>${t('home.mist', 'Rociar')}</span></button>
+      <button class=${`btn mist${s.sprayMode ? ' active' : ''}`} aria-pressed=${!!s.sprayMode} onClick=${() => s.toggleSpray()} aria-label=${t('home.mist', 'Rociar')}><${Icon} name="items" /> <span>${t('home.mist', 'Rociar')}</span></button>
       <button class=${`btn${panel === 'colony' ? ' active' : ''}`} onClick=${() => toggle('colony')}><${Icon} name="colony" /> <span>${t('home.colony', 'Colonia')}</span></button>
       <button class="btn primary" aria-label=${t('home.out', 'Archipiélago')} onClick=${() => s.goArchipelago()}><${Icon} name="out" /> <span class="long">${t('home.out', 'Archipiélago')}</span><span class="short">${t('home.outShort', 'Islas')}</span></button>
       <button class="btn ghost icon" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>

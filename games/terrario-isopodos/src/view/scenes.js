@@ -157,7 +157,7 @@ export class HomeView extends GridScene {
   // El clima interior se ve en el diorama: grietas si está seco, gotas en el vidrio si está húmedo y manchas
   // de moho que crecen; en ideal, apenas rocío. Se rehace solo cuando cambia.
   showClimate() {
-    const kind = climate(this.home), key = `${kind}|${this.home.wetSide ?? ''}|${Math.round(humidity(this.home) * 20)}|${JSON.stringify(this.home.layers ?? {})}`;
+    const kind = climate(this.home), key = `${kind}|${(this.home.soil ?? []).map((v, k) => Math.round(v * 8) + (this.home.moss?.[k] > 0.4 ? 'm' : '')).join('')}|${JSON.stringify(this.home.layers ?? {})}`;
     if (key === this.climateKind && this.openCount === this.careOpen) return;
     this.climateKind = key; this.careOpen = this.openCount;
     this.care.clear();
@@ -172,15 +172,28 @@ export class HomeView extends GridScene {
         this.care.add(m);
       }
     };
-    // Cada celda según su humedad real (el lado que elegiste): grietas donde está seco, manchas oscuras donde
-    // encharca. Fijo por celda: no aparecen ni desaparecen al azar, solo cambian si cambia la humedad.
-    const crack = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:crack'), transparent: true, depthWrite: false });
-    const wet = new THREE.MeshBasicMaterial({ color: 0x1f2a2e, transparent: true, depthWrite: false, opacity: 0.45 }); // barro mojado: mancha oscura, no círculos blancos
-    for (const [i, j] of open) {
-      const h = localHumidity(this.home, i + 0.5, j + 0.5), mat = h < HUMIDITY.dry - 0.08 ? crack : h > HUMIDITY.flood ? wet : null;
-      if (!mat || (i * 7 + j * 13) % 3) continue; // una de cada tres: se ve la zona sin tapar el suelo
-      const w = this.toWorld(i + 0.5, j + 0.5), m = new THREE.Mesh(mat === wet ? new THREE.CircleGeometry(0.6, 18).rotateX(-Math.PI / 2) : new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), mat);
-      m.position.set(w.x, w.y + 0.03, w.z); m.rotation.y = (i * 1.7 + j * 2.3) % 6; this.care.add(m);
+    // Suelo pintado desde la humedad real de cada celda: tierra clara y agrietada donde está seca, oscura donde
+    // está mojada y musgo verde donde lleva tiempo húmeda. Una sola textura (una celda = un píxel, suavizada).
+    const soil = this.home.soil, moss = this.home.moss ?? [];
+    if (soil) {
+      const cv = document.createElement('canvas'); cv.width = g.w; cv.height = g.h;
+      const cx = cv.getContext('2d'), img = cx.createImageData(g.w, g.h);
+      const mix = (a, b, t) => a.map((v, k) => v + (b[k] - v) * t), DRY = [176, 150, 108], MID = [112, 80, 54], WET = [52, 40, 34], MOSS = [86, 142, 64];
+      for (let k = 0; k < g.w * g.h; k++) {
+        const h = soil[k], base = h < 0.6 ? mix(DRY, MID, Math.max(0, (h - 0.3) / 0.3)) : mix(MID, WET, Math.min(1, (h - 0.6) / 0.35));
+        const c = mix(base, MOSS, Math.min(1, (moss[k] ?? 0) * 1.2));
+        img.data.set([c[0], c[1], c[2], g.open[k] ? 235 : 0], k * 4);
+      }
+      cx.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.LinearFilter;
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(g.w, g.h).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false }));
+      plane.position.y = this.island.heightAt(g.w / 2, g.h / 2) + 0.025; plane.receiveShadow = true; this.care.add(plane);
+      const crack = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:crack'), transparent: true, depthWrite: false, opacity: 0.8 });
+      for (const [ci, cj] of open) {
+        if (soil[cj * g.w + ci] >= HUMIDITY.dry - 0.1 || (ci * 7 + cj * 13) % 2) continue;
+        const w = this.toWorld(ci + 0.5, cj + 0.5), m = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), crack);
+        m.position.set(w.x, w.y + 0.035, w.z); m.rotation.y = (ci * 1.7 + cj * 2.3) % 6; this.care.add(m);
+      }
     }
     void decal;
     // Corte del sustrato visto por el vidrio (frente y lado derecho): cada capa más gruesa según su nivel.

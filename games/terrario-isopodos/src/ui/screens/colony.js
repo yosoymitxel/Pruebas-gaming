@@ -79,7 +79,7 @@ function Care({ s, iso, st, sp }) {
       <button class="btn" disabled=${!canBless(iso, day)} onClick=${() => { s.bless(iso.id); s.hideHub(); }}><${Icon} name="heart" size="18" />${t('colony.bless', 'Mimo')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => setPick('comer')}><${Icon} name="eat" size="18" />${t('colony.eat', 'Comer')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'dormir'); s.hideHub(); }}><${Icon} name="refugio" size="18" />${t('colony.nap', 'Siesta')}</button>
-      ${home.wetSide && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'zonaHumeda'); s.hideHub(); }}><${Icon} name="items" size="18" />${t('colony.toWet', 'Al húmedo')}</button>
+      ${html`<button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'zonaHumeda'); s.hideHub(); }}><${Icon} name="items" size="18" />${t('colony.toWet', 'Al húmedo')}</button>
       <button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'zonaSeca'); s.hideHub(); }}><${Icon} name="sun" size="18" />${t('colony.toDry', 'Al seco')}</button>`}
       ${sp.rolls && html`<button class="btn" disabled=${st === 'muda'} onClick=${() => { s.orderIso(iso.id, 'tocar'); s.hideHub(); }}><${Icon} name="roll" size="18" />${t('colony.poke', 'Bolita')}</button>`}
     </div>
