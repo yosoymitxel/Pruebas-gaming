@@ -58,7 +58,7 @@ function Preview({ node, biome, onEnter, onClose }) {
 // Piso del nivel (como el minimapa de salas de Cult of the Lamb): casillas unidas por pasillos, la actual con
 // estandarte; se va por las puertas de la sala actual (tocar una sala vecina o su botón).
 export const ROOM_ICON = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'relic', rescate: 'rescue', tienda: 'shop', fuente: 'spring', arma: 'attack', maldito: 'eye' };
-export const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente'), arma: () => t('room.weapon', 'Arma'), maldito: () => t('room.cursed', 'Altar') };
+export const ROOM_NAME = { pelea: () => t('room.fight', 'Pelea'), botin: () => t('room.loot', 'Botín'), carta: () => t('room.card', 'Carta'), reliquia: () => t('room.relic', 'Reliquia'), rescate: () => t('room.rescue', 'Rescate'), tienda: () => t('room.shop', 'Tienda'), fuente: () => t('room.spring', 'Fuente'), arma: () => t('room.weapon', 'Arma'), maldito: () => t('room.cursed', 'Seta extraña') };
 export const DIR = (a, b) => (b.x > a.x ? '→' : b.x < a.x ? '←' : b.y < a.y ? '↑' : '↓');
 
 function FloorMap({ s }) {
@@ -89,8 +89,8 @@ function FloorMap({ s }) {
     ${run.last?.type === 'arma' && (() => { const room = f.rooms[run.last.room], w = room.weapon; return html`<div class="note shop"><p>${t('floor.pedestal', 'Un arma en el pedestal:')} <b>${weaponName(w)}</b></p>
       <small>${WEAPONS[w.type].desc} ${VARIANTS[w.variant].desc}</small>
       <button class="btn small" disabled=${room.taken} onClick=${() => s.swapWeapon()}>${room.taken ? t('floor.swapped', 'Cambiada ✓') : `${t('floor.swap', 'Cambiar por')} ${weaponName(run.weapon)}`}</button></div>`; })()}
-    ${run.last?.type === 'maldito' && (() => { const room = f.rooms[run.last.room]; return html`<div class="note shop pact"><p>${t('floor.pact', 'Altar maldito: una carta rara a cambio de un cuarto de vuestra vida.')}</p>
-      <button class="btn small" disabled=${room.taken} onClick=${() => s.acceptPact()}>${room.taken ? t('floor.pactDone', 'Pacto sellado') : t('floor.pactOk', 'Aceptar el pacto')}</button></div>`; })()}
+    ${run.last?.type === 'maldito' && (() => { const room = f.rooms[run.last.room]; return html`<div class="note shop pact"><p>${t('floor.pact', 'Seta extraña: una carta rara a cambio de un cuarto de vuestra vida.')}</p>
+      <button class="btn small" disabled=${room.taken} onClick=${() => s.acceptPact()}>${room.taken ? t('floor.pactDone', 'Comida') : t('floor.pactOk', 'Comerla')}</button></div>`; })()}
     ${run.last?.type === 'fuente' && html`<p class="note"><${Icon} name="spring" size="16" />${t('floor.spring', 'Bebéis: +35 % de vida')}</p>`}
     ${run.last?.type === 'tienda' && html`<div class="note shop"><p>${t('floor.shopTitle', 'El mercader cambia botín:')}</p>
       ${f.rooms[run.last.room].offers.map((o, k) => html`<button class="btn small" disabled=${o.sold || Object.entries(o.cost).some(([r, n]) => (run.loot[r] ?? 0) < n)} onClick=${() => s.buy(k)}>

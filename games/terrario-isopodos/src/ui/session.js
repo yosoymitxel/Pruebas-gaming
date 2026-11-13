@@ -24,6 +24,7 @@ import { playSfx, setSound, setMusic, playMusic } from './sfx.js';
 import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
+import { DEFAULT_YAW } from '../view/stage.js';
 import { RITUALS } from '../data/cult.js';
 import { InteriorView } from '../view/interior.js';
 import { Group } from 'three';
@@ -270,14 +271,10 @@ export class Session {
       return;
     }
   }
-  // Fe y lealtad a la vista: cada evento sale como número sobre la colonia (como el +5 de fe de Cult of the Lamb).
+  // Subidas de nivel de cariño a la vista (el ánimo general ya no sale flotando).
   cultFx() {
     const home = this.game.home, log = home.faithLog ?? [], c = this.view.toWorld(home.grid.w / 2, home.grid.h / 2);
-    for (const e of log.splice(0)) {
-      if (Math.abs(e.delta) < 2) continue;
-      this.floatText(`${e.delta > 0 ? '+' : '−'}${Math.abs(e.delta)} ${FAITH.events[e.key].name}`, c.x, c.z, e.delta > 0 ? 'gain' : 'ally', 2.4);
-      if (e.delta >= 10) this.sfx('heal', 1.1); else if (e.delta <= -10) this.sfx('hurt', 0.8);
-    }
+    log.splice(0); void c; // el ánimo se ve en la calma; los «+5 …» flotantes tapaban todo
     for (const id of (home.levelUps ?? []).splice(0)) {
       const iso = home.isopods.find((i) => i.id === id); if (!iso) continue;
       const w = this.view.toWorld(iso.x, iso.y);
@@ -299,11 +296,12 @@ export class Session {
     if (!p) return;
     this.selPiece = null; this.selIso = null;
     this.interior = { kind, pieceId, at: this.time };
-    this.nexo('dentro', kind === 'altar' ? t('inside.altar', 'Cámara del altar') : BUILDINGS[p.type].name);
+    this.nexo('dentro', kind === 'altar' ? t('inside.altar', 'Punto de reunión') : BUILDINGS[p.type].name);
     this.sfx('open');
+    this.yawOutside ??= this.stage.yaw; this.stage.yaw = DEFAULT_YAW; // dentro, la cámara mira siempre de frente
     this.setMode('interior', new InteriorView(this.stage, this.game.home, kind, pieceId), kind === 'altar' ? 0.35 : 0.15);
   }
-  exitInterior() { this.interior = null; this.nexo('dentro', null); this.goHome(); }
+  exitInterior() { this.interior = null; if (this.yawOutside != null) { this.stage.yaw = this.yawOutside; this.yawOutside = null; } this.nexo('dentro', null); this.goHome(); }
   // Tocar una pieza: los refugios se abren por dentro; el resto enseña su ficha.
   selectPiece(id) {
     const p = id != null && this.game.home.grid.pieces[id];
@@ -314,19 +312,19 @@ export class Session {
   openTemple() {
     const tp = temple(this.game.home);
     if (tp) { this.selIso = null; this.selPiece = tp.id; this.sfx('open'); this.view.focusPiece = tp.id; }
-    else { this.wantPanel = 'build'; this.floatText(t('temple.need', 'Construye un Altar de musgo'), 0, 0, 'note', 1.5); }
+    else { this.wantPanel = 'build'; this.floatText(t('temple.need', 'Construye un Claro de reunión'), 0, 0, 'note', 1.5); }
     this.emit();
   }
   ritual(id) {
     if (!ritual(this.game.home, id, this.game.day)) { this.sfx('hurt', 1.6); return false; }
     this.selPiece = null;
-    this.sfx('boss', 1.2); this.persist(); this.enterInterior('altar', temple(this.game.home).id); this.nexo('ritual', RITUALS[id].name, t('temple.gather', 'La colonia se reúne en el altar')); return true;
+    this.sfx('boss', 1.2); this.persist(); this.enterInterior('altar', temple(this.game.home).id); this.nexo('ritual', RITUALS[id].name, t('temple.gather', 'La colonia se junta')); return true;
   }
   sermon() {
     const home = this.game.home;
     if (!sermon(home, this.game.day, hasUpgrade(this.game, 'coro') ? 2 : 1)) { this.sfx('hurt', 1.6); return false; }
     this.selPiece = null;
-    this.selectIso(null); this.sfx('boss', 1.6); this.enterInterior('altar', temple(home).id); this.nexo('ritual', t('temple.sermon', 'Sermón'), t('temple.gather', 'La colonia se reúne en el altar')); return true;
+    this.selectIso(null); this.sfx('boss', 1.6); this.enterInterior('altar', temple(home).id); this.nexo('ritual', t('meet.talk', 'Reunión'), t('temple.gather', 'La colonia se junta')); return true;
   }
   // Quitar una asignación (trabajo o cama propia) desde cualquiera de las dos fichas.
   unassign(id, what) { const iso = this.game.home.isopods.find((i) => i.id === id); if (!iso) return; if (what === 'trabajar') iso.job = null; else iso.home = null; this.sfx('click'); this.persist(); this.emit(); }

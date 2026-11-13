@@ -5,8 +5,8 @@ import { t } from '../../i18n/index.js';
 import { CLASSES, STATUS, MAX_NAME } from '../../data/isopods.js';
 import { BADGES } from '../../data/palettes.js';
 import { speciesOf } from '../../data/species.js';
-import { beds, workersOf, sleepersOf, lvl, isoStatus, isoStats, canLearn, canAfford, partyBonus, canBless, canSermon } from '../../game/home.js';
-import { WISHES, LOYALTY } from '../../data/cult.js';
+import { beds, workersOf, sleepersOf, feederQueue, lvl, isoStatus, isoStats, canLearn, canAfford, partyBonus, canBless, canSermon } from '../../game/home.js';
+import { WISHES, LOYALTY, JOBS } from '../../data/cult.js';
 import { TRAITS } from '../../data/traits.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { SKILLS } from '../../data/skills.js';
@@ -30,7 +30,7 @@ export function ColonyList({ s, onClose }) {
     <p class="colony-head"><${Icon} name="colony" size="18" />${home.isopods.length}/${beds(home)}
       ${home.resources.hojarasca <= 0 && html`<span class="warn"><${ResIcon} res="hojarasca" />${t('home.noFoodShort', 'Sin comida')}</span>`}
       <button class="btn small ghost" onClick=${() => { s.wantPanel = 'upgrades'; s.emit(); }}><${Icon} name="expand" size="16" />${t('upgrades.title', 'Mejoras')}</button>
-      <button class="btn small" onClick=${() => { onClose?.(); s.openTemple(); }}><${Icon} name="colony" size="16" />${t('colony.temple', 'Templo')}</button></p>
+      <button class="btn small" onClick=${() => { onClose?.(); s.openTemple(); }}><${Icon} name="colony" size="16" />${t('colony.meet', 'Reunión')}</button></p>
     ${home.isopods.map((iso) => html`<button class="iso-row" onClick=${() => s.selectIso(iso.id)}>
       <img src=${isoPortrait(iso)} alt="" />
       <span class="who"><b><${Dot} k=${iso.badge} />${iso.name}${iso.lv ? html` <small class="lv">${iso.lv}</small>` : ''}${iso.wish ? html` <${Icon} name="heart" size="13" />` : ''}</b><${Status} k=${isoStatus(home, iso)} /></span>
@@ -47,9 +47,9 @@ const WISH_ICON = { pieza: 'build', humedad: 'items', comer: 'eat', mimo: 'heart
 const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 // Asignación: cada fila dice dónde (qué criadero, qué refugio) y al tocarla se elige la pieza concreta.
 const PICK = {
-  trabajar: { icon: 'recoleccion', label: () => t('assign.work', 'Trabaja en'), test: (b) => b.produces, cap: () => Infinity, who: workersOf, cur: (iso) => iso.job },
+  trabajar: { icon: 'recoleccion', label: () => t('assign.work', 'Trabaja en'), test: (b) => b.produces, cap: () => JOBS.max, who: workersOf, cur: (iso) => iso.job },
   dormir: { icon: 'refugio', label: () => t('assign.sleep', 'Duerme en'), test: (b) => b.beds, cap: (b, p) => b.beds * lvl(p), who: sleepersOf, cur: (iso) => iso.home },
-  comer: { icon: 'eat', label: () => t('assign.eat', 'Comer en'), test: (b) => b.feeds, cap: () => Infinity, who: () => [], cur: () => null },
+  comer: { icon: 'eat', label: () => t('assign.eat', 'Comer en'), test: (b) => b.feeds, cap: () => Infinity, who: feederQueue, cur: () => null, queue: true },
 };
 export function PiecePicker({ s, iso, what, onDone }) {
   const home = s.game.home, k = PICK[what];
@@ -57,7 +57,7 @@ export function PiecePicker({ s, iso, what, onDone }) {
   if (!list.length) return html`<p class="note">${t('assign.none', 'No hay ninguna pieza para esto: constrúyela primero.')}</p>`;
   return html`<ul class="pick-list">${list.map((p) => { const b = BUILDINGS[p.type], n = k.who(home, p).length, cap = k.cap(b, p), mine = k.cur(iso) === p.id, full = !mine && n >= cap;
     return html`<li><button class=${`btn${mine ? ' active' : ''}`} disabled=${full} onClick=${() => { s.orderIso(iso.id, what, p.id); onDone(); }}>
-      <${Icon} name=${k.icon} size="16" /><b>${b.name}</b>${b.produces ? html`<${ResIcon} res=${b.produces.res} />` : ''}<small>${cap === Infinity ? (n ? `${n} ${t('assign.there', 'ahí')}` : '') : `${n}/${cap}`}</small></button></li>`; })}
+      <${Icon} name=${k.icon} size="16" /><b>${b.name}</b>${b.produces ? html`<${ResIcon} res=${b.produces.res} />` : ''}<small>${k.queue ? (n ? `${n} ${t('assign.inLine', 'en fila')}` : t('assign.free2', 'libre')) : `${n}/${cap}`}</small></button></li>`; })}
     ${what !== 'comer' && k.cur(iso) != null && html`<li><button class="btn ghost" onClick=${() => { s.unassign(iso.id, what); onDone(); }}>${t('assign.clear', 'Ninguno')}</button></li>`}</ul>`;
 }
 function Care({ s, iso, st, sp }) {

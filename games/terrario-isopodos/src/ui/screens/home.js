@@ -3,7 +3,7 @@ import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
 import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
-import { RITUALS } from '../../data/cult.js';
+import { RITUALS, JOBS } from '../../data/cult.js';
 import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { snailPortrait } from '../../view/models3d.js';
 import { MAX_LEVEL } from '../../data/buildings.js';
@@ -55,10 +55,10 @@ function Merchant({ s, onClose }) {
 function Temple({ s }) {
   const home = s.game.home, day = s.game.day, busy = !!home.sermon;
   return html`<div class="temple">
-    ${busy && html`<p class="temple-busy"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" />${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}<i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
+    ${busy && html`<p class="temple-busy"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" />${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('meet.talk', 'Reunión')}<i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
     <button class="btn primary sermon-btn" disabled=${busy || !canSermon(home, day)} onClick=${() => s.sermon()}>
-      <${Icon} name="colony" size="20" /><span><b>${t('temple.sermon', 'Sermón')}</b><small>${canSermon(home, day) ? t('temple.sermonDesc', 'Una vez al día: lealtad para todos y fe.') : t('temple.sermonDone', 'Hecho hoy. Vuelve mañana.')}</small></span></button>
-    <p class="temple-t">${t('temple.rituals', 'Rituales')}</p>
+      <${Icon} name="colony" size="20" /><span><b>${t('meet.talk', 'Reunión')}</b><small>${canSermon(home, day) ? t('temple.sermonDesc', 'Una vez al día: todos se juntan y ganan cariño.') : t('temple.sermonDone', 'Hecho hoy. Vuelve mañana.')}</small></span></button>
+    <p class="temple-t">${t('meet.acts', 'Actividades')}</p>
     <ul class="rituals">${Object.entries(RITUALS).map(([id, r]) => { const ready = ritualReady(home, id, day), wait = (home.rituals?.[id] ?? -99) + r.every - day;
       return html`<li><button class="ritual" disabled=${busy || !ready || !canAfford(home, r.cost)} onClick=${() => s.ritual(id)}>
         <span class="r-ic"><${Icon} name=${r.icon} size="20" /></span><span class="r-txt"><b>${r.name}</b><small>${r.desc}</small></span>
@@ -68,7 +68,7 @@ function Temple({ s }) {
 // Lado pieza de la asignación: quién trabaja o duerme aquí, quitar a alguien o sumar a otro de la colonia.
 export function Assigned({ s, p }) {
   const home = s.game.home, b = BUILDINGS[p.type], [add, setAdd] = useState(null);
-  const rows = [b.produces && ['trabajar', t('assign.workHere', 'Trabajan aquí'), workersOf(home, p), Infinity], b.beds && ['dormir', t('assign.sleepHere', 'Duermen aquí'), sleepersOf(home, p), b.beds * lvl(p)]].filter(Boolean);
+  const rows = [b.produces && ['trabajar', t('assign.workHere', 'Trabajan aquí'), workersOf(home, p), JOBS.max], b.beds && ['dormir', t('assign.sleepHere', 'Duermen aquí'), sleepersOf(home, p), b.beds * lvl(p)]].filter(Boolean);
   if (!rows.length || p.site) return null;
   return html`<div class="assigned">${rows.map(([what, label, who, cap]) => html`<div class="as-row">
     <small>${label}${cap !== Infinity ? ` · ${who.length}/${cap}` : ''}</small>
@@ -140,7 +140,7 @@ export function Home({ s }) {
     </header>
 
     ${toast && html`<p class="toast" role="status">${toast}</p>`}
-    ${home.sermon && html`<p class="ceremony" role="status"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" /><b>${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}</b><small>${t('temple.gathering', 'en el altar')}</small><i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
+    ${home.sermon && html`<p class="ceremony" role="status"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" /><b>${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}</b><small>${t('temple.gathering', 'en el punto de reunión')}</small><i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
 
     ${s.build && html`<div class="build-bar">
       <span>${s.build.moving != null ? html`<${Icon} name="move" size="16" /> ` : ''}${BUILDINGS[s.build.type].name}</span>
@@ -164,7 +164,7 @@ export function Home({ s }) {
     </section>`}
 
     ${panel === 'build' && !s.build && html`<${CloseX} onClose=${() => setPanel(null)} /><section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
-      ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost)} onClick=${() => { setPanel(null); s.startBuild(id); }}>
+      ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost) || (b.unique && Object.values(home.grid.pieces).some((p) => p.type === id))} onClick=${() => { setPanel(null); s.startBuild(id); }}>
         <img class="thumb" src=${pieceThumb(s.stage.renderer, id)} alt="" /><b>${b.name}</b><span class="desc">${b.desc}</span><span class="tags"><span>${b.size.w}×${b.size.h}</span>${b.produces && html`<span title=${RESOURCES[b.produces.res].name}>+<${ResIcon} res=${b.produces.res} /></span>`}
           ${b.beds && html`<span title=${t('home.beds', 'camas')}><${Icon} name="colony" size="14" />+${b.beds}</span>`}${b.calm && html`<span class="calm-tag" title=${t('home.calm', 'calma')}><${Icon} name="leaf" size="14" />+</span>`}</span>
         <${Cost} cost=${b.cost} have=${home.resources} />

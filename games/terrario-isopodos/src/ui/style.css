@@ -1262,3 +1262,5 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .hub-more span { transition: rotate 160ms; }
 .hub-more.on span { rotate: 180deg; }
 .assign .pick-list { margin: -2px 0 4px; padding-left: 12px; border-left: 3px solid var(--ui-accent, #13706f); }
+/* Dentro no hay barra de abajo: el panel baja al borde y queda bajo; el resto es escena. */
+.interior .drawer { bottom: max(var(--gap), env(safe-area-inset-bottom)); max-height: 30vh; }
