@@ -300,14 +300,15 @@ export class HomeView extends GridScene {
       marks.push({ id: `w${iso.id}`, kind: 'wish', icon: iconURL(ic), x: w.x, y: w.y + 0.9, z: w.z, iso: iso.id });
     }
     for (const iso of this.home.isopods) {
-      if (iso.hunger >= 0.35 || iso.rest > 0 || iso.wish || iso.id === this.selIso) continue;
+      // solo si hace falta el jugador: con comida y comedero come solo y no hay nada que tocar
+      if (iso.hunger >= 0.35 || iso.rest > 0 || iso.wish || iso.id === this.selIso || (this.home.resources.hojarasca > 0 && Object.values(this.grid.pieces).some((p) => BUILDINGS[p.type].feeds && !p.site))) continue;
       const w = this.toWorld(iso.x, iso.y);
       marks.push({ id: `b${iso.id}`, kind: 'hunger', icon: resourceIconURL('hojarasca'), x: w.x, y: w.y + 0.75, z: w.z, iso: iso.id });
     }
     const ready = new Set();
     for (const p of Object.values(this.grid.pieces)) {
       const s = this.home.stock[p.id];
-      if (!s?.ready) continue;
+      const pr = BUILDINGS[p.type].produces; if (!s?.ready || s.ready < Math.min(3, pr.cap + ((p.level ?? 1) - 1) * 2)) continue; // se avisa cuando ya vale la pena recoger
       const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       marks.push({ id: `r${p.id}`, kind: 'ready', icon: resourceIconURL(BUILDINGS[p.type].produces.res), x: w.x, y: this.floorOf(p.x, p.y, f) + 0.9, z: w.z, piece: p.id, label: RESOURCES[BUILDINGS[p.type].produces.res].name });
       ready.add(p.id);
@@ -354,7 +355,7 @@ export class GatherView extends GridScene {
     for (let j = 0; j < g.h; j++) for (const i of [0, g.w - 1]) q.push([i, j]);
     while (q.length) { const [i, j] = q.pop(); if (i < 0 || j < 0 || i >= g.w || j >= g.h || out[idx(i, j)] || g.open[idx(i, j)]) continue; out[idx(i, j)] = 1; q.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
     const shaft = new THREE.MeshBasicMaterial({ color: 0x020101 }), wall = new THREE.MeshBasicMaterial({ color: 0x0d0907, side: THREE.BackSide });
-    const rim = new THREE.MeshBasicMaterial({ color: 0xe0a03a, transparent: true, opacity: 0.85, depthWrite: false });
+    const rim = new THREE.MeshBasicMaterial({ color: 0xe0402f, transparent: true, opacity: 0.85, depthWrite: false });
     for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
       if (g.open[idx(i, j)] || out[idx(i, j)]) continue;
       const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => g.open[idx(i + di, j + dj)]).map(([di, dj]) => this.island.heightAt(i + di, j + dj));

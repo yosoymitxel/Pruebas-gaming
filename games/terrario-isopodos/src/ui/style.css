@@ -355,13 +355,13 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 .tm-member { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .tm-member b { font: 700 22px/1 var(--hand); min-width: 90px; }
 .tactical::before { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); pointer-events: none; }
-.fx-layer { position: absolute; inset: 0; z-index: var(--z-fx); pointer-events: none; }
-.fx { position: absolute; translate: -50% -50%; font: 800 20px/1.1 var(--sans, system-ui, sans-serif); letter-spacing: 0.01em; color: var(--paper); -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 6px rgb(0 0 0 / 0.35); white-space: nowrap; animation: fx-rise 0.95s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity; }
+.fx-layer { position: absolute; inset: 0; z-index: calc(var(--z-drawer) - 1); /* bajo los paneles: no tapa menús */ pointer-events: none; }
+.fx { position: absolute; translate: -50% -50%; font: 800 14px/1.1 var(--sans, system-ui, sans-serif); letter-spacing: 0.01em; color: var(--paper); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 6px rgb(0 0 0 / 0.35); white-space: nowrap; animation: fx-rise 0.95s cubic-bezier(.2,.8,.3,1) forwards; will-change: transform, opacity; }
 @keyframes fx-rise { 0% { opacity: 0; transform: translateY(6px) scale(0.85); } 14% { opacity: 1; transform: translateY(0) scale(1.06); } 26% { transform: translateY(-4px) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-42px) scale(1); } }
-.fx-enemy { font-size: 28px; color: var(--paper); }
-.fx-ally { font-size: 26px; color: #ff6a4d; }
+.fx-enemy { font-size: 20px; color: var(--paper); }
+.fx-ally { font-size: 18px; color: #ff6a4d; }
 .fx.big { font-size: 46px; color: var(--amber); }
-.fx-note { font-size: 18px; color: #f7d98a; }
+.fx-note { font-size: 13px; color: #f7d98a; }
 
 /* Cámara */
 .cam-controls { position: absolute; z-index: var(--z-hud); right: var(--gap); top: 50%; transform: translateY(-50%); display: grid; gap: 6px; }
@@ -379,7 +379,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 @keyframes boss-in { 0% { opacity: 0; transform: translate(-50%, -20px) scale(1.15); } 12%, 82% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, 0) scale(0.96); } }
 .low-hp::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: var(--z-hud); box-shadow: inset 0 0 90px 10px color-mix(in srgb, var(--rust) 70%, transparent); animation: low 1s ease-in-out infinite alternate; }
 @keyframes low { from { opacity: 0.35; } to { opacity: 0.9; } }
-.fx-gain { color: #9be37a; font-size: 20px; }
+.fx-gain { color: #9be37a; font-size: 14px; }
 
 /* Palanca */
 .stick-zone { position: absolute; z-index: var(--z-world); left: 0; top: 0; bottom: 0; width: 55%; touch-action: none; }
@@ -1202,7 +1202,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes here-pulse { 50% { translate: 0 -2px; } }
 @media (prefers-reduced-motion: reduce) { .here-tag { animation: none; } }
 /* Caída: rojo grande que tiembla y se hunde (distinto del +tiempo verde de recoger). */
-.fx-fall { font-size: 24px; color: #ff6a4d; animation: fx-fall 1s ease-in forwards !important; }
+.fx-fall { font-size: 17px; color: #ff6a4d; animation: fx-fall 1s ease-in forwards !important; }
 @keyframes fx-fall { 0% { transform: scale(1.5); } 15% { transform: translateX(-4px); } 25% { transform: translateX(4px); } 35% { transform: none; opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
 .fx-gain { font-weight: 800; }
 .hurt-flash.fall { background: radial-gradient(ellipse at center, transparent 40%, rgb(120 10 0 / 0.55)); }
@@ -1211,7 +1211,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pad { align-content: center; gap: 1px; }
 .pad small { font: 700 10px/1 var(--font, sans-serif); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
 .pad.attack small { font-size: 11px; }
-.fx-love { font-size: 30px; color: #f78fb8; animation: fx-love 1.2s ease-out forwards !important; }
+.fx-love { font-size: 22px; color: #f78fb8; animation: fx-love 1.2s ease-out forwards !important; }
 @keyframes fx-love { 0% { transform: scale(0.3); } 25% { transform: scale(1.3); } 40% { transform: scale(1); } 100% { transform: translateY(-50px); opacity: 0; } }
 /* Efecto miniatura (tilt-shift): bordes desenfocados y algo más oscuros, centro nítido; se ve algo diminuto. */
 #tiltshift { position: fixed; inset: 0; pointer-events: none; z-index: 0;

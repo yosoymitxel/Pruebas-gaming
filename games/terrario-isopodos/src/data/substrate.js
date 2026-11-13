@@ -43,7 +43,8 @@ export const CLIMATES = localize('climates', {
 });
 
 // Gestos de cuidado (como el jardín zen de KureiChaosChess), en segundos de juego.
-export const ZEN = { mistTime: 120, mistCooldown: 40 };
+// Hojas que caen solas al terrario: una cada `leafEvery` s y nunca más de `leafMax` a la vez.
+export const ZEN = { mistTime: 120, mistCooldown: 40, leafEvery: 150, leafMax: 2 };
 // Moho: manchas que salen en celdas muy húmedas (más si hay comida pudriéndose); los colémbolos se las comen.
 export const MOLD = { every: 30, max: 6, at: 0.78, calm: 0.04, eat: 25 };
 // Mudas: quedan en el suelo y los isópodos se las comen (recuperan calcio): se convierten solas en cal.
