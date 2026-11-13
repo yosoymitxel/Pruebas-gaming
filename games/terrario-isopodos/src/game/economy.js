@@ -1,7 +1,7 @@
 // Mercader y mejoras (src/data/economy.js). Lógica pura sobre la partida (game).
 import { MERCHANT, TRADES, UPGRADES } from '../data/economy.js';
 import { mulberry32 } from '../core/rng.js';
-import { canAfford, pay, recruit } from './home.js';
+import { canAfford, pay, recruit, unlocked } from './home.js';
 import { OUTFITS } from '../data/outfits.js';
 
 export const merchantToday = (game) => game.day >= MERCHANT.first && game.day % MERCHANT.every === MERCHANT.first % MERCHANT.every;
@@ -43,7 +43,7 @@ export function wearOutfit(game, iso, id) {
 }
 export function buyUpgrade(game, id) {
   const u = UPGRADES[id];
-  if (!u || hasUpgrade(game, id) || !pay(game.home, u.cost)) return false;
+  if (!u || hasUpgrade(game, id) || !unlocked(game.home, u) || !pay(game.home, u.cost)) return false;
   (game.upgrades ??= []).push(id);
   return true;
 }

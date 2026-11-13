@@ -18,9 +18,9 @@ export const TRADES = [
 ];
 
 export const UPGRADES = localize('upgrades', {
-  rocio: { name: 'Odre de rocío', desc: 'Empiezas cada expedición con una gota de rocío más.', icon: 'items', cost: { ambar: 2, musgo: 4 } },
-  armero: { name: 'Ojo de armero', desc: 'Al entrar al nido eliges entre tres armas.', icon: 'attack', cost: { ambar: 3 } },
-  quitina: { name: 'Quitina templada', desc: '+10 % de vida en la expedición.', icon: 'shield', cost: { ambar: 3, cal: 5 } },
-  tasador: { name: 'Tasador', desc: 'El mercader trae una oferta más.', icon: 'hogar', cost: { ambar: 2, hojarasca: 6 } },
-  coro: { name: 'Coro de la colonia', desc: 'La reunión diaria da el doble de lealtad.', icon: 'colony', cost: { ambar: 2, esporas: 3 } },
+  rocio: { name: 'Odre de rocío', stage: 1, desc: 'Empiezas cada expedición con una gota de rocío más.', icon: 'items', cost: { ambar: 2, musgo: 4 } },
+  armero: { name: 'Ojo de armero', stage: 2, desc: 'Al entrar al nido eliges entre tres armas.', icon: 'attack', cost: { ambar: 3 } },
+  quitina: { name: 'Quitina templada', stage: 1, desc: '+10 % de vida en la expedición.', icon: 'shield', cost: { ambar: 3, cal: 5 } },
+  tasador: { name: 'Tasador', stage: 2, desc: 'El mercader trae una oferta más.', icon: 'hogar', cost: { ambar: 2, hojarasca: 6 } },
+  coro: { name: 'Coro de la colonia', stage: 3, desc: 'La reunión diaria da el doble de lealtad.', icon: 'colony', cost: { ambar: 2, esporas: 3 } },
 });

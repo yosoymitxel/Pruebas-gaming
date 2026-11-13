@@ -2,7 +2,7 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, storeCap, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
+import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, storeCap, unlocked, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
 import { RITUALS, JOBS } from '../../data/cult.js';
 import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { snailPortrait } from '../../view/models3d.js';
@@ -84,7 +84,7 @@ function Upgrades({ s, onClose }) {
   const home = s.game.home;
   return html`<${CloseX} onClose=${onClose} /><section class="drawer upgrades" aria-label=${t('upgrades.title', 'Mejoras')}>
     <h3><${Icon} name="expand" size="18" />${t('upgrades.title', 'Mejoras')}</h3>
-    <ul class="trades">${Object.entries(UPGRADES).map(([id, u]) => { const own = hasUpgrade(s.game, id); return html`<li class=${own ? 'own' : ''}>
+    <ul class="trades">${Object.entries(UPGRADES).sort((a, c) => (a[1].stage ?? 0) - (c[1].stage ?? 0)).map(([id, u]) => { const own = hasUpgrade(s.game, id); if (!unlocked(home, u)) return html`<li class="own"><${Icon} name=${u.icon} size="18" /><span class="up-txt"><b>${u.name}</b><small>${t('home.lockedStage', 'Se desbloquea con la ampliación {n}').replace('{n}', u.stage)}</small></span></li>`; return html`<li class=${own ? 'own' : ''}>
       <${Icon} name=${u.icon} size="18" /><span class="up-txt"><b>${u.name}</b><small>${u.desc}</small></span>
       ${own ? html`<small class="maxed-s">✓</small>` : html`<button class="btn small" disabled=${!canAfford(home, u.cost)} onClick=${() => s.buyUpgrade(id)}><${Cost} cost=${u.cost} have=${home.resources} /></button>`}</li>`; })}</ul>
   </section>`;
@@ -166,7 +166,7 @@ export function Home({ s }) {
     </section>`}
 
     ${panel === 'build' && !s.build && html`<${CloseX} onClose=${() => setPanel(null)} /><section class="drawer build-list" aria-label=${t('home.build', 'Construir')}>
-      ${Object.entries(BUILDINGS).map(([id, b], k) => html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost) || (b.unique && Object.values(home.grid.pieces).some((p) => p.type === id))} onClick=${() => { setPanel(null); s.startBuild(id); }}>
+      ${Object.entries(BUILDINGS).sort((a, c) => (a[1].stage ?? 0) - (c[1].stage ?? 0)).map(([id, b], k) => !unlocked(home, b) ? html`<div class="card-btn locked" style=${{ '--i': k }}><b>${b.name}</b><span class="desc">${t('home.lockedStage', 'Se desbloquea con la ampliación {n}').replace('{n}', b.stage)}</span></div>` : html`<button class="card-btn" style=${{ '--i': k }} disabled=${!canAfford(home, b.cost) || (b.unique && Object.values(home.grid.pieces).some((p) => p.type === id))} onClick=${() => { setPanel(null); s.startBuild(id); }}>
         <img class="thumb" src=${pieceThumb(s.stage.renderer, id)} alt="" /><b>${b.name}</b><span class="desc">${b.desc}</span><span class="tags"><span>${b.size.w}×${b.size.h}</span>${b.produces && html`<span title=${RESOURCES[b.produces.res].name}>+<${ResIcon} res=${b.produces.res} /></span>`}
           ${b.beds && html`<span title=${t('home.beds', 'camas')}><${Icon} name="colony" size="14" />+${b.beds}</span>`}${b.calm && html`<span class="calm-tag" title=${t('home.calm', 'calma')}><${Icon} name="leaf" size="14" />+</span>`}</span>
         <${Cost} cost=${b.cost} have=${home.resources} />

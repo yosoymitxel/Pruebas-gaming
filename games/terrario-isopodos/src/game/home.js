@@ -59,6 +59,9 @@ function addIsopod(home, iso, rng) {
   if (join) addFaith(home, join > 0 ? 'obediente' : 'esceptico');
 }
 
+// Etapa del terrario: cuántas ampliaciones lleva. Cada pieza y mejora pide una etapa (`stage`).
+export const stage = (home) => Math.max(0, (home.expansion ?? -1) + 1);
+export const unlocked = (home, def) => (def.stage ?? 0) <= stage(home);
 export const nextExpansion = (home) => EXPANSIONS[home.expansion + 1] ?? null;
 
 export function expand(home, free = false) {
@@ -80,7 +83,7 @@ export function pay(home, cost) {
 
 // `site`: se coloca como obra y la colonia la levanta (como en Cult of the Lamb); sin `site`, aparece hecha.
 export function build(home, type, x, y, rot = 0, site = false) {
-  if (!canPlace(home.grid, type, x, y, rot) || !canAfford(home, BUILDINGS[type].cost)) return null;
+  if (!canPlace(home.grid, type, x, y, rot) || !canAfford(home, BUILDINGS[type].cost) || !unlocked(home, BUILDINGS[type])) return null;
   if (BUILDINGS[type].unique && Object.values(home.grid.pieces).some((p) => p.type === type)) return null; // un único punto de reunión
   pay(home, BUILDINGS[type].cost);
   const id = place(home.grid, type, x, y, rot);
