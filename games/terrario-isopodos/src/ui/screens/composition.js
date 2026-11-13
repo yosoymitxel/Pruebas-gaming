@@ -6,7 +6,7 @@ import { LAYERS, HUMIDITY, CLIMATES, LID_NAMES } from '../../data/substrate.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { WEATHERS } from '../../data/world.js';
 import { layer, humidity, humidityTarget, gradient, humidityParts, climate, homeEffects, calm, nextLayerCost, canAfford } from '../../game/home.js';
-import { Cost, Bar } from './common.js';
+import { Cost, Bar, CloseX } from './common.js';
 import { Icon } from '../icons.js';
 
 const ORDER = ['hojarasca', 'tierra', 'carbon', 'grava']; // de arriba abajo, como se ve en el vidrio
@@ -14,12 +14,12 @@ const pct = (v) => `${Math.round(v * 100)} %`;
 const css = (v) => `${Math.round(v * 100)}%`;
 const signed = (v) => `${v >= 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)} %`;
 
-export function Composition({ s, say }) {
+export function Composition({ s, say, onClose }) {
   const home = s.game.home, clim = climate(home), eff = homeEffects(home), h = humidity(home), fix = CLIMATES[clim].fix;
   const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : src === 'rocio' ? t('comp.mist', 'Rociado') : src === 'tapa' ? t('comp.lid', 'Tapa') : BUILDINGS[src].name);
   const upgrade = (id) => { if (s.upgradeLayer(id)) say(`${LAYERS[id].name} ↑`); };
   const tone = (v, good) => (Math.abs(v - 1) < 0.01 ? '' : (v > 1) === good ? 'up' : 'down');
-  return html`<section class=${`drawer composition clim-${clim}`} aria-label=${t('comp.title', 'Composición del terrario')}>
+  return html`<section class=${`drawer composition clim-${clim}`} aria-label=${t('comp.title', 'Composición del terrario')}><${CloseX} onClose=${onClose} />
     <header class="comp-head">
       <div><h3 class="clim-title">${CLIMATES[clim].name}</h3><p class="clim-desc">${CLIMATES[clim].desc}</p></div>
       <p class="hum-big" aria-label=${t('comp.humidity', 'Humedad')}><${Icon} name="items" size="18" />${pct(h)}</p>

@@ -18,7 +18,7 @@ import { iconURL } from '../ui/icons.js';
 import { DEFAULT_YAW } from './stage.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { ABERRATIONS } from '../data/aberrations.js';
-import { PALETTES } from '../data/palettes.js';
+import { PALETTES, BADGES } from '../data/palettes.js';
 import { ARENA_R, weaponOf } from '../game/combat.js';
 import { footprint, canPlace } from '../game/grid.js';
 
@@ -245,6 +245,8 @@ export class HomeView extends GridScene {
       return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
+    // Color elegido en la ficha: tiñe el caparazón (el modelo 3D) en vez de un banderín.
+    this.home.isopods.forEach((iso, k) => { if (iso.badge != null && list[k]) list[k].paint = BADGES[iso.badge]; });
     for (const l of this.home.leaves ?? []) { // la hoja cae meciéndose desde arriba y queda en el suelo
       l.t = Math.min(1, (l.t ?? 0) + dt / 2.2);
       const w = this.toWorld(l.x + Math.sin(l.t * 9) * 0.4 * (1 - l.t), l.y);
@@ -255,7 +257,6 @@ export class HomeView extends GridScene {
       const w = this.toWorld(iso.x, iso.y), top = iso.baby > 0 ? 0.35 : 0.6;
       if (iso.id === this.selIso) { const k = this.stage.camDist * 0.2; this.stage.follow(w.x + Math.sin(this.stage.yaw) * k, w.z + Math.cos(this.stage.yaw) * k, dt, 5); // queda por encima de la ficha
         list.push({ id: `s${iso.id}`, sprite: 'proc:sel', ...w, height: 0.55, lift: top + Math.abs(Math.sin(time * 4)) * 0.12 }); }
-      if (iso.badge != null) list.push({ id: `f${iso.id}`, sprite: `badge:${iso.badge}`, ...w, x: w.x - 0.18, height: 0.42, lift: top - 0.1 });
       const bed = iso.rest > 0 && this.grid.pieces[iso.bed];
       if (iso.rest > 0 && !bed) { const u = (time * 0.4 + iso.id * 0.33) % 1; list.push({ id: `z${iso.id}`, sprite: 'proc:zzz', ...w, height: 0.24 + u * 0.1, lift: 0.5 + u * 0.6, alpha: 1 - u }); }
       if (bed) { const f = footprint(bed.type, bed.rot), b = this.toWorld(bed.x + f.w / 2, bed.y + f.h / 2), u = (time * 0.4 + iso.id * 0.33) % 1; // «zzz» que sube del refugio y se apaga
@@ -270,7 +271,13 @@ export class HomeView extends GridScene {
     for (const p of Object.values(this.grid.pieces)) if (p.site) { const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       marks.push({ id: `site${p.id}`, kind: 'site', icon: iconURL('build'), x: w.x, y: w.y + 1.4, z: w.z, piece: p.id, progress: Math.min(1, p.site.t / p.site.need) }); }
     // Mercader de visita (cada tres días): espera en la esquina del terrario.
-    if (this.merchant) { const g = this.grid, w = this.toWorld(g.w / 2 + 3.5, g.h / 2 + 4.2); marks.push({ id: 'merchant', kind: 'merchant', icon: iconURL('hogar'), x: w.x, y: w.y + 0.6, z: w.z }); }
+    if (this.merchant) {
+      const g = this.grid, w = this.toWorld(g.w - 1.2, g.h - 1.2); // dentro, en la esquina de delante
+      if (!this.stall) { this.stall = merchantStall(); this.group.add(this.stall); }
+      this.stall.position.set(w.x, w.y, w.z); this.stall.rotation.y = this.stage.yaw + 0.6;
+      this.stall.children[0].position.y = 0.32 + Math.sin(time * 2) * 0.02; // el caracol respira
+      marks.push({ id: 'merchant', kind: 'merchant', icon: iconURL('snail'), x: w.x, y: w.y + 1.9, z: w.z });
+    } else if (this.stall) { this.group.remove(this.stall); this.stall = null; }
     // Peticiones: globito sobre la cabeza con lo que quiere (como los seguidores de Cult of the Lamb).
     for (const iso of this.home.isopods) {
       if (!iso.wish || iso.rest > 0) continue;
@@ -375,6 +382,26 @@ export class GatherView extends GridScene {
 }
 
 const ROOM_ICON3D = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
+
+// Mercader: un caracol viajero con su fardo de ámbar, de visita en una esquina del terrario.
+function merchantStall() {
+  const g = new THREE.Group(), L = (c) => new THREE.MeshLambertMaterial({ color: c });
+  const body = new THREE.Group();
+  const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.1, 4, 10).rotateZ(Math.PI / 2), L(0xb9a68a));
+  foot.scale.set(1, 0.55, 0.8); foot.position.y = -0.18;
+  const shell = new THREE.Mesh(new THREE.TorusKnotGeometry(0.34, 0.2, 48, 8, 1, 3), L(0x8a4e2a));
+  shell.position.set(-0.1, 0.25, 0); shell.scale.setScalar(0.9);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), L(0xb9a68a)); head.position.set(0.62, 0.05, 0);
+  for (const z of [-0.08, 0.08]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.4, 5), L(0xb9a68a)); st.position.set(0.7, 0.3, z); st.rotation.z = -0.3; const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), L(0x1d1a16)); eye.position.set(0.76, 0.5, z); body.add(st, eye); }
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.3, 0.42), L(0x6b5a3a)); pack.position.set(-0.15, 0.72, 0); pack.rotation.y = 0.4;
+  const amber = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshLambertMaterial({ color: 0xf2a93b, emissive: 0x7a3b00 })); amber.position.set(-0.15, 0.98, 0);
+  body.add(foot, shell, head, pack, amber);
+  body.position.y = 0.32; body.traverse((m) => { m.castShadow = true; });
+  g.add(body);
+  for (let k = 0; k < 3; k++) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshLambertMaterial({ color: 0xf2a93b, emissive: 0x5a2b00 })); gem.position.set(0.3 + k * 0.22, 0.1, 0.55); g.add(gem); }
+  g.scale.setScalar(1.3);
+  return g;
+}
 
 export class CombatView {
   constructor(stage, combat, seed, weather = 'niebla', vessel = 'frasco') {

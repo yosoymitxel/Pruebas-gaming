@@ -3,7 +3,7 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { ISLAND_KINDS, BIOMES, WEATHERS, VESSELS } from '../../data/world.js';
 import { ABERRATIONS } from '../../data/aberrations.js';
-import { CamControls, PauseButton } from './common.js';
+import { CamControls, PauseButton, CloseX } from './common.js';
 import { PartyPicker, RobePicker } from './party.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
@@ -46,7 +46,7 @@ export function Islands({ s }) {
 
     ${isl && html`<div class=${`isl-wrap${isl.kind === 'nido' ? ' has-guard' : ''}`}>
     ${isl.kind === 'nido' && html`<figure class="guard"><img src=${portraitURL(ABERRATIONS[BIOMES[isl.biome].boss].sprite)} alt="" /><figcaption>${t('islands.guard', 'Guardiana')}: ${ABERRATIONS[BIOMES[isl.biome].boss].name}</figcaption></figure>`}
-    <section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}>
+    <section class=${`drawer island-info${isl.kind !== 'hogar' ? ' expedition' : ''}`}><${CloseX} onClose=${() => setSel(null)} />
       <div class="isl-head">
         <div>
           <h3><${Icon} name=${isl.kind} size="20" /> ${isl.kind !== 'hogar' ? BIOMES[isl.biome].name : ISLAND_KINDS[isl.kind].name}</h3>

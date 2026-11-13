@@ -106,6 +106,8 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
   <span><b>${day}</b></span>${onSleep && html`<i class="moon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 15.2A7 7 0 0 1 15.5 3.5z" /></svg></i>`}</${onSleep ? 'button' : 'div'}>`;
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
+// X de cierre arriba a la derecha de cualquier panel.
+export const CloseX = ({ onClose }) => onClose && html`<button class="drawer-x" onClick=${onClose} aria-label=${t('ui.close', 'Cerrar')}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg></button>`;
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
 
 // Minimapa del piso en combate (como el de Cult of the Lamb): una casilla por sala con sus pasillos, la actual
