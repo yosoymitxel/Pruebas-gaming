@@ -992,7 +992,7 @@ kbd { font: 600 10px var(--sans); border: 1px solid var(--ink); border-radius: 3
 
 /* Luna del reloj: dibujada a medida y centrada en su ficha (el icono genérico tenía corrección óptica propia). */
 .day-clock .moon { display: grid !important; place-items: center; padding: 0; line-height: 0; }
-.day-clock .moon svg { width: 15px; height: 15px; display: block; }
+.day-clock .moon svg { position: static; inset: auto; width: 15px; height: 15px; display: block; }
 .day-clock .moon path { fill: var(--ink); stroke: none; }
 /* Cambio de día: una franja de tinta cruza de izquierda a derecha con el número del día nuevo. */
 .day-wipe { position: fixed; inset: 0; z-index: calc(var(--z-modal) + 2); pointer-events: none; display: grid; place-items: center;
