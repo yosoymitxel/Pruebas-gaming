@@ -22,29 +22,36 @@ function piece(def, bodyLen) {
   return g;
 }
 
-// Cuelga el atuendo `id` del modelo (ya centrado en `body`). Devuelve el objeto para poder quitarlo.
+// Cuelga el atuendo `id` del modelo: se orienta con +x hacia la cabeza (hueso Head) y se apoya en la curva del
+// caparazón según `along` y `sink`. Devuelve el objeto para poder quitarlo.
 export function attachOutfit(model, id) {
   const def = OUTFITS[id];
   if (!def || !MODS[def.model]) return null;
+  // todo se mide en el espacio propio del modelo: se suelta un momento de su padre y se deja sin transformar
+  const parent = model.parent, saved = [model.position.clone(), model.quaternion.clone(), model.scale.clone()];
+  parent?.remove(model); model.position.set(0, 0, 0); model.quaternion.identity(); model.scale.set(1, 1, 1);
   model.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(model), len = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
-  const acc = piece(def, len);
-  const head = def.slot === 'head' && model.getObjectByName('Head');
-  if (head) {
-    // en espacio del hueso: arriba del todo de la cabeza
-    // la cabeza es un hueso (sin malla propia): su posición y, de alto, cerca de lo más alto del caparazón
-    const top = head.getWorldPosition(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
-    top.lerp(c, 0.25); top.y = box.min.y + (box.max.y - box.min.y) * 0.78;
-    head.worldToLocal(top); acc.position.copy(top);
-    const inv = new THREE.Vector3(); head.getWorldScale(inv); acc.scale.divide(inv);
-    head.add(acc);
-  } else {
-    acc.position.set((box.min.x + box.max.x) / 2, box.max.y - (box.max.y - box.min.y) * 0.12, (box.min.z + box.max.z) / 2);
-    model.worldToLocal(acc.position);
-    const inv = new THREE.Vector3(); model.getWorldScale(inv); acc.scale.divide(inv);
-    if (def.model === 'twig') acc.rotation.y = 0.5;
-    model.add(acc);
+  const box = new THREE.Box3().setFromObject(model), c = box.getCenter(new THREE.Vector3()), H = box.max.y - box.min.y;
+  const head = model.getObjectByName('Head'), hp = head ? head.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(box.max.x, c.y, c.z);
+  const ax = new THREE.Vector3(hp.x - c.x, 0, hp.z - c.z); if (ax.lengthSq() < 1e-6) ax.set(1, 0, 0); ax.normalize();
+  const half = Math.abs(ax.x) * (box.max.x - box.min.x) / 2 + Math.abs(ax.z) * (box.max.z - box.min.z) / 2, len = half * 2;
+  const t = def.along ?? 0, top = box.min.y + H * Math.sqrt(Math.max(0, 1 - (t * 0.92) ** 2)); // perfil de cúpula
+  const acc = new THREE.Group(), n = def.count ?? 1;
+  for (let k = 0; k < n; k++) {
+    const pc = piece(def, len), r = def.rot ?? [0, 0, 0];
+    const inner = new THREE.Group(); inner.add(pc); inner.rotation.set(r[0], r[1], r[2]);
+    // tras girar, apoyar su base en y = 0 y centrar
+    inner.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(inner), m = b.getCenter(new THREE.Vector3());
+    inner.position.set(-m.x, -b.min.y, -m.z); // ya girado: el desplazamiento va fuera del giro
+    const slot = new THREE.Group(); slot.add(inner);
+    if (n > 1) slot.position.set(-Math.abs(k - (n - 1) / 2) * len * 0.04, 0, (k - (n - 1) / 2) * len * 0.11); // en fila a lo ancho, la del medio adelantada
+    acc.add(slot);
   }
+  // centro + eje × (along × medio largo), a la altura del caparazón menos lo que se hunde
+  const world = c.clone().addScaledVector(ax, t * half); world.y = top - H * (def.sink ?? 0.1);
+  acc.position.copy(world); acc.rotation.y = Math.atan2(-ax.z, ax.x);
+  model.add(acc);
+  model.position.copy(saved[0]); model.quaternion.copy(saved[1]); model.scale.copy(saved[2]); parent?.add(model);
   return acc;
 }
 
