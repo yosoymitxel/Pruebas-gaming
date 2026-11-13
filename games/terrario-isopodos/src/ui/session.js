@@ -286,7 +286,7 @@ export class Session {
   bless(id) {
     const home = this.game.home, iso = home.isopods.find((i) => i.id === id);
     if (!iso || !bless(home, iso, this.game.day)) { this.sfx('hurt', 1.6); return false; }
-    this.view.burst('heal', iso.x, iso.y); this.sfx('heal', 1.4); this.persist(); this.emit(); return true;
+    iso.loved = 1.2; iso.wait = 1.3; this.view.burst('mimo', iso.x, iso.y); { const w = this.view.toWorld(iso.x, iso.y); this.floatText('♥', w.x, w.z, 'love', 1.4); } this.sfx('heal', 1.4); this.persist(); this.emit(); return true;
   }
   sermon() {
     const home = this.game.home;
@@ -497,10 +497,10 @@ export class Session {
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;
       tickGather(g, dt, input.move, input.roll, input.held?.roll);
-      if ((g.chained ?? 0) > chained) { this.sfx('pickup', 1 + g.chain.n * 0.08); this.floatText(`×${g.chain.n} +0,4 s`, g.player.x - g.side / 2, g.player.y - g.side / 2, 'ally', 1.2); }
+      if ((g.chained ?? 0) > chained) { this.sfx('pickup', 1 + g.chain.n * 0.08); this.floatText(`×${g.chain.n} +0,4 s`, g.player.x - g.side / 2, g.player.y - g.side / 2, 'gain', 1.2); }
       if (!air && g.player.air && g.player.vz > 0) this.sfx('roll', 1.3);
       if (air && !g.player.air) { this.sfx('build', 1.6); this.view.burst('dust', g.player.x, g.player.y); }
-      if (g.falls > falls) { this.sfx('hurt'); this.shake(0.2); this.floatText(t('gather.fell', '¡Al vacío! −2,5 s'), g.player.x - g.side / 2, g.player.y - g.side / 2, 'ally', 1); }
+      if (g.falls > falls) { this.sfx('hurt'); this.shake(0.45); this.hurtAt = this.time; this.floatText(t('gather.fell', '¡Al vacío! −4 s'), g.player.x - g.side / 2, g.player.y - g.side / 2, 'fall', 1); }
       if (g.done) this.emit();
     }
     else if (this.mode === 'combat') this.tickCombat(dt, input);

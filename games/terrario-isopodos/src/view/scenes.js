@@ -242,6 +242,8 @@ export class HomeView extends GridScene {
       if (site && !moving) { const f = footprint(site.type, site.rot), c = this.toWorld(site.x + f.w / 2, site.y + f.h / 2), k = Math.abs(Math.sin(time * 9 + iso.id)); // martillea: salta y cae contra la obra
         return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: size, lift: k * 0.1, face: Math.atan2(c.z - w.z, c.x - w.x), squash: 1.08 - k * 0.16 }; }
       if (iso.ball > 0) return { id: `i${iso.id}`, sprite: `ball:${iso.shell}`, ...w, height: size * 0.62, squash: 1 + Math.sin(time * 9) * 0.04 };
+      // Mimo: tres saltitos de alegría con estiramiento .
+      if (iso.loved > 0) { const k = Math.abs(Math.sin((1.2 - iso.loved) * 8)); iso.loved -= dt; return { id: `i${iso.id}`, sprite: `iso:${iso.shell}`, ...w, height: size, lift: k * 0.35, squash: 1 + (k - 0.5) * 0.3 }; }
       return { id: `i${iso.id}`, sprite: `${iso.molting > 0 ? 'molt' : 'iso'}:${iso.shell}`, ...w, height: size, flip: iso.vx < 0, lift: moving ? bob(time, iso.id) : 0,
         squash: iso.molting > 0 ? 1 + Math.sin(time * 14) * 0.05 : 1 + Math.sin(time * 3 + iso.id) * 0.03 };
     });
@@ -334,6 +336,9 @@ export class GatherView extends GridScene {
   constructor(stage, gather) {
     super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather, levels: gather.levels });
     this.g = gather;
+    // Vacío: un pozo negro bajo toda la isla, con un degradado que se hunde; los huecos se leen como caída.
+    const pit = new THREE.Mesh(new THREE.PlaneGeometry(gather.grid.w + 2, gather.grid.h + 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050403 }));
+    pit.position.y = -0.35; this.group.add(pit);
     this.syncProps();
     this.pickups = gather.nodes.map((n) => {
       const m = pickupMesh(n.res), w = this.toWorld(n.x, n.y);

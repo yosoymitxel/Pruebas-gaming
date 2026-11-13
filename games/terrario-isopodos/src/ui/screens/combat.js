@@ -12,6 +12,7 @@ import { press , hold as holdKey } from '../input.js';
 import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
+import { WEAPONS } from '../../data/weapons.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
   ${Array.from({ length: ATB_MAX }, (_, k) => html`<i class=${value >= k + 1 ? 'full' : ''}><b style=${{ width: `${Math.max(0, Math.min(1, value - k)) * 100}%` }}></b></i>`)}
@@ -62,9 +63,9 @@ export function Combat({ s }) {
     ${koAt.current && s.time - koAt.current.at < 1.6 && html`<div class="ko-banner" key=${koAt.current.at} aria-live="assertive"><b>${koAt.current.name}</b> ${t('combat.ko', 'cayó')}</div>`}
 
     <section class="actions-pad">
-      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="roll" size="26" /></button>
-      <button class=${`pad attack${s.charge > 0 ? ' charging' : ''}`} style=${{ '--charge': s.charge ?? 0 }} onPointerDown=${hold('attack')} onPointerUp=${release('attack')} onPointerCancel=${release('attack')} onPointerLeave=${release('attack')} aria-label=${t('combat.attack', 'Atacar (J) · mantén para golpe fuerte')}><${Icon} name="attack" size="34" /></button>
-      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="tactical" size="28" /></button>
+      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="dodge" size="26" /><small>${t('pad.dodge', 'Esquivar')}</small></button>
+      <button class=${`pad attack${s.charge > 0 ? ' charging' : ''}`} style=${{ '--charge': s.charge ?? 0 }} onPointerDown=${hold('attack')} onPointerUp=${release('attack')} onPointerCancel=${release('attack')} onPointerLeave=${release('attack')} aria-label=${t('combat.attack', 'Atacar (J) · mantén para golpe fuerte')}><${Icon} name=${WEAPONS[s.run?.weapon?.type]?.icon ?? 'attack'} size="32" /><small>${(s.charge ?? 0) > 0 ? t('pad.heavy', 'Suelta: fuerte') : t('pad.attack', 'Atacar')}</small></button>
+      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="skills" size="26" /><small>${t('pad.skills', 'Habilidad')}</small></button>
     </section>
 
     ${s.tactical && !c.result && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>
