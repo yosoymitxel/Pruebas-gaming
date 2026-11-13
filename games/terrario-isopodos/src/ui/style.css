@@ -1151,3 +1151,4 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .drawer.center .doors .door { animation: door-in 360ms var(--ease-out) both; animation-delay: calc(var(--k) * 80ms); }
 @keyframes door-in { from { opacity: 0; translate: 0 10px; } }
 @media (prefers-reduced-motion: reduce) { .nexo { display: none; } }
+.exit-hint { position: fixed; left: 50%; top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px); translate: -50% 0; z-index: var(--z-hud); display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 14px; background: var(--ink); color: var(--paper); border-radius: var(--chip, 6px); animation: door-in 360ms var(--ease-out) both; }

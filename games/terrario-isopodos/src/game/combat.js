@@ -15,6 +15,8 @@ export const ATB_MAX = 2;
 const STAGGER_TIME = 4, STAGGER_DAMAGE = 1.6, PRESSURE_STAGGER = 2.5;
 // Esquiva según la especie: bolita (Armadillidium, Cubaris) aguanta más invulnerable y rueda más corto;
 // carrera (Porcellio) llega más lejos con menos invulnerabilidad.
+// Ventanas de esquiva: orden guardada antes de poder rodar y golpe perdonado si se rueda justo después.
+const ROLL_BUFFER = 0, LATE_DODGE = 0.1;
 const ROLL = { time: 0.32, invuln: 0.3, speed: 9, cooldown: 0.5 };
 const DASH = { time: 0.26, invuln: 0.2, speed: 12.5, cooldown: 0.4 };
 const BALL = { time: 0.42, invuln: 0.42, speed: 7.5, cooldown: 0.55 };
@@ -80,6 +82,18 @@ export function step(c, dt, input = {}) {
   else if (!allies(c).some(alive)) finish(c, 'lose');
 }
 
+// Tras ganar la sala: el isópodo se pasea hasta una salida (no hay enemigos ni ATB).
+export function roam(c, dt, move = {}) {
+  const a = mainActor(c);
+  if (!a || a.hp <= 0) return;
+  const mx = move.x ?? 0, my = move.y ?? 0, len = Math.hypot(mx, my);
+  a.state = 'idle';
+  a.vx = len ? (mx / Math.max(1, len)) * a.speed : 0; a.vy = len ? (my / Math.max(1, len)) * a.speed : 0;
+  if (len > 0.1) a.facing = Math.atan2(my, mx);
+  for (const o of c.actors) if (o !== a) o.vx = o.vy = 0;
+  physics(c, dt);
+}
+
 function finish(c, result) {
   c.result = result;
   emit(c, result);
@@ -91,7 +105,13 @@ export function switchMain(c, id) {
 }
 
 function tickAlly(c, a, dt, input) {
-  for (const k of ['invuln', 'rollCd', 'taunt', 'comboWindow', 'heavyCd']) a[k] = Math.max(0, a[k] - dt);
+  for (const k of ['invuln', 'rollCd', 'taunt', 'comboWindow', 'heavyCd', 'rollBuf']) a[k] = Math.max(0, a[k] - dt);
+  if (a.late && (a.late.t -= dt) <= 0) a.late = null;
+  // Esquiva con margen (input-systems: buffer): pulsar un poco antes de poder rodar guarda la orden, y rodar
+  // (solo si ya casi se puede).
+  // Antimachaque: el perdón tardío solo vale si no se venía pulsando rodar.
+  a.sincePress = (a.sincePress ?? 9) + dt;
+  if (input?.roll) { if (a.sincePress < 0.4 && a.late) a.late = null; if (a.rollCd <= ROLL_BUFFER && a.state !== 'attack') a.rollBuf = ROLL_BUFFER; a.sincePress = 0; }
   if (a.shieldT > 0 && (a.shieldT -= dt) <= 0) a.shield = 0;
   a.atb = Math.min(ATB_MAX, a.atb + dt * (input ? 0.02 : 0.05) * atbMul(c));
   if (a.held > 0) { a.held -= dt; a.vx = a.vy = 0; return; }
@@ -102,7 +122,7 @@ function tickAlly(c, a, dt, input) {
   a.vx = len ? (mx / Math.max(1, len)) * a.speed : 0;
   a.vy = len ? (my / Math.max(1, len)) * a.speed : 0;
   if (len > 0.1) a.facing = Math.atan2(my, mx);
-  if (intent.roll && a.rollCd <= 0 && !c.mods.noRoll) startRoll(a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
+  if ((intent.roll || (input && a.rollBuf > 0)) && a.rollCd <= 0 && !c.mods.noRoll && a.hp > 0) startRoll(c, a, len ? mx / len : Math.cos(a.facing), len ? my / len : Math.sin(a.facing));
   else if (intent.heavy && !(a.heavyCd > 0)) { Object.assign(a, { state: 'attack', phase: 'windup', heavy: true, timer: HEAVY.windup, vx: 0, vy: 0, heavyCd: HEAVY.cooldown * (c.mods.heavyCdMul ?? 1) }); emit(c, 'heavyStart', { id: a.id }); }
   else if (intent.attack) startSwing(c, a);
 }
@@ -111,8 +131,11 @@ const atbMul = (c) => c.mods.atbMul ?? 1;
 // Manto dorado: cada muerte suma daño hasta que te pegan.
 const killMul = (c) => 1 + (c.mods.killStack ?? 0) * (c.kills ?? 0);
 
-function startRoll(a, dx, dy) {
+function startRoll(c, a, dx, dy) {
   const r = a.dodge ?? ROLL;
+  a.rollBuf = 0;
+  // Margen después: rodar justo tras recibir el golpe lo anula (como si hubiera rodado a tiempo).
+  if (a.late) { a.hp = Math.min(a.maxHp, a.hp + a.late.dmg); emit(c, 'dodge', { id: a.id, late: true }); a.late = null; }
   Object.assign(a, { state: 'roll', timer: r.time, invuln: r.invuln, rollCd: r.time + r.cooldown, vx: dx * r.speed, vy: dy * r.speed });
 }
 
@@ -300,6 +323,7 @@ function hurtAlly(c, a, amount, from) {
   a.shield -= absorbed;
   const dmg = Math.round(amount - absorbed);
   a.hp = Math.max(0, a.hp - dmg);
+  if (a.id === c.main && a.hp > 0 && !(a.rollCd > 0) && !(a.sincePress < 0.4)) a.late = { dmg, t: LATE_DODGE };
   emit(c, 'hit', { id: a.id, amount: dmg, from: from?.id, heavy: dmg >= 15 });
   knock(a, from, Math.min(9, 2 + dmg * 0.25));
   if (a.hp <= 0) {

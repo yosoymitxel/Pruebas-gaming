@@ -193,6 +193,8 @@ export function arenaFeatures({ pillars, pools, pit }, seed = 1) {
     const cap = new THREE.Mesh(new THREE.ConeGeometry(p.r * 1.25, 0.6, 7), lambert(T.moss));
     cap.position.set(p.x, h + 0.2, p.y); cap.castShadow = true;
     g.add(trunk, cap);
+    for (const m of [trunk, cap]) m.material.transparent = true;
+    (g.userData.pillars ??= []).push({ x: p.x, y: p.y, r: p.r, h, meshes: [trunk, cap], fade: 1 });
     for (let k = 0; k < 4; k++) { const a = rng() * Math.PI * 2; plants.push([p.x + Math.cos(a) * (p.r + 0.15), 0, p.y + Math.sin(a) * (p.r + 0.15), 0.4 + rng() * 0.3, FLORA[k % FLORA.length], rng() * 3]); }
   }
   const glow = new THREE.MeshBasicMaterial({ color: SEMANTIC.peligro, transparent: true, opacity: 0.55, depthWrite: false }); // peligro = violeta

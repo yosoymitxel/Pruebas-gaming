@@ -19,7 +19,7 @@ import { DEFAULT_YAW } from './stage.js';
 import { BUILDINGS } from '../data/buildings.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { PALETTES } from '../data/palettes.js';
-import { ARENA_R } from '../game/combat.js';
+import { ARENA_R, weaponOf } from '../game/combat.js';
 import { footprint, canPlace } from '../game/grid.js';
 
 const bob = (t, seed) => Math.abs(Math.sin(t * 9 + seed)) * 0.06;
@@ -374,6 +374,8 @@ export class GatherView extends GridScene {
   }
 }
 
+const ROOM_ICON3D = { pelea: 'combate', botin: 'botin', carta: 'carta', reliquia: 'items', rescate: 'colony', tienda: 'hogar', fuente: 'leaf', arma: 'attack', maldito: 'eye' };
+
 export class CombatView {
   constructor(stage, combat, seed, weather = 'niebla', vessel = 'frasco') {
     this.stage = stage;
@@ -398,8 +400,10 @@ export class CombatView {
     this.marker = new THREE.Group();
     const mm = new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
     this.marker.add(new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 28).rotateX(-Math.PI / 2), mm));
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.3, 3).rotateZ(-Math.PI / 2).rotateX(-Math.PI / 2), mm);
-    tip.position.x = 0.8; this.marker.add(tip);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 3).rotateZ(-Math.PI / 2).rotateX(-Math.PI / 2), mm);
+    tip.position.x = 0.95; this.marker.add(tip);
+    // Cuña de mirada: hacia dónde saldrá el golpe.
+    this.marker.add(new THREE.Mesh(new THREE.CircleGeometry(1.5, 16, -0.45, 0.9).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: PALETTES.cozy.amber, transparent: true, opacity: 0.18, depthWrite: false })));
     this.marker.position.y = 0.04;
     this.group.add(this.marker);
   }
@@ -428,15 +432,25 @@ export class CombatView {
     for (const [id, m] of this.rings) if (!live.has(id)) { this.group.remove(m); this.rings.delete(id); }
   }
 
-  // Tajo: arco de tinta delante del isópodo que golpea (el combo 3 lo hace más grande).
+  // Tajo según el arma (game-feel: cada arma se reconoce por su trazo) y color según la variante.
+  // pinza: arco medio; mandíbula: arco ancho y grueso; aguijón: estocada fina y larga; garras: tres zarpazos;
+  // maza: onda circular que se abre.
   slash(a) {
-    const big = a.combo === 2, arc = big ? 2.4 : 1.6;
-    const geo = new THREE.RingGeometry(0.55, big ? 1.35 : 1.05, 18, 1, -arc / 2, arc).rotateX(-Math.PI / 2);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: PALETTES.cozy.ink, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+    const w = this.c.mods.weapon ?? { type: 'pinza', variant: 'comun' }, reach = weaponOf(this.c).reach;
+    const last = a.combo === (weaponOf(this.c).combo.length - 1), k = last ? 1.3 : 1;
+    const color = { venenosa: 0x6fd04a, vampirica: 0xc0203a, despiadada: 0xfff4dc, divina: 0xf2c14e }[w.variant] ?? PALETTES.cozy.ink;
+    const mat = () => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.Group(), flat = (geo) => mesh.add(new THREE.Mesh(geo.rotateX(-Math.PI / 2), mat()));
+    if (w.type === 'aguijon') flat(new THREE.PlaneGeometry(reach * 1.2 * k, 0.12).translate(reach * 0.6 * k + 0.3, 0, 0));
+    else if (w.type === 'garras') for (const o of [-0.22, 0, 0.22]) flat(new THREE.RingGeometry(0.5 + o * 0.3, 0.58 + o * 0.3, 12, 1, -0.5, 1).translate(o * 0.8, o * 0.6, 0).scale(k * 1.3, k * 1.3, 1));
+    else if (w.type === 'maza') flat(new THREE.RingGeometry(reach * 0.75, reach, 32));
+    else if (w.type === 'mandibula') flat(new THREE.RingGeometry(0.5, reach * k, 20, 1, -1.5 * k, 3 * k));
+    else flat(new THREE.RingGeometry(0.55, reach * 0.85 * k, 18, 1, -0.8 * k, 1.6 * k));
     mesh.position.set(a.x, 0.45, a.y);
     mesh.rotation.y = -a.facing;
     this.group.add(mesh);
-    this.slashes.push({ mesh, t: 0 });
+    this.slashes.push({ mesh, t: 0, grow: w.type === 'maza' ? 2.5 : w.type === 'aguijon' ? 0.4 : 1.5 });
+    if (w.type === 'maza') { this.vfx.burst('dust', a.x, 0.1, a.y); this.stage.shake?.(0.25); }
   }
 
   // Mancha de tinta que queda en el suelo (muertes y golpes fuertes), como la sangre que se queda en Cult of the Lamb.
@@ -477,8 +491,8 @@ export class CombatView {
     }
     this.slashes = this.slashes.filter((sl) => {
       sl.t += dt;
-      sl.mesh.material.opacity = Math.max(0, 0.85 - sl.t * 4.5);
-      sl.mesh.scale.setScalar(1 + sl.t * 1.5);
+      for (const m of sl.mesh.children) m.material.opacity = Math.max(0, 0.9 - sl.t * 4.5);
+      sl.mesh.scale.setScalar(1 + sl.t * sl.grow);
       if (sl.t > 0.2) { this.group.remove(sl.mesh); return false; }
       return true;
     });
@@ -512,6 +526,44 @@ export class CombatView {
     this.actors.sync(list, this.stage.yaw);
     this.telegraphs();
     this.enemyRings();
+    this.seeThrough(dt);
+    for (const g of this.exitMeshes ?? []) { g.userData.glow.material.opacity = 0.4 + Math.sin(time * 4) * 0.15; g.children.at(-1).position.y = 1.55 + Math.sin(time * 3) * 0.08; }
+  }
+
+  // Puertas de salida: arco de piedra en el borde con luz en el suelo y el icono de la sala que espera detrás.
+  showExits(exits) {
+    for (const e of exits) {
+      const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: PALETTES.terror.stone });
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.16, 6, 14, Math.PI), stone);
+      arch.position.y = 0.4; arch.castShadow = true;
+      for (const sx of [-0.75, 0.75]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.45, 0.3), stone); leg.position.set(sx, 0.22, 0); g.add(leg); }
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(0.9, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: e.final ? 0xff3b1f : PALETTES.cozy.amber, transparent: true, opacity: 0.55, depthWrite: false }));
+      glow.position.y = 0.03;
+      const icon = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.TextureLoader().load(iconURL(ROOM_ICON3D[e.type] ?? 'combate', '#efe6d2')), depthTest: false }));
+      icon.scale.setScalar(0.6); icon.position.y = 1.55; icon.renderOrder = 10;
+      g.add(arch, glow, icon);
+      g.position.set(e.x, 0, e.y);
+      g.rotation.y = -Math.atan2(e.y, e.x) + Math.PI / 2;
+      g.userData.glow = glow;
+      this.group.add(g);
+      (this.exitMeshes ??= []).push(g);
+    }
+  }
+
+  // Raíces que tapan a alguien (camera-systems: deoccluder): se vuelven translúcidas mientras haya un aliado
+  // o enemigo detrás, vistas desde la cámara.
+  seeThrough(dt) {
+    const cam = this.stage.camera.position;
+    for (const p of this.features.userData.pillars ?? []) {
+      const dx = cam.x - p.x, dz = cam.z - p.y, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
+      const hidden = this.c.actors.some((a) => {
+        if (a.hp <= 0) return false;
+        const rx = a.x - p.x, rz = a.y - p.y, along = rx * ux + rz * uz, side = Math.abs(rx * uz - rz * ux);
+        return along < 0 && along > -p.h * 1.6 && side < p.r + (a.r ?? 0.4) + 0.2;
+      });
+      p.fade += ((hidden ? 0.28 : 1) - p.fade) * Math.min(1, dt * 10);
+      for (const m of p.meshes) { m.material.opacity = p.fade; m.material.depthWrite = p.fade > 0.9; m.castShadow = p.fade > 0.9; }
+    }
   }
 
   telegraphs() {
@@ -528,8 +580,13 @@ export class CombatView {
         this.group.add(t.mesh);
       }
       t.mesh.position.set(e.x, 0.03, e.y);
-      const prog = 1 - e.timer / e.attack.windup;
+      const prog = 1 - e.timer / e.attack.windup, last = e.timer < 0.25;
       t.mesh.children[1].scale.setScalar(Math.max(0.01, prog));
+      // Últimos 0,25 s: todo en blanco y el aviso salta (es el momento de rodar).
+      t.mesh.children[1].material.color.set(last ? 0xfff4dc : 0xff3b1f);
+      t.mesh.children[2].material.opacity = last ? 1 : 0.7;
+      const warn = t.mesh.userData.warn; warn.position.set(0, ABERRATIONS[e.kind].height * 1.15 + 0.4 + (last ? Math.sin(this.now * 40) * 0.06 : 0), 0);
+      warn.rotation.y = this.stage.yaw + e.aim; warn.material.color.set(last ? 0xfff4dc : 0xff3b1f); warn.scale.setScalar(last ? 1.35 : 1);
     }
     for (const [k, t] of this.tele) if (!live.has(k)) { this.group.remove(t.mesh); this.tele.delete(k); }
   }
@@ -538,13 +595,19 @@ export class CombatView {
 function teleMesh(e) {
   const at = e.attack, reach = (at.range ?? 2) + e.r;
   const g = new THREE.Group();
-  const outer = new THREE.MeshBasicMaterial({ color: PALETTES.terror.rust, transparent: true, opacity: 0.22, depthWrite: false });
-  const inner = new THREE.MeshBasicMaterial({ color: PALETTES.terror.rust, transparent: true, opacity: 0.45, depthWrite: false });
+  // Rojo vivo y borde marcado: el pase de tinta desatura y el óxido se perdía en el suelo.
+  const outer = new THREE.MeshBasicMaterial({ color: 0xff3b1f, transparent: true, opacity: 0.3, depthWrite: false });
+  const inner = new THREE.MeshBasicMaterial({ color: 0xff3b1f, transparent: true, opacity: 0.6, depthWrite: false });
   let geo;
   if (at.kind === 'charge' || at.kind === 'grab') geo = new THREE.PlaneGeometry(reach, e.r * 2).translate(reach / 2, 0, 0).rotateX(-Math.PI / 2);
   else if (at.kind === 'stomp') geo = new THREE.CircleGeometry(reach, 32).rotateX(-Math.PI / 2);
   else geo = new THREE.CircleGeometry(reach, 24, -at.arc / 2, at.arc).rotateX(-Math.PI / 2);
-  g.add(new THREE.Mesh(geo, outer), new THREE.Mesh(geo, inner));
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xff3b1f, transparent: true, opacity: 0.7 }));
+  edge.position.y = 0.01;
+  g.add(new THREE.Mesh(geo, outer), new THREE.Mesh(geo, inner), edge);
+  // «!» sobre la cabeza: rombo que mira a cámara.
+  const warn = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42).rotateZ(Math.PI / 4), new THREE.MeshBasicMaterial({ color: 0xff3b1f, depthTest: false, transparent: true, side: THREE.DoubleSide }));
+  warn.renderOrder = 10; g.add(warn); g.userData.warn = warn;
   g.rotation.y = -e.aim;
   return g;
 }

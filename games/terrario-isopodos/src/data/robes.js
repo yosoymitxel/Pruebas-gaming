@@ -11,8 +11,8 @@ export const ROBES = localize('robes', {
     mods: { abilityMul: 1.6, atbCostMul: 0.6, damageMul: 0.6, hpMul: 0.7 } },
   destino: { name: 'Caparazón del destino', desc: 'Empiezas con 4 cartas; no aparecen más.', icon: 'carta', cost: { ambar: 4 },
     mods: {}, startCards: 4, noCards: true },
-  tozudo: { name: 'Caparazón tozudo', desc: 'Cura un 8 % tras cada sala y +5 % de vida; no puedes rodar.', icon: 'refugio', cost: { ambar: 2, cal: 4 },
-    mods: { winHeal: 0.08, hpMul: 1.05, noRoll: true } },
+  tozudo: { name: 'Caparazón tozudo', desc: 'Cura un 6 % tras cada sala y +5 % de vida; no puedes rodar.', icon: 'refugio', cost: { ambar: 2, cal: 4 },
+    mods: { winHeal: 0.06, hpMul: 1.05, noRoll: true } },
   berserker: { name: 'Caparazón berserker', desc: 'Daño básico ×2,5; la vida baja a la mitad.', icon: 'attack', cost: { ambar: 5 },
     mods: { damageMul: 2.5, hpMul: 0.5 } },
 });

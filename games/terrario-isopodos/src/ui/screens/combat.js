@@ -12,7 +12,6 @@ import { press , hold as holdKey } from '../input.js';
 import { Bar, Stick, CamControls, FxLayer, PauseButton, RoomMap } from './common.js';
 import { portraitURL } from '../../view/sprites.js';
 import { Icon } from '../icons.js';
-import { ROOM_ICON, ROOM_NAME, DIR } from './dungeon.js';
 
 const Atb = ({ value }) => html`<span class="atb" role="meter" aria-label="ATB" aria-valuenow=${value.toFixed(1)} aria-valuemax=${ATB_MAX}>
   ${Array.from({ length: ATB_MAX }, (_, k) => html`<i class=${value >= k + 1 ? 'full' : ''}><b style=${{ width: `${Math.max(0, Math.min(1, value - k)) * 100}%` }}></b></i>`)}
@@ -80,13 +79,11 @@ export function Combat({ s }) {
       <button class="btn ghost" onClick=${() => s.setTactical(false)}>${t('ui.back', 'Volver')}</button>
     </section>`}
 
-    ${c.result && (!s.cleared || s.time - s.cleared > 1.4) && html`<section class="drawer center">
+    ${s.exits?.length > 0 && html`<div class="exit-hint" role="status"><b>${t('combat.doors', 'Sal por una puerta')}</b>
+      <button class="btn small ghost" onClick=${() => s.endCombat()}>${t('combat.map', 'Ver el mapa')}</button></div>`}
+    ${c.result && !(s.exits?.length > 0) && (!s.cleared || s.time - s.cleared > 1.4) && html`<section class="drawer center">
       <h3>${c.result === 'win' ? t('combat.win', 'Las aberraciones se deshacen en tinta.') : t('combat.lose', 'El equipo cae. Hay que volver.')}</h3>
-      ${(() => { const f = s.run?.floor, here = f?.rooms[f.at], doors = c.result === 'win' && here && !here.final ? here.links.map((id) => f.rooms[id]).filter((r) => !r.done) : [];
-        return doors.length ? html`<p class="kicker">${t('combat.doors', 'Se abren las puertas')}</p><div class="doors">${doors.map((r, k) => html`<button class=${`btn door${k ? '' : ' primary'}`} style=${`--k:${k}`} onClick=${() => s.endCombat(r.id)}>
-          <span class="dir">${DIR(here, r)}</span><${Icon} name=${ROOM_ICON[r.type]} size="18" />${r.final ? t('room.final', 'Sala final') : ROOM_NAME[r.type]()}</button>`)}</div>
-          <button class="btn ghost" onClick=${() => s.endCombat()}>${t('combat.map', 'Ver el mapa')}</button>`
-          : html`<button class="btn primary" onClick=${() => s.endCombat()}>${t('ui.continue', 'Continuar')}</button>`; })()}
+      <button class="btn primary" onClick=${() => s.endCombat()}>${t('ui.continue', 'Continuar')}</button>
     </section>`}
   </main>`;
 }
