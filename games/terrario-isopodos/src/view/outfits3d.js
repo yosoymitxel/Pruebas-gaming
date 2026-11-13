@@ -24,7 +24,7 @@ function piece(def, bodyLen) {
 
 // Cuelga el atuendo `id` del modelo: se orienta con +x hacia la cabeza (hueso Head) y se apoya en la curva del
 // caparazón según `along` y `sink`. Devuelve el objeto para poder quitarlo.
-export function attachOutfit(model, id) {
+export function attachOutfit(model, id, { rolled = false } = {}) {
   const def = OUTFITS[id];
   if (!def || !MODS[def.model]) return null;
   // todo se mide en el espacio propio del modelo: se suelta un momento de su padre y se deja sin transformar
@@ -35,10 +35,11 @@ export function attachOutfit(model, id) {
   const head = model.getObjectByName('Head'), hp = head ? head.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(box.max.x, c.y, c.z);
   const ax = new THREE.Vector3(hp.x - c.x, 0, hp.z - c.z); if (ax.lengthSq() < 1e-6) ax.set(1, 0, 0); ax.normalize();
   const half = Math.abs(ax.x) * (box.max.x - box.min.x) / 2 + Math.abs(ax.z) * (box.max.z - box.min.z) / 2, len = half * 2;
-  const t = def.along ?? 0, top = box.min.y + H * Math.sqrt(Math.max(0, 1 - (t * 0.92) ** 2)); // perfil de cúpula
+  // hecho bolita: todo va arriba del todo de la bola, algo menos hundido
+  const t = rolled ? 0 : def.along ?? 0, top = box.min.y + H * Math.sqrt(Math.max(0, 1 - (t * 0.92) ** 2)); // perfil de cúpula
   const acc = new THREE.Group(), n = def.count ?? 1;
   for (let k = 0; k < n; k++) {
-    const pc = piece(def, len), r = def.rot ?? [0, 0, 0];
+    const pc = piece(def, rolled ? len * 1.5 : len), r = def.rot ?? [0, 0, 0]; // la bola es corta: se compensa
     const inner = new THREE.Group(); inner.add(pc); inner.rotation.set(r[0], r[1], r[2]);
     // tras girar, apoyar su base en y = 0 y centrar
     inner.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(inner), m = b.getCenter(new THREE.Vector3());
@@ -48,8 +49,11 @@ export function attachOutfit(model, id) {
     acc.add(slot);
   }
   // centro + eje × (along × medio largo), a la altura del caparazón menos lo que se hunde
-  const world = c.clone().addScaledVector(ax, t * half); world.y = top - H * (def.sink ?? 0.1);
+  const world = c.clone().addScaledVector(ax, t * half); world.y = top - H * (rolled ? 0.06 : def.sink ?? 0.1);
   acc.position.copy(world); acc.rotation.y = Math.atan2(-ax.z, ax.x);
+  // se inclina con la curva del caparazón (pendiente del perfil de cúpula en ese punto): asienta como un sombrero
+  const k = 0.92, slope = rolled ? 0 : -(H / half) * (k * k * t) / Math.sqrt(Math.max(0.05, 1 - (k * t) ** 2));
+  acc.rotation.z = Math.atan(slope);
   model.add(acc);
   model.position.copy(saved[0]); model.quaternion.copy(saved[1]); model.scale.copy(saved[2]); parent?.add(model);
   return acc;

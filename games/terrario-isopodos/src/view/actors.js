@@ -109,7 +109,7 @@ export class ActorLayer {
     const fl = a.flash ?? 0;
     if (it.outfit !== (a.outfit ?? null)) { // atuendo: se cuelga del modelo y se recolorea con él
       if (it.acc) it.acc.parent?.remove(it.acc);
-      it.outfit = a.outfit ?? null; it.acc = it.outfit ? attachOutfit(it.model, it.outfit) : null;
+      it.outfit = a.outfit ?? null; it.acc = it.outfit ? attachOutfit(it.model, it.outfit, { rolled: a.sprite.startsWith('ball') }) : null;
     }
     if (it.paint !== (a.paint ?? null)) { // tinte de caparazón: mezcla el color base con el elegido
       it.paint = a.paint ?? null;

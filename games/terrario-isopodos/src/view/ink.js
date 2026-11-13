@@ -44,12 +44,12 @@ export function createInkPass() {
         float edge = 0.;
         float ce = 0.;
         for (int i = 0; i < 4; i++) {
-          vec2 o = (i == 0 ? vec2(1,0) : i == 1 ? vec2(-1,0) : i == 2 ? vec2(0,1) : vec2(0,-1)) * px * dpr * 1.2;
+          vec2 o = (i == 0 ? vec2(1,0) : i == 1 ? vec2(-1,0) : i == 2 ? vec2(0,1) : vec2(0,-1)) * px * dpr * 0.7; // trazo fino
           float dn = depthAt(uv + o);
           edge += clamp(abs(dn - d) / max(d, .001) * 22. - .25, 0., 1.);
           ce += abs(lum(texture2D(tColor, uv + o).rgb) - lum(col));
         }
-        edge = clamp(edge * .5 + smoothstep(.2, .45, ce), 0., 1.) * (1. - blur * .7);
+        edge = clamp(edge * .45 + smoothstep(.38, .7, ce) * .6, 0., 1.) * .7 * (1. - blur * .7); // menos líneas por cambio de color: ensuciaban
         float dark = 1. - lum(col);
         vec2 cellPx = gl_FragCoord.xy / (3. * dpr);
         vec2 cell = floor(cellPx);
@@ -59,7 +59,7 @@ export function createInkPass() {
         float dotMask = step(length(f), .32) * step(h, pow(max(dark - .62, 0.), 1.2) * 2.6) * (1. - blur * .6) * mix(.35, .45, gloom);
         float grain = hash(floor(gl_FragCoord.xy / dpr)) * .012;
         vec3 washed = mix(paper, col * mix(vec3(1.), paper * 1.08, .12), wash) - grain;
-        vec3 outc = mix(washed, ink, max(edge, dotMask * .85));
+        vec3 outc = mix(washed, ink, max(edge, dotMask * .5));
         float fog = smoothstep(fogNear, fogFar, d) * step(d, far * .98);
         outc = mix(outc, night, fog * .5);
         vec2 v = uv - .5;
