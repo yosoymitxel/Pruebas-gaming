@@ -1192,3 +1192,6 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .as-chip.add { border-style: dashed; }
 .as-chip.on { background: var(--ink); color: var(--paper); }
 .piece-card .pc-head { padding-right: 44px; }
+.here-tag { display: block; margin-top: 2px; padding: 2px 8px; background: #f2c14e; color: var(--ink); font: 700 11px/1.3 var(--font, sans-serif); text-transform: uppercase; letter-spacing: 0.08em; border-radius: 999px; animation: here-pulse 1.6s ease-in-out infinite; }
+@keyframes here-pulse { 50% { translate: 0 -2px; } }
+@media (prefers-reduced-motion: reduce) { .here-tag { animation: none; } }

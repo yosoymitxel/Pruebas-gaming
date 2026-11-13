@@ -39,7 +39,7 @@ export function Islands({ s }) {
       const p = pos[i.id];
       return html`<li class=${`isle-label isle-${i.kind}${sel === i.id ? ' sel' : ''}${done(i) ? ' done' : ''}`} style=${{ left: `${p.x}px`, top: `${p.y}px` }}>
         <button disabled=${done(i)} aria-pressed=${sel === i.id} onClick=${() => { setSel(i.id); setParty([]); }}>
-          <span class="gem"><${Icon} name=${i.kind} size="18" /></span><span class="nm">${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</span>
+          <span class="gem"><${Icon} name=${i.kind} size="18" /></span><span class="nm">${i.kind === 'hogar' ? ISLAND_KINDS.hogar.name : BIOMES[i.biome].name}</span>${i.kind === 'hogar' ? html`<span class="here-tag">${t('islands.here', 'Estás aquí')}</span>` : ''}
         </button>
       </li>`;
     })}</ul>
