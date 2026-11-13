@@ -1247,3 +1247,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   background: color-mix(in srgb, #3a2458 92%, transparent); color: #efe3ff; border-radius: 14px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.35); animation: door-in 360ms var(--ease-out) both; }
 .ceremony small { opacity: 0.75; }
 .ceremony i { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: #b48cff; }
+/* Vistas internas: rótulo arriba, panel abajo; la cortinilla «dentro» es una puerta redonda que se abre. */
+.interior .inside-head { position: absolute; z-index: var(--z-hud); top: max(var(--gap), env(safe-area-inset-top)); left: 50%; translate: -50% 0; text-align: center; color: var(--paper); text-shadow: 0 2px 8px rgb(0 0 0 / 0.6); pointer-events: none; }
+.interior .inside-head h2 { margin: 0; font: 700 30px/1 var(--hand); }
+.interior .inside-head .kicker { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.interior .inside-panel { max-height: 38vh; }
+.interior .inside-panel > .btn { width: 100%; }
+.inside-exit { position: absolute; z-index: var(--z-hud); left: 50%; translate: -50% 0; bottom: calc(max(var(--gap), env(safe-area-inset-bottom)) + 12px); }
+.nexo-dentro { background: var(--ink); animation: nexo-hole 1.1s cubic-bezier(.7,0,.2,1) forwards; }
+@keyframes nexo-hole { 0%, 35% { clip-path: circle(80% at 50% 55%); } 100% { clip-path: circle(0% at 50% 55%); } }

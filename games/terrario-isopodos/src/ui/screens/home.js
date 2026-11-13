@@ -65,7 +65,7 @@ function Temple({ s }) {
   </div>`;
 }
 // Lado pieza de la asignación: quién trabaja o duerme aquí, quitar a alguien o sumar a otro de la colonia.
-function Assigned({ s, p }) {
+export function Assigned({ s, p }) {
   const home = s.game.home, b = BUILDINGS[p.type], [add, setAdd] = useState(null);
   const rows = [b.produces && ['trabajar', t('assign.workHere', 'Trabajan aquí'), workersOf(home, p), Infinity], b.beds && ['dormir', t('assign.sleepHere', 'Duermen aquí'), sleepersOf(home, p), b.beds * lvl(p)]].filter(Boolean);
   if (!rows.length || p.site) return null;

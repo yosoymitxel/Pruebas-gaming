@@ -344,12 +344,33 @@ export class MenuView extends HomeView {
 }
 
 export class GatherView extends GridScene {
+  // Huecos de dentro de la isla (no el mar de alrededor): pozo negro que se hunde y borde ámbar discontinuo a ras
+  // del suelo vecino, para que no se confundan con las sombras. Lo de fuera se queda como fondo.
+  holes(g) {
+    const idx = (i, j) => j * g.w + i, out = new Uint8Array(g.w * g.h), q = [];
+    for (let i = 0; i < g.w; i++) for (const j of [0, g.h - 1]) q.push([i, j]);
+    for (let j = 0; j < g.h; j++) for (const i of [0, g.w - 1]) q.push([i, j]);
+    while (q.length) { const [i, j] = q.pop(); if (i < 0 || j < 0 || i >= g.w || j >= g.h || out[idx(i, j)] || g.open[idx(i, j)]) continue; out[idx(i, j)] = 1; q.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
+    const shaft = new THREE.MeshBasicMaterial({ color: 0x020101 }), wall = new THREE.MeshBasicMaterial({ color: 0x0d0907, side: THREE.BackSide });
+    const rim = new THREE.MeshBasicMaterial({ color: 0xe0a03a, transparent: true, opacity: 0.85, depthWrite: false });
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+      if (g.open[idx(i, j)] || out[idx(i, j)]) continue;
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => g.open[idx(i + di, j + dj)]).map(([di, dj]) => this.island.heightAt(i + di, j + dj));
+      const top = nb.length ? Math.min(...nb) : 0, x = i - g.w / 2 + 0.5, z = j - g.h / 2 + 0.5;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.98, 3, 0.98), wall); box.position.set(x, top - 1.5, z); this.group.add(box);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(0.98, 0.98).rotateX(-Math.PI / 2), shaft); floor.position.set(x, top - 2.9, z); this.group.add(floor);
+      // borde de aviso solo en los lados que dan a suelo: tiras ámbar a ras del borde
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!g.open[idx(i + di, j + dj)]) continue;
+        const h = this.island.heightAt(i + di, j + dj), strip = new THREE.Mesh(new THREE.PlaneGeometry(di ? 0.07 : 0.96, di ? 0.96 : 0.07).rotateX(-Math.PI / 2), rim);
+        strip.position.set(x + di * 0.47, h + 0.025, z + dj * 0.47); this.group.add(strip);
+      }
+    }
+  }
   constructor(stage, gather) {
     super(stage, gather.grid, gather.island.seed, { relief: 0.6, vessel: gather.island.vessel ?? 'frasco', weather: gather.island.weather, levels: gather.levels });
     this.g = gather;
-    // Vacío: un pozo negro bajo toda la isla, con un degradado que se hunde; los huecos se leen como caída.
-    const pit = new THREE.Mesh(new THREE.PlaneGeometry(gather.grid.w + 2, gather.grid.h + 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050403 }));
-    pit.position.y = -0.35; this.group.add(pit);
+    this.holes(gather.grid);
     this.syncProps();
     this.pickups = gather.nodes.map((n) => {
       const m = pickupMesh(n.res), w = this.toWorld(n.x, n.y);
