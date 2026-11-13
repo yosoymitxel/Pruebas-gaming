@@ -86,7 +86,7 @@ export class Session {
     if (this.view && this.view !== view) this.view.dispose?.();
     this.mode = mode;
     this.view = view;
-    if (view) view.onMarker = (m) => { if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
+    if (view) view.onMarker = (m) => { if (this.build || this.moveMode) return; if (m.piece != null && this.game.home.grid.pieces[m.piece]) { if (m.kind === 'ready') this.collectPiece(this.game.home.grid.pieces[m.piece]); else this.selectPiece(m.piece); } else if (m.kind === 'merchant') { this.wantPanel = 'merchant'; this.sfx('open'); this.emit(); } else if (m.iso != null) this.selectIso(m.iso); else if (m.at) this.tapHome(m.at); };
     this.stage.setMood(mood);
     this.stage.setSky(weather ?? this.game?.home.weather ?? 'claro', mode === 'islands' ? 'mar' : mood >= 0.6 ? 'terror' : 'cozy');
     this.stage.setScene(view ? view.group : new Group(), view?.camera);
@@ -128,6 +128,7 @@ export class Session {
     this.game.home.weather = this.game.islands.find((i) => i.kind === 'hogar')?.weather ?? 'claro';
     if (this.mode === 'islands' || this.mode === 'result') this.nexo('isla', t('nexo.home', 'Terrario'));
     this.setMode('home', new HomeView(this.stage, this.game.home), 0);
+    this.stage.bounds = Math.max(this.game.home.grid.w, this.game.home.grid.h) * 0.45; // el terrario no se pierde de vista
   }
   // Nexo: cortinilla entre secciones (isla: iris; nido: descenso; combate: golpe; sala: puerta).
   nexo(kind, title, sub) { this.nexus = this.settings.reduceMotion ? null : { kind, title, sub, at: this.time }; }
@@ -177,6 +178,8 @@ export class Session {
   }
   tapHome(cell) {
     const home = this.game.home;
+    // Modo construcción (mover piezas): solo piezas; los isópodos, hojas y mudas no se tocan.
+    if (this.moveMode) { const at = home.grid.cells[Math.floor(cell.y) * home.grid.w + Math.floor(cell.x)]; if (at != null) this.startMove(at); return at != null ? { moving: at } : null; }
     // Primero lo vivo: una muda para recoger o un isópodo al que tocar (bolita o huida).
     const leaf = (home.leaves ?? []).find((l) => Math.hypot(l.x - cell.x, l.y - cell.y) < 0.7);
     if (leaf && takeLeaf(home, leaf.id)) {
@@ -532,6 +535,7 @@ export class Session {
       const home = this.game.home; tickHome(home, dt, this.rng, DAY_PHASES[this.phase]);
       if (this.interior?.kind === 'altar' && !home.sermon && this.time - this.interior.at > 2.5) this.exitInterior();
     }
+    else if (this.mode === 'home' && (this.build || this.moveMode)) { /* construyendo: la colonia se queda quieta */ }
     else if (this.mode === 'home') { this.view.selPieceNow = this.selPiece; this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.view.merchant = merchantToday(this.game); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;

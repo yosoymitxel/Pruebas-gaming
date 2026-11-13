@@ -127,7 +127,7 @@ export function Home({ s }) {
   const exp = nextExpansion(home);
   const sel = s.selPiece ? home.grid.pieces[s.selPiece] : null;
 
-  return html`<main class="screen home">
+  return html`<main class=${`screen home${s.build || s.moveMode ? ' building' : ''}`}>
     <div class="world-input" onPointerDown=${onDown} onPointerMove=${onMove} onPointerUp=${onUp} onPointerCancel=${onUp} onWheel=${(e) => s.stage.zoom(e.deltaY > 0 ? 1.08 : 0.93)}></div>
     <div class="markers"></div>
     <${CamControls} s=${s} />
