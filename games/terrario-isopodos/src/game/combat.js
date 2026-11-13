@@ -39,7 +39,7 @@ export function createCombat({ party, enemies, mods = {}, enemyHpMul = 1, items 
 function addAlly(c, p, i, n) {
   const cls = CLASSES[p.cls];
   c.actors.push({
-    id: c.nextId++, side: 'ally', ref: p.id, cls: p.cls, name: p.name, shell: p.shell,
+    id: c.nextId++, side: 'ally', ref: p.id, cls: p.cls, name: p.name, shell: p.shell, outfit: p.outfit ?? null, paint: p.paint ?? null,
     x: (i - (n - 1) / 2) * 1.6, y: 4, vx: 0, vy: 0, r: 0.35, hp: p.hp, maxHp: p.maxHp, facing: -Math.PI / 2,
     atb: 0, state: 'idle', timer: 0, combo: 0, comboWindow: 0, invuln: 0, shield: 0, shieldT: 0, taunt: 0,
     held: 0, rollCd: 0, damage: (cls.damage + (p.damageAdd ?? 0)) * (c.mods.damageMul ?? 1), speed: cls.speed * speciesOf(p.shell).speed * (p.speedMul ?? 1), dodged: null,

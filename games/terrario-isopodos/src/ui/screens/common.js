@@ -1,5 +1,5 @@
 // Piezas de interfaz compartidas.
-import { html, useRef, useState } from '../lib.js';
+import { html, useRef, useState, useEffect } from '../lib.js';
 import { RESOURCES } from '../../data/resources.js';
 import { resourceIconURL } from '../../view/sprites.js';
 import { setStick } from '../input.js';
@@ -107,7 +107,22 @@ export const DayClock = ({ day, clock = 0, label, onSleep }) => html`<${onSleep 
 
 // Botón de pausa de cada pantalla de juego (arriba a la derecha).
 // X de cierre arriba a la derecha de cualquier panel.
-export const CloseX = ({ onClose }) => onClose && html`<button class="drawer-x" onClick=${onClose} aria-label=${t('ui.close', 'Cerrar')}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg></button>`;
+// X de cierre: pestañita que asoma encima de la esquina superior derecha del panel que la sigue (va fuera de
+// él porque el panel hace scroll y la recortaría). Se recoloca cada fotograma por si el panel se mueve o crece.
+export function CloseX({ onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    let raf;
+    const place = () => {
+      const b = ref.current, panel = b?.nextElementSibling?.matches('.drawer') ? b.nextElementSibling : b?.nextElementSibling?.querySelector?.('.drawer');
+      if (b && panel) { const r = panel.getBoundingClientRect(), guard = panel.parentElement?.querySelector(':scope > .guard'); b.style.top = `${r.top + 3}px`; b.style.left = `${guard ? r.left + 12 : r.right - 46}px`; b.style.visibility = r.height ? 'visible' : 'hidden'; }
+      raf = requestAnimationFrame(place);
+    };
+    place();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return onClose && html`<button ref=${ref} class="drawer-x" style="visibility:hidden" onClick=${onClose} aria-label=${t('ui.close', 'Cerrar')}><${Icon} name="close" size="16" /></button>`;
+}
 export const PauseButton = ({ s }) => html`<button class="btn icon pause-btn" onClick=${() => s.pause()} aria-label=${t('pause.open', 'Pausa (Esc)')}><${Icon} name="menu" /></button>`;
 
 // Minimapa del piso en combate (como el de Cult of the Lamb): una casilla por sala con sus pasillos, la actual

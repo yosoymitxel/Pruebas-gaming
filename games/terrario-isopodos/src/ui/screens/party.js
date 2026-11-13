@@ -13,7 +13,7 @@ import { Bar, Cost } from './common.js';
 import { ROBES } from '../../data/robes.js';
 import { Icon } from '../icons.js';
 
-const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'leaf' };
+const CLASS_ICON = { rodador: 'roll', guardian: 'shield', musgoso: 'plant' };
 
 export function recommended(isopods, need) {
   const ranked = [...isopods].sort((a, b) => b.hunger - a.hunger);

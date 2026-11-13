@@ -14,7 +14,7 @@ import { BUILDINGS } from '../data/buildings.js';
 import { RESOURCES } from '../data/resources.js';
 import { ROBES } from '../data/robes.js';
 import { TIPS } from '../data/tips.js';
-import { merchantToday, trade, buyUpgrade, hasUpgrade } from '../game/economy.js';
+import { merchantToday, trade, buyUpgrade, hasUpgrade, buyOutfit, wearOutfit } from '../game/economy.js';
 import { footprint, move } from '../game/grid.js';
 import { save, load } from '../game/save.js';
 import { mulberry32 } from '../core/rng.js';
@@ -367,6 +367,8 @@ export class Session {
   // ——— Expedición ———
   // Mercader (cada tres días) y mejoras permanentes (src/game/economy.js).
   trade(k) { if (trade(this.game, k, this.rng)) { this.sfx('pickup'); this.persist(); this.emit(); } else this.sfx('hurt', 1.6); }
+  buyOutfit(id) { if (buyOutfit(this.game, id)) { this.sfx('win'); this.persist(); this.emit(); return true; } this.sfx('hurt', 1.6); return false; }
+  wearOutfit(isoId, id) { const iso = this.game.home.isopods.find((i) => i.id === isoId); if (iso && wearOutfit(this.game, iso, id)) { this.sfx('build', 1.2); if (iso.outfit) { iso.loved = 1.2; this.view?.burst?.('mimo', iso.x, iso.y); } this.persist(); this.emit(); } }
   buyUpgrade(id) { if (buyUpgrade(this.game, id)) { this.sfx('win'); this.persist(); this.emit(); } else this.sfx('hurt', 1.6); }
   setRobe(id) { this.game.robe = id; this.sfx('click'); this.persist(); this.emit(); }
   buyRobe(id) {

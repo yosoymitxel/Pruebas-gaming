@@ -63,9 +63,9 @@ export function Combat({ s }) {
     ${koAt.current && s.time - koAt.current.at < 1.6 && html`<div class="ko-banner" key=${koAt.current.at} aria-live="assertive"><b>${koAt.current.name}</b> ${t('combat.ko', 'cayó')}</div>`}
 
     <section class="actions-pad">
-      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="dodge" size="26" /><small>${t('pad.dodge', 'Esquivar')}</small></button>
-      <button class=${`pad attack${s.charge > 0 ? ' charging' : ''}`} style=${{ '--charge': s.charge ?? 0 }} onPointerDown=${hold('attack')} onPointerUp=${release('attack')} onPointerCancel=${release('attack')} onPointerLeave=${release('attack')} aria-label=${t('combat.attack', 'Atacar (J) · mantén para golpe fuerte')}><${Icon} name=${WEAPONS[s.run?.weapon?.type]?.icon ?? 'attack'} size="32" /><small>${(s.charge ?? 0) > 0 ? t('pad.heavy', 'Suelta: fuerte') : t('pad.attack', 'Atacar')}</small></button>
-      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="skills" size="26" /><small>${t('pad.skills', 'Habilidad')}</small></button>
+      <button class="pad roll" onPointerDown=${hold('roll')} aria-label=${t('combat.roll', 'Rodar (K)')}><${Icon} name="dodge" size="26" /></button>
+      <button class=${`pad attack${s.charge > 0 ? ' charging' : ''}`} style=${{ '--charge': s.charge ?? 0 }} onPointerDown=${hold('attack')} onPointerUp=${release('attack')} onPointerCancel=${release('attack')} onPointerLeave=${release('attack')} aria-label=${t('combat.attack', 'Atacar (J) · mantén para golpe fuerte')}><${Icon} name=${WEAPONS[s.run?.weapon?.type]?.icon ?? 'attack'} size="36" /></button>
+      <button class="pad tactic" onClick=${() => s.setTactical(!s.tactical)} aria-label=${t('combat.tactical', 'Pausa táctica (L)')}><${Icon} name="skills" size="26" /></button>
     </section>
 
     ${s.tactical && !c.result && html`<section class="tactic-menu" aria-label=${t('combat.tactical', 'Pausa táctica')}>

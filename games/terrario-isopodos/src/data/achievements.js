@@ -22,5 +22,5 @@ export const ACHIEVEMENTS = localize('achievements', [
   { id: 'relic', group: 'Expedición', name: 'Reliquia', desc: 'Encuentra una reliquia.', icon: 'items' },
   { id: 'top', group: 'Exploración', name: 'En la cima', desc: 'Recoge ámbar en lo más alto de una isla.', icon: 'jump' },
   { id: 'nofall', group: 'Exploración', name: 'Pie firme', desc: 'Termina una recolección sin caer.', icon: 'recoleccion' },
-  { id: 'rescue', group: 'Exploración', name: 'Rescate', desc: 'Rescata a un isópodo perdido.', icon: 'leaf' },
+  { id: 'rescue', group: 'Exploración', name: 'Rescate', desc: 'Rescata a un isópodo perdido.', icon: 'rescue' },
 ]);

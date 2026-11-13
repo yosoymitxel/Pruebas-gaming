@@ -7,7 +7,7 @@ const canFullscreen = typeof document !== 'undefined' && !!document.documentElem
 const toggleFullscreen = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
 
 export function HowTo({ onClose }) {
-  return html`<section class="drawer center howto" role="dialog" aria-label=${t('menu.howto', 'Cómo se juega')}><${CloseX} onClose=${onClose} />
+  return html`<${CloseX} onClose=${onClose} /><section class="drawer center howto" role="dialog" aria-label=${t('menu.howto', 'Cómo se juega')}>
     <h3>${t('menu.howto', 'Cómo se juega')}</h3>
     <ol>
       <li>${t('howto.1', 'Cuida el terrario: construye, mantén la humedad ideal y recoge lo que producen las piezas.')}</li>
