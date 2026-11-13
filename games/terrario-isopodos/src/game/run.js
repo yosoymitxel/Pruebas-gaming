@@ -9,7 +9,7 @@ import { ROBES } from '../data/robes.js';
 import { rollWeapon } from '../data/weapons.js';
 import { traitMul } from '../data/traits.js';
 import { genDungeon, nextNodes, enemiesFor, enemyHpMul } from './dungeon.js';
-import { partyBonus, recruit, isoStats } from './home.js';
+import { partyBonus, recruit, isoStats , addRes } from './home.js';
 import { mulberry32, pickFrom } from '../core/rng.js';
 import { genFloor } from './floor.js';
 import { speciesOf } from '../data/species.js';
@@ -223,7 +223,7 @@ export function retreat(run) {
 export function settleRun(home, run, rng) {
   const lost = run.state === 'lost';
   const loot = Object.fromEntries(Object.entries(run.loot).map(([r, n]) => [r, lost ? Math.floor(n / 2) : n]));
-  for (const [r, n] of Object.entries(loot)) home.resources[r] = (home.resources[r] ?? 0) + n;
+  for (const [r, n] of Object.entries(loot)) addRes(home, r, n);
   const rescued = lost ? 0 : run.rescued;
   for (let k = 0; k < rescued; k++) recruit(home, rng);
   home.fear = Math.min(0.4, home.fear + (lost ? 0.3 : run.state === 'won' ? 0 : 0.1));
