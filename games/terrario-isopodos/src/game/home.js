@@ -13,7 +13,7 @@ import { FAITH, LOYALTY, WISHES, SERMON, SITE, JOBS, RITUALS, HARVEST } from '..
 import { LAYERS, START_LAYERS, HUMIDITY, CLIMATES, ZEN, MOLD, MOLT_EATEN, MOLT_CAL } from '../data/substrate.js';
 
 const BREED_FOOD = 3;
-const HUNGER_DRAIN = 1 / 480; // de lleno a vacío en 8 min de juego
+const HUNGER_DRAIN = 1 / 900; // de lleno a vacío en 15 min de juego
 const WALK = 1.1;
 const START_RES = { hojarasca: 8, musgo: 5, esporas: 2, cal: 1, ambar: 1 };
 

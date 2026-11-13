@@ -41,7 +41,7 @@ export const LOYALTY = {
 
 // Peticiones (los «quests» de los seguidores). `every`: segundos entre peticiones; `time`: plazo.
 export const WISHES = {
-  every: 200, time: 300, max: 2,
+  every: 420, time: 420, max: 2,
   kinds: localize('wishes', {
     pieza: { name: 'Quiere', pieces: ['corcho', 'esfagno', 'piedra', 'seta', 'tronco', 'sepia', 'charca'] },
     humedad: { name: 'Quiere su humedad' },

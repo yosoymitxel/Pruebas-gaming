@@ -16,9 +16,9 @@ export const NAMES = ['Bolita', 'Cal', 'Turrón', 'Pimienta', 'Ovillo', 'Guijarr
 // Qué está haciendo cada isópodo en el terrario (icono + palabra en la colonia y sobre su cabeza).
 export const STATUS = localize('isoStatus', {
   explora: { name: 'Explora', icon: 'eye' },
-  comer: { name: 'Va a comer', icon: 'eat' },
+  comer: { name: 'Va a comer', icon: 'dodge' }, // mandado: camina al comedero
   come: { name: 'Come', icon: 'eat' },
-  hambre: { name: 'Hambre', icon: 'eat', warn: true },
+  hambre: { name: 'Hambre', icon: 'alert', warn: true }, // necesita: no hay comida o comedero
   dormir: { name: 'Va a dormir', icon: 'refugio' },
   humedad: { name: 'Busca humedad', icon: 'items' },
   duerme: { name: 'Duerme', icon: 'refugio' },
