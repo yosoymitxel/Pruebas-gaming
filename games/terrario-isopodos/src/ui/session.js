@@ -144,11 +144,18 @@ export class Session {
   closeSettings() { if (this.back?.mode === 'menu') this.goMenu(); else this.setMode(this.back?.mode ?? 'menu', this.view, 0); }
 
   // ——— Terrario ———
-  startBuild(type) { this.build = { type, rot: 0, i: null, j: null, ok: false }; this.view.setBuildMode(true); this.emit(); }
+  startBuild(type) { this.build = { type, rot: 0, i: null, j: null, ok: false }; this.view.setBuildMode(true); const g = this.game.home.grid; this.hoverBuild(Math.floor(g.w / 2), Math.floor(g.h / 2)); this.emit(); } // fantasma ya visible en el centro
   // Mover una pieza ya puesta: mismo fantasma que al construir, sin coste, validando sin contarse a sí misma.
-  startMove(id) { const p = this.game.home.grid.pieces[id]; if (!p) return; this.selPiece = null; this.moveMode = false; this.build = { type: p.type, rot: p.rot, i: null, j: null, ok: false, moving: id }; this.view.setBuildMode(true); this.emit(); }
+  startMove(id) { const p = this.game.home.grid.pieces[id]; if (!p) return; this.selPiece = null; this.moveMode = false; this.build = { type: p.type, rot: p.rot, i: null, j: null, ok: false, moving: id }; this.view.setBuildMode(true); const f = footprint(p.type, p.rot); this.hoverBuild(p.x + Math.floor((f.w - 1) / 2), p.y + Math.floor((f.h - 1) / 2)); this.emit(); }
   cancelBuild() { this.build = null; this.view.setBuildMode(false); this.emit(); }
-  rotateBuild() { if (this.build) { this.build.rot = (this.build.rot + 1) % 4; this.hoverBuild(this.build.i, this.build.j); } }
+  // Girar sobre el mismo sitio: se guarda la celda central y la huella se recoloca a su alrededor.
+  rotateBuild() {
+    const b = this.build; if (!b) return;
+    const f0 = footprint(b.type, b.rot), ci = b.i != null ? b.i + Math.floor((f0.w - 1) / 2) : null, cj = b.j != null ? b.j + Math.floor((f0.h - 1) / 2) : null;
+    b.rot = (b.rot + 1) % 4; this.sfx('click');
+    if (ci === null) { this.emit(); return; } // aún sin colocar: el giro se aplica al tocar el suelo
+    this.hoverBuild(ci, cj);
+  }
   hoverBuild(i, j) {
     if (!this.build || i === null) return;
     const f = footprint(this.build.type, this.build.rot);

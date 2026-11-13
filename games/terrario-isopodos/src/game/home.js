@@ -245,7 +245,9 @@ export const layer = (home, id) => home.layers?.[id] ?? START_LAYERS[id];
 export function humidityParts(home) {
   const parts = [{ source: 'base', amount: HUMIDITY.base }, { source: 'weather', amount: HUMIDITY.weather[home.weather] ?? 0 }];
   if (home.mist > 0) parts.push({ source: 'rocio', amount: HUMIDITY.mist * Math.min(1, home.mist / ZEN.mistTime) });
-  for (const p of livePieces(home)) if (HUMIDITY.pieces[p.type]) parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] });
+  // Repetir una pieza de agua moja cada vez menos (la 2.ª la mitad, la 3.ª un tercio…): tres charcas no inundan.
+  const seen = {};
+  for (const p of livePieces(home)) if (HUMIDITY.pieces[p.type]) { const n = (seen[p.type] = (seen[p.type] ?? 0) + 1); parts.push({ source: p.type, amount: HUMIDITY.pieces[p.type] / n }); }
   parts.push({ source: 'tapa', amount: HUMIDITY.lid[home.lid ?? 1] });
   return parts;
 }
