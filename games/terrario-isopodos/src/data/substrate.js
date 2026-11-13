@@ -30,6 +30,8 @@ export const HUMIDITY = {
   // Gradiente: cuánto moja cada pieza a su alrededor (radio en celdas). Un buen terrario tiene un lado húmedo y uno seco.
   local: { charca: [0.28, 3], esfagno: [0.2, 2.5], huerto: [0.06, 2], tronco: [0.06, 2], corcho: [0.04, 1.5], piedra: [-0.08, 1.5], sepia: [-0.04, 1] },
   bands: { seco: [0, 0.5], ideal: [0.45, 0.8], humedo: [0.7, 1] },
+  // Lado húmedo que elige el jugador: de un borde al otro la humedad sube o baja hasta ±side (un lado mojado, otro seco).
+  side: 0.2,
 };
 export const LID_NAMES = ['Cerrada', 'Rejilla', 'Abierta'];
 

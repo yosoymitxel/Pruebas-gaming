@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, setWetSide, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -225,6 +225,7 @@ export class Session {
     return this.collectPiece(piece);
   }
   // Tapa: cerrada → rejilla → abierta → cerrada. La humedad se mueve despacio hacia lo que pide.
+  wetSide(side) { setWetSide(this.game.home, side); this.view.climateKind = null; this.sfx('click'); this.persist(); this.emit(); }
   lid(k) {
     const home = this.game.home, n = setLid(home, k ?? ((home.lid ?? 1) + 1) % 3);
     this.sfx(n === 2 ? 'open' : 'close'); this.persist(); this.emit();
@@ -337,7 +338,7 @@ export class Session {
     const ok = what === 'tocar' ? !!poke(home, iso, { x: iso.x - 0.5, y: iso.y }) : orderIso(home, iso, what, pieceId);
     if (ok && pieceId != null) this.persist();
     const w = this.view.toWorld(iso.x, iso.y);
-    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa'), humedad: t('order.wet', '¡A la humedad!') }[what], w.x, w.z, 'note', 1); }
+    if (ok) { this.sfx(what === 'tocar' ? 'roll' : 'click'); this.floatText({ comer: t('order.comer', '¡A comer!'), dormir: t('order.dormir', '¡A dormir!'), tocar: t('home.ball', '¡Bolita!'), trabajar: iso.job != null ? t('order.job', '¡A trabajar!') : t('order.unjob', 'Descansa'), humedad: t('order.wet', '¡A la humedad!'), zonaHumeda: t('order.wetSide', '¡Al lado húmedo!'), zonaSeca: t('order.drySide', '¡Al lado seco!') }[what], w.x, w.z, 'note', 1); }
     else this.sfx('hurt', 1.6);
     this.emit();
     return ok;

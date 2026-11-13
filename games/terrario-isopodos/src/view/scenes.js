@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { islandFromGrid, arena, arenaFeatures } from './island.js';
 import { sway } from './flora.js';
-import { climate } from '../game/home.js';
+import { climate, humidity, localHumidity } from '../game/home.js';
+import { HUMIDITY } from '../data/substrate.js';
 import { spriteTexture, resourceIconURL } from './sprites.js';
 import { Markers } from './markers.js';
 import { RESOURCES } from '../data/resources.js';
@@ -156,9 +157,9 @@ export class HomeView extends GridScene {
   // El clima interior se ve en el diorama: grietas si está seco, gotas en el vidrio si está húmedo y manchas
   // de moho que crecen; en ideal, apenas rocío. Se rehace solo cuando cambia.
   showClimate() {
-    const kind = climate(this.home);
-    if (kind === this.climateKind && this.openCount === this.careOpen) return;
-    this.climateKind = kind; this.careOpen = this.openCount;
+    const kind = climate(this.home), key = `${kind}|${this.home.wetSide ?? ''}|${Math.round(humidity(this.home) * 20)}|${JSON.stringify(this.home.layers ?? {})}`;
+    if (key === this.climateKind && this.openCount === this.careOpen) return;
+    this.climateKind = key; this.careOpen = this.openCount;
     this.care.clear();
     const rng = mulberry32(31), g = this.grid, open = [];
     for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.open[j * g.w + i]) open.push([i, j]);
@@ -171,9 +172,28 @@ export class HomeView extends GridScene {
         this.care.add(m);
       }
     };
-    if (kind === 'seco') decal('proc:crack', 9, 1.6);
-    if (kind === 'moho') decal('proc:mold', 10, 1.5);
-    if (kind === 'humedo') decal('proc:mold', 2, 0.9);
+    // Cada celda según su humedad real (el lado que elegiste): grietas donde está seco, manchas oscuras donde
+    // encharca. Fijo por celda: no aparecen ni desaparecen al azar, solo cambian si cambia la humedad.
+    const crack = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:crack'), transparent: true, depthWrite: false });
+    const wet = new THREE.MeshBasicMaterial({ map: spriteTexture('proc:mold'), transparent: true, depthWrite: false, opacity: 0.8 });
+    for (const [i, j] of open) {
+      const h = localHumidity(this.home, i + 0.5, j + 0.5), mat = h < HUMIDITY.dry - 0.08 ? crack : h > HUMIDITY.flood ? wet : null;
+      if (!mat || (i * 7 + j * 13) % 3) continue; // una de cada tres: se ve la zona sin tapar el suelo
+      const w = this.toWorld(i + 0.5, j + 0.5), m = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), mat);
+      m.position.set(w.x, w.y + 0.03, w.z); m.rotation.y = (i * 1.7 + j * 2.3) % 6; this.care.add(m);
+    }
+    void decal;
+    // Corte del sustrato visto por el vidrio (frente y lado derecho): cada capa más gruesa según su nivel.
+    const lv = (id) => this.home.layers?.[id] ?? 0, cs = this.island.cells, lo = this.toWorld(Math.min(...cs.map((c) => c.i)), Math.min(...cs.map((c) => c.j))), hi = this.toWorld(Math.max(...cs.map((c) => c.i)) + 1, Math.max(...cs.map((c) => c.j)) + 1), x0 = lo.x, z0 = lo.z, x1 = hi.x, z1 = hi.z;
+    const bands = [['grava', 0xc2bba9, 0.14 + 0.08 * lv('grava')], ['carbon', 0x3a342e, 0.08 * lv('carbon')], ['tierra', 0x9a6a3e, 0.24 + 0.1 * lv('tierra')], ['hojarasca', 0xe0a040, 0.07 * lv('hojarasca')]];
+    let y = -1.07; // justo encima de la base de madera
+    for (const [, col, th] of bands) {
+      if (th <= 0) continue;
+      const mat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide });
+      const front = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, th), mat); front.position.set((x0 + x1) / 2, y + th / 2, z1 + 0.06); this.care.add(front);
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(z1 - z0, th), mat); side.rotation.y = Math.PI / 2; side.position.set(x1 + 0.06, y + th / 2, (z0 + z1) / 2); this.care.add(side);
+      y += th;
+    }
     // condensación: gotas pegadas al vidrio delantero y a un lado
     const drops = { seco: 0, ideal: 14, humedo: 70, moho: 110 }[kind], half = Math.sqrt(this.openCount) / 2 + 1, pts = [];
     for (let k = 0; k < drops; k++) {

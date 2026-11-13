@@ -261,6 +261,7 @@ export const humidity = (home) => home.moist ?? humidityTarget(home);
 // Humedad en una celda: la general más lo que mojan (o secan) las piezas cercanas. Así se arma el gradiente.
 export function localHumidity(home, x, y) {
   let h = humidity(home);
+  if (home.wetSide) { const s = (x / home.grid.w) * 2 - 1; h += HUMIDITY.side * (home.wetSide === 'der' ? s : -s); }
   for (const p of livePieces(home)) {
     const L = HUMIDITY.local[p.type];
     if (!L) continue;
@@ -416,6 +417,19 @@ function growMold(home, dt, rng) {
     home.mold.push({ id: `mo${Math.floor(home.clockT)}${k}`, x: i + 0.5, y: j + 0.5 });
     return;
   }
+}
+// Lado húmedo del terrario ('izq', 'der' o null): fija dónde se moja y dónde se seca.
+export function setWetSide(home, side) { home.wetSide = side === 'izq' || side === 'der' ? side : null; return home.wetSide; }
+// Punto libre del lado pedido ('humedo' o 'seco'), el más cercano al isópodo.
+export function sideSpot(home, iso, want) {
+  const g = home.grid; let best = null, bd = Infinity;
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+    if (blocked(g, i, j)) continue;
+    const h = localHumidity(home, i + 0.5, j + 0.5), ok = want === 'humedo' ? h >= HUMIDITY.wet - 0.05 : h <= HUMIDITY.dry + 0.05;
+    const d = Math.hypot(i + 0.5 - iso.x, j + 0.5 - iso.y) - (want === 'humedo' ? h : 1 - h) * 4; // prefiere lo más extremo
+    if (ok && d < bd) { bd = d; best = { x: i + 0.5, y: j + 0.5 }; }
+  }
+  return best;
 }
 export function setLid(home, level) { home.lid = Math.max(0, Math.min(2, level)); return home.lid; }
 function dropLeaf(home, dt, rng) {
@@ -606,6 +620,7 @@ export function orderIso(home, iso, what, pieceId) {
     if (def) { if (!def.beds || (sleepersOf(home, piece).filter((o) => o !== iso).length >= def.beds * lvl(piece))) return false; iso.home = piece.id; }
     else if (!nearest(home, iso, (b) => b.beds)) return false;
   }
+  if (what === 'zonaHumeda' || what === 'zonaSeca') { const spot = sideSpot(home, iso, what === 'zonaHumeda' ? 'humedo' : 'seco'); if (!spot) return false; Object.assign(iso, { order: 'humedad', rest: 0, ball: 0, wait: 0, stuck: 0, tx: spot.x, ty: spot.y }); return true; }
   if (what === 'humedad') { const spot = comfySpot(home, iso); if (!spot) return false; Object.assign(iso, { order: 'humedad', rest: 0, ball: 0, wait: 0, stuck: 0, tx: spot.x, ty: spot.y }); return true; }
   iso.order = what; iso.rest = 0; iso.ball = 0; iso.wait = 0; iso.tx = null; iso.stuck = 0;
   if (what === 'dormir') iso.goBed = piece?.id ?? iso.home ?? null;

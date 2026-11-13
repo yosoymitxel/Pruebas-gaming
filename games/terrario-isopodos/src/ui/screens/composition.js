@@ -14,6 +14,14 @@ const pct = (v) => `${Math.round(v * 100)} %`;
 const css = (v) => `${Math.round(v * 100)}%`;
 const signed = (v) => `${v >= 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)} %`;
 
+// Qué hacer ahora, en una frase y con su color (verde bien, ámbar ojo, rojo actuar).
+function advice(home, clim, h) {
+  const lid = home.lid ?? 1;
+  if (clim === 'ideal') return t('adv.ok', 'Bien así: no hace falta tocar nada.');
+  if (clim === 'seco') return lid > 0 ? t('adv.closeLid', 'Muy seco: cierra la tapa y rocía.') : t('adv.addWater', 'Muy seco: rocía o pon una charca o musgo esfagno.');
+  if (lid < 2) return t('adv.openLid', 'Demasiada agua: abre la tapa.');
+  return t('adv.lessWater', 'Demasiada agua aun con la tapa abierta: quita una charca o un esfagno.');
+}
 export function Composition({ s, say, onClose }) {
   const home = s.game.home, clim = climate(home), eff = homeEffects(home), h = humidity(home), fix = CLIMATES[clim].fix;
   const label = (src) => (src === 'base' ? t('comp.base', 'Base') : src === 'weather' ? WEATHERS[home.weather].name : src === 'rocio' ? t('comp.mist', 'Rociado') : src === 'tapa' ? t('comp.lid', 'Tapa') : BUILDINGS[src].name);
@@ -24,15 +32,20 @@ export function Composition({ s, say, onClose }) {
       <div><h3 class="clim-title">${CLIMATES[clim].name}</h3><p class="clim-desc">${CLIMATES[clim].desc}</p></div>
       <p class="hum-big" aria-label=${t('comp.humidity', 'Humedad')}><${Icon} name="items" size="18" />${pct(h)}</p>
     </header>
+    <p class=${`verdict v-${clim}`}>${advice(home, clim, h)}</p>
     <div class="humidity">
       <span class="hum-bar"><i style=${{ width: css(Math.min(1, h)) }}></i>
         <em style=${{ left: css(HUMIDITY.dry), width: css(HUMIDITY.wet - HUMIDITY.dry) }} title=${t('comp.ideal', 'ideal')}></em></span>
+      <span class="hum-scale" aria-hidden="true"><b style=${{ width: css(HUMIDITY.dry) }}>${t('comp.dry', 'Seco')}</b><b style=${{ width: css(HUMIDITY.wet - HUMIDITY.dry) }}>${t('comp.ideal2', 'Ideal')}</b><b>${t('comp.wet', 'Húmedo · moho')}</b></span>
+      <small class="hum-legend">${t('comp.parts', 'Lo que moja (azul) y lo que seca (marrón):')}</small>
       <ul class="hum-parts">${humidityParts(home).filter((p) => p.amount).map((p) => html`<li class=${p.amount > 0 ? 'up' : 'down'}>${label(p.source)} ${signed(p.amount)}</li>`)}</ul>
     </div>
     <div class="lid-row" role="radiogroup" aria-label=${t('comp.lid', 'Tapa')}><${Icon} name="lid" size="18" />
       ${LID_NAMES.map((n, k) => html`<button class=${`btn small${(home.lid ?? 1) === k ? ' active' : ''}${fix?.lid === k ? ' fix-target' : ''}`} role="radio" aria-checked=${(home.lid ?? 1) === k} onClick=${() => s.lid(k)}>${t(`lid.${k}`, n)}</button>`)}
       <span class="trend">${pct(h)} → ${pct(humidityTarget(home))}</span></div>
-    <p class=${`grad ${gradient(home).ok ? 'up' : 'down'}`}>${gradient(home).ok ? t('comp.gradOk', 'Hay rincón húmedo y rincón seco') : t('comp.gradNo', 'Todo igual de húmedo: aparta el agua a un lado')}</p>
+    <div class="side-row" role="radiogroup" aria-label=${t('comp.wetSide', 'Lado húmedo')}><span>${t('comp.wetSide', 'Lado húmedo')}</span>
+      ${[['izq', t('comp.left', 'Izquierda')], [null, t('comp.none', 'Parejo')], ['der', t('comp.right', 'Derecha')]].map(([v, n]) => html`<button class=${`btn small${(home.wetSide ?? null) === v ? ' active' : ''}`} role="radio" aria-checked=${(home.wetSide ?? null) === v} onClick=${() => s.wetSide(v)}>${n}</button>`)}</div>
+    <p class="side-help">${home.wetSide ? t('comp.sideHelp', 'Un lado queda mojado y el otro seco: cada isópodo busca el suyo.') : t('comp.sideNone', 'Todo parejo: elige un lado húmedo para que haya rincón seco y rincón mojado.')}</p>
     ${fix && html`<p class="fix"><${Icon} name="expand" size="16" />${fix.lid != null ? html`${t('comp.fixLid', 'Tapa')} <b>${LID_NAMES[fix.lid]}</b> ` : ''}${fix.layer ? html`${t('comp.fixLayer', 'Sube')} <b>${LAYERS[fix.layer].name}</b>` : ''}
       ${fix.pieces ? html`${t('comp.fixAdd', 'Pon')} <b>${fix.pieces.map((id) => BUILDINGS[id].name).join(' / ')}</b>` : ''}
       ${fix.less ? html` · ${t('comp.fixLess', 'menos')} <b>${BUILDINGS[fix.less].name}</b>` : ''}</p>`}
