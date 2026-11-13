@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../data/difficulty.js';
 import { loadMeta, saveMeta, award, tally } from '../game/meta.js';
 import { ABERRATIONS } from '../data/aberrations.js';
 import { FAITH } from '../data/cult.js';
-import { pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
+import { temple, ritual, pay, tickHome, collect, build, expand, recruit, upgradeLayer, poke, takeMolt, takeLeaf, mist, setLid, bless, sermon, addFaith, fitGrid, upgradePiece, storePiece, orderIso, renameIso, badgeIso, learnSkill } from '../game/home.js';
 import { newGather, tickGather, gatherLoot } from '../game/gather.js';
 import { newRun, enterNode, enterRoom, combatSetup, finishCombat, pickCard, retreat as runRetreat, settleRun, buy, HEAT, pickWeapon, swapWeapon, acceptPact } from '../game/run.js';
 import { createCombat, step, HEAVY, useAbility, useItem, switchMain, allies, roam, ARENA_R } from '../game/combat.js';
@@ -24,6 +24,7 @@ import { playSfx, setSound, setMusic, playMusic } from './sfx.js';
 import { ArchipelagoView } from '../view/archipelago.js';
 import { read } from './input.js';
 import { t } from '../i18n/index.js';
+import { RITUALS } from '../data/cult.js';
 import { Group } from 'three';
 
 // Pausa táctica: «pausa» detiene el tiempo (como por turnos); «lento» lo deja al 10 %.
@@ -288,10 +289,23 @@ export class Session {
     if (!iso || !bless(home, iso, this.game.day)) { this.sfx('hurt', 1.6); return false; }
     iso.loved = 1.2; iso.wait = 1.3; this.view.burst('mimo', iso.x, iso.y); { const w = this.view.toWorld(iso.x, iso.y); this.floatText('♥', w.x, w.z, 'love', 1.4); } this.sfx('heal', 1.4); this.persist(); this.emit(); return true;
   }
+  // Templo: abre la ficha del altar (sermón y rituales); sin altar, lleva a construirlo.
+  openTemple() {
+    const tp = temple(this.game.home);
+    if (tp) { this.selIso = null; this.selPiece = tp.id; this.sfx('open'); this.view.focusPiece = tp.id; }
+    else { this.wantPanel = 'build'; this.floatText(t('temple.need', 'Construye un Altar de musgo'), 0, 0, 'note', 1.5); }
+    this.emit();
+  }
+  ritual(id) {
+    if (!ritual(this.game.home, id, this.game.day)) { this.sfx('hurt', 1.6); return false; }
+    this.selPiece = null; this.view.focusPiece = temple(this.game.home)?.id; // se cierra la ficha para ver la ceremonia
+    this.sfx('boss', 1.2); this.nexo('ritual', RITUALS[id].name, t('temple.gather', 'La colonia se reúne en el altar')); this.persist(); this.emit(); return true;
+  }
   sermon() {
     const home = this.game.home;
     if (!sermon(home, this.game.day, hasUpgrade(this.game, 'coro') ? 2 : 1)) { this.sfx('hurt', 1.6); return false; }
-    this.selectIso(null); this.sfx('boss', 1.6); this.emit(); return true;
+    this.selPiece = null; this.view.focusPiece = temple(home)?.id;
+    this.selectIso(null); this.sfx('boss', 1.6); this.nexo('ritual', t('temple.sermon', 'Sermón'), t('temple.gather', 'La colonia se reúne en el altar')); this.emit(); return true;
   }
   // Quitar una asignación (trabajo o cama propia) desde cualquiera de las dos fichas.
   unassign(id, what) { const iso = this.game.home.isopods.find((i) => i.id === id); if (!iso) return; if (what === 'trabajar') iso.job = null; else iso.home = null; this.sfx('click'); this.persist(); this.emit(); }
@@ -495,7 +509,7 @@ export class Session {
     if (this.mode === 'home' && this.settings.autoSpin !== false && !this.settings.reduceMotion && this.selIso == null && !this.build && !this.paused && this.time - (this.touched ?? -9) > 4) this.stage.rotate(dt * 0.07);
     input.move = toWorld(input.move, this.stage.yaw);
     if (this.mode === 'menu') tickHome(this.menuHome, dt, this.rng);
-    else if (this.mode === 'home') { this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.view.merchant = merchantToday(this.game); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
+    else if (this.mode === 'home') { this.view.selPieceNow = this.selPiece; this.trackColony(); tickHome(this.game.home, dt, this.rng, DAY_PHASES[this.phase]); this.cultFx(); this.view.merchant = merchantToday(this.game); this.saveTimer = (this.saveTimer ?? 0) + dt; if (this.saveTimer > 15) { this.saveTimer = 0; this.persist(); } }
     else if (this.mode === 'gather' && !this.gather.done) {
       const g = this.gather, falls = g.falls, air = g.player.air, chained = g.chained ?? 0;
       tickGather(g, dt, input.move, input.roll, input.held?.roll);

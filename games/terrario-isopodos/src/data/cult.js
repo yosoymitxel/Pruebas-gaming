@@ -28,6 +28,8 @@ export const FAITH = {
     obediente: { name: 'Llegó alguien obediente', delta: 10 },
     esceptico: { name: 'Llegó alguien escéptico', delta: -10 },
     devoto: { name: 'Mimo a un devoto', delta: 3 },
+    ritual: { name: 'Ritual', delta: 15 },
+    vigilia: { name: 'Vigilia', delta: 25 },
   }),
 };
 
@@ -49,6 +51,17 @@ export const WISHES = {
 };
 
 export const SERMON = { time: 7, ring: 1.6 };
+
+// Rituales del templo (como los de la iglesia de Cult of the Lamb): se hacen en el altar con la colonia en
+// círculo, cuestan recursos y cada uno se puede repetir pasados `every` días. `icon`: nombre en src/ui/icons.js.
+export const RITUALS = localize('rituals', {
+  festin: { name: 'Festín', desc: 'Toda la colonia come hasta llenarse.', icon: 'eat', cost: { hojarasca: 8 }, every: 2 },
+  lluvia: { name: 'Danza de la lluvia', desc: 'Sube la humedad del terrario de golpe.', icon: 'items', cost: { musgo: 4 }, every: 1 },
+  cosecha: { name: 'Bendición de cosecha', desc: 'Las piezas producen un 50 % más durante un día.', icon: 'plant', cost: { esporas: 3, hojarasca: 2 }, every: 3 },
+  vigilia: { name: 'Vigilia', desc: 'Se acaban los sustos y la fe sube mucho.', icon: 'moon', cost: { ambar: 1 }, every: 2 },
+  vinculo: { name: 'Lazo de la colonia', desc: 'Todos ganan mucha lealtad.', icon: 'care', cost: { ambar: 2, cal: 3 }, every: 3 },
+});
+export const HARVEST = { mul: 1.5, time: 240 };
 
 // Obras (como en CotL, los seguidores levantan lo que pones): segundos por celda; ritmo solo y por ayudante.
 export const SITE = { perCell: 6, alone: 0.35, perWorker: 1, maxWorkers: 2 };

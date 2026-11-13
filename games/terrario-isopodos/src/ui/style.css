@@ -1228,3 +1228,22 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .outfit.locked > img { filter: grayscale(1) brightness(0.6); }
 .outfit.on { box-shadow: inset 0 0 0 3px var(--ui-accent, #13706f); }
 .outfit:disabled { opacity: 0.55; cursor: default; }
+/* Templo (ficha del altar): sermón grande arriba, rituales en lista con icono, efecto y precio o espera. */
+.temple { width: 100%; display: grid; gap: 8px; }
+.sermon-btn { justify-content: flex-start; gap: 10px; text-align: left; }
+.sermon-btn span { display: grid; } .sermon-btn small { font-weight: 400; opacity: 0.85; }
+.temple-t { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; }
+.rituals { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ritual { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border: var(--line); border-radius: var(--chip, 6px); background: var(--paper); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ritual:disabled { opacity: 0.55; cursor: default; }
+.ritual .r-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, #7a4fb0 18%, var(--paper)); color: #5a3590; }
+.ritual .r-txt { display: grid; } .ritual .r-txt small { opacity: 0.75; font-size: 12px; }
+.ritual .r-wait { font-size: 12px; opacity: 0.7; }
+.temple-busy { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 10px; background: var(--ink); color: var(--paper); border-radius: var(--chip, 6px); position: relative; overflow: hidden; font-weight: 700; }
+.temple-busy i { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--amber); }
+.nexo-ritual { background: radial-gradient(circle at 50% 45%, color-mix(in srgb, #7a4fb0 55%, var(--ink)), var(--ink) 70%); animation: nexo-dive 1.25s ease-in forwards; }
+.nexo-ritual b { color: #e8d8ff; }
+.ceremony { position: absolute; z-index: var(--z-hud); left: 50%; top: calc(max(var(--gap), env(safe-area-inset-top)) + 96px); translate: -50% 0; margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 14px; overflow: hidden;
+  background: color-mix(in srgb, #3a2458 92%, transparent); color: #efe3ff; border-radius: 14px; box-shadow: 0 6px 18px rgb(0 0 0 / 0.35); animation: door-in 360ms var(--ease-out) both; }
+.ceremony small { opacity: 0.75; }
+.ceremony i { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: #b48cff; }

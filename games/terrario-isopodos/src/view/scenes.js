@@ -272,6 +272,17 @@ export class HomeView extends GridScene {
     this.syncMold();
     for (const p of Object.values(this.grid.pieces)) if (p.site) { const f = footprint(p.type, p.rot), w = this.toWorld(p.x + f.w / 2, p.y + f.h / 2);
       marks.push({ id: `site${p.id}`, kind: 'site', icon: iconURL('build'), x: w.x, y: w.y + 1.4, z: w.z, piece: p.id, progress: Math.min(1, p.site.t / p.site.need) }); }
+    // La cámara va al templo mientras su ficha está abierta o hay ceremonia.
+    const fp = this.focusPiece != null && this.grid.pieces[this.focusPiece];
+    if (fp && this.selIso == null) { const w = this.toWorld(fp.x + 1, fp.y + 1), k = this.stage.camDist * 0.2; this.stage.follow(w.x + Math.sin(this.stage.yaw) * k, w.z + Math.cos(this.stage.yaw) * k, dt, 4); }
+    if (fp && !this.home.sermon && this.selPieceNow !== fp.id) this.focusPiece = null;
+    // Sermón o ritual en curso: círculo de luz violeta que gira y se cierra en el centro del corro.
+    if (this.home.sermon) {
+      if (!this.halo) { this.halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xb48cff, transparent: true, depthWrite: false })); this.group.add(this.halo); }
+      const sm = this.home.sermon, w = this.toWorld(sm.x, sm.y), k = 1 - sm.t / (sm.total ?? 7);
+      this.halo.position.set(w.x, w.y + 0.05, w.z); this.halo.scale.setScalar(2.2 - k * 1.4); this.halo.rotation.y = time; this.halo.material.opacity = 0.5 + Math.sin(time * 6) * 0.25;
+      if ((this.haloT = (this.haloT ?? 0) - dt) <= 0) { this.haloT = 0.6; this.vfx.burst('mimo', w.x, w.y + 0.3, w.z); }
+    } else if (this.halo) { this.group.remove(this.halo); this.halo = null; }
     // Mercader de visita (cada tres días): espera en la esquina del terrario.
     if (this.merchant) {
       const g = this.grid, w = this.toWorld(g.w - 1.2, g.h - 1.2); // dentro, en la esquina de delante

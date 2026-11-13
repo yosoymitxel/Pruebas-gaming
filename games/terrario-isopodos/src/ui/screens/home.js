@@ -2,7 +2,8 @@ import { html, useState } from '../lib.js';
 import { t } from '../../i18n/index.js';
 import { BUILDINGS } from '../../data/buildings.js';
 import { RESOURCES } from '../../data/resources.js';
-import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf } from '../../game/home.js';
+import { calm, canAfford, nextExpansion, climate, humidity, lvl, upgradeCost, workersOf, sleepersOf, canSermon, ritualReady } from '../../game/home.js';
+import { RITUALS } from '../../data/cult.js';
 import { portraitURL, isoPortrait } from '../../view/sprites.js';
 import { MAX_LEVEL } from '../../data/buildings.js';
 import { Resources, Cost, ResIcon, CamControls, FxLayer, DayClock, CloseX } from './common.js';
@@ -48,6 +49,20 @@ function Merchant({ s, onClose }) {
       <div class="side"><small>${t('merchant.get', 'Recibes')}</small>${label(o.get)}</div>
       <button class="btn small${ok && !sold ? ' primary' : ''}" disabled=${sold || !ok} onClick=${() => s.trade(k)}>${sold ? t('merchant.sold', 'Hecho') : ok ? t('merchant.buy', 'Cambiar') : t('merchant.short', 'Te falta')}</button></li>`; })}</ul>
   </section>`;
+}
+// Templo (la iglesia de Cult of the Lamb): el altar reúne a la colonia para el sermón del día y los rituales.
+function Temple({ s }) {
+  const home = s.game.home, day = s.game.day, busy = !!home.sermon;
+  return html`<div class="temple">
+    ${busy && html`<p class="temple-busy"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" />${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}<i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
+    <button class="btn primary sermon-btn" disabled=${busy || !canSermon(home, day)} onClick=${() => s.sermon()}>
+      <${Icon} name="colony" size="20" /><span><b>${t('temple.sermon', 'Sermón')}</b><small>${canSermon(home, day) ? t('temple.sermonDesc', 'Una vez al día: lealtad para todos y fe.') : t('temple.sermonDone', 'Hecho hoy. Vuelve mañana.')}</small></span></button>
+    <p class="temple-t">${t('temple.rituals', 'Rituales')}</p>
+    <ul class="rituals">${Object.entries(RITUALS).map(([id, r]) => { const ready = ritualReady(home, id, day), wait = (home.rituals?.[id] ?? -99) + r.every - day;
+      return html`<li><button class="ritual" disabled=${busy || !ready || !canAfford(home, r.cost)} onClick=${() => s.ritual(id)}>
+        <span class="r-ic"><${Icon} name=${r.icon} size="20" /></span><span class="r-txt"><b>${r.name}</b><small>${r.desc}</small></span>
+        ${ready ? html`<${Cost} cost=${r.cost} have=${home.resources} />` : html`<small class="r-wait">${wait === 1 ? t('temple.tomorrow', 'mañana') : `${wait} ${t('temple.days', 'días')}`}</small>`}</button></li>`; })}</ul>
+  </div>`;
 }
 // Lado pieza de la asignación: quién trabaja o duerme aquí, quitar a alguien o sumar a otro de la colonia.
 function Assigned({ s, p }) {
@@ -124,6 +139,7 @@ export function Home({ s }) {
     </header>
 
     ${toast && html`<p class="toast" role="status">${toast}</p>`}
+    ${home.sermon && html`<p class="ceremony" role="status"><${Icon} name=${home.sermon.ritual ? RITUALS[home.sermon.ritual].icon : 'colony'} size="18" /><b>${home.sermon.ritual ? RITUALS[home.sermon.ritual].name : t('temple.sermon', 'Sermón')}</b><small>${t('temple.gathering', 'en el altar')}</small><i style=${{ '--p': 1 - home.sermon.t / (home.sermon.total ?? 7) }}></i></p>`}
 
     ${s.build && html`<div class="build-bar">
       <span>${s.build.moving != null ? html`<${Icon} name="move" size="16" /> ` : ''}${BUILDINGS[s.build.type].name}</span>
@@ -138,6 +154,7 @@ export function Home({ s }) {
       ${upgradeCost(sel) && lvl(sel) < MAX_LEVEL ? html`<button class="btn primary upgrade" disabled=${!canAfford(home, upgradeCost(sel))} onClick=${() => s.upgradePiece(sel.id)}>
           <span class="up-l"><${Icon} name="expand" size="18" />${t('home.upgrade', 'Mejorar')} <small>${gainOf(BUILDINGS[sel.type])}</small></span><${Cost} cost=${upgradeCost(sel)} have=${home.resources} /></button>`
         : html`<p class="maxed"><${Icon} name="botin" size="16" />${t('home.maxedShort', 'Nivel máximo')}</p>`}
+      ${sel.type === 'altar' && !sel.site && html`<${Temple} s=${s} />`}
       <${Assigned} s=${s} p=${sel} />
       <div class="pc-tools">
         <button class="btn" onClick=${() => s.startMove(sel.id)}><${Icon} name="move" size="18" />${t('home.move', 'Mover')}</button>
